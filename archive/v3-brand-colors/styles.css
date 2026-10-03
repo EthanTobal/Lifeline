@@ -248,7 +248,7 @@ h1 #greeting { font-weight: 700; color: var(--hl); }
   border-radius: var(--radius-lg) var(--radius-lg) 6px var(--radius-lg);
 }
 
-.text { font-size: 1.05rem; line-height: 1.65; white-space: pre-line; }
+.text { font-size: 1.05rem; line-height: 1.65; }
 .text p { margin: 0 0 .8rem; }
 .text p:last-child { margin-bottom: 0; }
 .text ul { margin: .2rem 0 .8rem; padding-left: 1.3rem; }
@@ -330,40 +330,13 @@ h1 #greeting { font-weight: 700; color: var(--hl); }
 }
 .voice-transcript {
   min-height: 3.4em; max-width: 30ch; margin: 0 0 2.5rem;
-  font-size: 1.15rem; color: var(--ink-soft); white-space: pre-line;
+  font-size: 1.15rem; color: var(--ink-soft);
 }
 .voice-controls { display: flex; gap: .75rem; }
 #mute-btn .ic-mic-off { display: none; }
 #mute-btn[aria-pressed="true"] { background: var(--sh); border-color: var(--sh); color: var(--bg); }
 #mute-btn[aria-pressed="true"] .ic-mic { display: none; }
 #mute-btn[aria-pressed="true"] .ic-mic-off { display: inline; }
-
-/* ---------- Dialogs ---------- */
-.dlg {
-  position: fixed; inset: 0; z-index: 80;
-  display: grid; place-items: center; padding: 1rem;
-  background: rgba(53, 0, 25, .35);
-}
-.dlg-card {
-  width: 100%; max-width: 520px; padding: 1.75rem;
-  background: var(--bg); border-radius: var(--radius-lg); box-shadow: var(--shadow);
-  animation: rise .3s var(--ease) both;
-}
-.dlg-card h2 { margin: 0 0 .5rem; font-size: 1.4rem; color: var(--sh); font-weight: 500; }
-.dlg-note { margin: 0 0 1.25rem; color: var(--ink-soft); font-size: .95rem; }
-.dlg-card label { display: block; font-weight: 700; margin-bottom: .4rem; }
-.dlg-card input {
-  width: 100%; min-height: 54px; padding: 0 1rem; font: inherit;
-  border: 1.5px solid var(--line); border-radius: 12px; background: var(--bg);
-}
-.dlg-card input:focus-visible { box-shadow: var(--focus); border-color: var(--hl); }
-.dlg-actions { display: flex; justify-content: flex-end; gap: .6rem; margin-top: 1.5rem; }
-.mem-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
-.mem-list li {
-  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-  padding: .75rem 1rem; background: var(--hl-tint-2); border: 1px solid var(--line); border-radius: 12px;
-}
-.mem-empty { color: var(--ink-soft); }
 
 /* ---------- Toast ---------- */
 .toast {

@@ -1,7 +1,6 @@
 /* =========================================================
-   Lifeline — front end
-   Real Gemini calls when an API key is set (gear button);
-   otherwise a local mock so the demo still works.
+   Lifeline — front-end prototype (all responses are mocked)
+   To connect a real model, replace getMockReply().
    ========================================================= */
 (() => {
   "use strict";
@@ -138,7 +137,6 @@
   }
   function showHome() {
     stopThinking();
-    lastInteractionId = null;
     el.messages.innerHTML = "";
     el.chat.hidden = true;
     el.newChat.hidden = true;
@@ -224,71 +222,15 @@
 
   /* ---------- Streaming reply ---------- */
   let busy = false;
-  let lastInteractionId = null;
 
   async function respond(userText, override) {
     if (busy) return;
     busy = true; updateSend();
-
-    if (Gemini.getKey() && !override) {
-      startThinking();
-      let created = false;
-      let aiMsg = null;
-      const shownTools = new Set();
-      try {
-        await Gemini.chatTurn({
-          input: userText,
-          previousId: lastInteractionId,
-          onTool(name, r) {
-            toast(name === "save_memory" ? "Saved to memory" :
-                  name === "forget_memory" ? "Memory removed" : "Memories loaded");
-            renderMemories();
-          },
-          onText(full) {
-            if (!created) {
-              stopThinking();
-              showChat();
-              aiMsg = makeMsg("ai");
-              $(".orb", aiMsg.li).dataset.state = "speaking";
-              created = true;
-            }
-            const p = aiMsg.text.querySelector("p") || aiMsg.text.appendChild(document.createElement("p"));
-            p.textContent = full;
-            scrollDown();
-          },
-        }).then((res) => {
-          lastInteractionId = res.interactionId || lastInteractionId;
-          if (aiMsg) {
-            $(".orb", aiMsg.li).dataset.state = "idle";
-            addActions(aiMsg.body, aiMsg.text);
-            scrollDown();
-          }
-        });
-      } catch (err) {
-        stopThinking();
-        addError(err.message);
-      }
-      if (!created) stopThinking();
-      busy = false; updateSend();
-      return;
-    }
-
-    /* ---- local mock fallback ---- */
     startThinking();
     await sleep(1500 + Math.random() * 1300);
     stopThinking();
     await streamReply(override || getMockReply(userText));
     busy = false; updateSend();
-  }
-
-  function addError(msg) {
-    showChat();
-    const { li, text } = makeMsg("ai");
-    li.classList.add("msg-error");
-    text.innerHTML = msg
-      ? `<p>${msg}</p><p>Please check your API key and try again.</p>`
-      : "<p>Sorry, I'm having trouble connecting right now. Please try again in a moment — your message hasn't been lost.</p>";
-    scrollDown();
   }
 
   async function streamReply(reply) {
@@ -360,6 +302,14 @@
     body.appendChild(row);
   }
 
+  function addError() {
+    showChat();
+    const { li, text } = makeMsg("ai");
+    li.classList.add("msg-error");
+    text.innerHTML = "<p>Sorry, I'm having trouble connecting right now. Please try again in a moment — your message hasn't been lost.</p>";
+    scrollDown();
+  }
+
   /* ---------- Composer ---------- */
   function updateSend() { el.send.disabled = busy || !el.input.value.trim(); }
   function autoGrow() {
@@ -400,11 +350,10 @@
   let voiceRun = 0;
   let levelRAF = 0;
   let lastFocus = null;
-  let liveSession = null;
 
   function setLevel(v) { el.vOrb.style.setProperty("--level", v.toFixed(3)); }
 
-  /* Fake amplitude for the no-key demo */
+  // Fake amplitude: smooth noise, different "energy" per state
   function animateLevel() {
     cancelAnimationFrame(levelRAF);
     let cur = 0;
@@ -434,41 +383,15 @@
     document.body.style.overflow = "hidden";
     el.mute.setAttribute("aria-pressed", "false");
     $("span", el.mute).textContent = "Mute";
-    el.endVoice.focus();
-
-    if (Gemini.getKey()) {
-      el.vOrb.dataset.state = "listening";
-      el.vStatus.textContent = "Connecting";
-      el.vText.textContent = "";
-      Gemini.startLive({
-        onState(s) {
-          if (s === "speaking") { el.vOrb.dataset.state = "speaking"; el.vStatus.textContent = "Speaking"; }
-          else if (s === "listening") { el.vOrb.dataset.state = "listening"; el.vStatus.textContent = "Listening"; }
-        },
-        onUserText(t) { el.vText.textContent = "“" + t + "”"; },
-        onModelText(t) { el.vText.textContent = t; },
-        onTurnDone(user, model) {
-          if (user || model) el.vText.textContent = (user ? `You: “${user}”\n` : "") + (model || "");
-        },
-        onTool(name) { renderMemories(); toast(name === "save_memory" ? "Saved to memory" : name === "forget_memory" ? "Memory removed" : "Memories loaded"); },
-        onLevel(v) { el.vOrb.style.setProperty("--level", reduceMotion ? 0 : v.toFixed(3)); },
-        onClose(msg) { if (msg) toast(msg); },
-      }).then((s) => { liveSession = s; el.vStatus.textContent = "Listening"; })
-        .catch((err) => { el.voice.hidden = true; document.body.style.overflow = ""; addError(err.message); toast(err.message); });
-      return;
-    }
-
-    // mock demo when no key
     setVoiceState("listening");
     animateLevel();
+    el.endVoice.focus();
     runVoiceDemo();
   }
 
   function closeVoice() {
     voiceRun++;
     cancelAnimationFrame(levelRAF);
-    liveSession?.close();
-    liveSession = null;
     el.voice.hidden = true;
     document.body.style.overflow = "";
     lastFocus?.focus?.();
@@ -516,15 +439,8 @@
     const muted = el.mute.getAttribute("aria-pressed") !== "true";
     el.mute.setAttribute("aria-pressed", String(muted));
     $("span", el.mute).textContent = muted ? "Unmute" : "Mute";
-    liveSession?.setMuted(muted);
-    if (liveSession) {
-      el.vOrb.dataset.state = muted ? "muted" : "listening";
-      el.vStatus.textContent = muted ? "Microphone off" : "Listening";
-      if (muted) el.vText.textContent = "Press Unmute when you're ready.";
-    } else {
-      voiceRun++;
-      setVoiceState(muted ? "muted" : "listening");
-    }
+    voiceRun++;
+    setVoiceState(muted ? "muted" : "listening");
   });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !el.voice.hidden) closeVoice(); });
   el.voice.addEventListener("keydown", (e) => {
@@ -564,48 +480,4 @@
       case "v-auto": el.voice.hidden ? openVoice() : runVoiceDemo(); break;
     }
   });
-
-  /* ---------- Settings & memories dialogs ---------- */
-  const settingsDlg = $("#settings-dlg"), memoriesDlg = $("#memories-dlg");
-  const keyInput = $("#key-input");
-
-  function openDlg(d) { d.hidden = false; }
-  function closeDlg(d) { d.hidden = true; }
-
-  $("#settings-btn").addEventListener("click", () => {
-    keyInput.value = Gemini.getKey();
-    openDlg(settingsDlg);
-    keyInput.focus();
-  });
-  $("#key-save").addEventListener("click", () => {
-    const k = keyInput.value.trim();
-    if (k) { Gemini.setKey(k); toast("Key saved in this browser"); }
-    closeDlg(settingsDlg);
-  });
-  $("#memories-btn").addEventListener("click", () => { renderMemories(); openDlg(memoriesDlg); });
-  $$("[data-close]").forEach((b) => b.addEventListener("click", () => closeDlg(b.closest(".dlg"))));
-  [settingsDlg, memoriesDlg].forEach((d) =>
-    d.addEventListener("click", (e) => { if (e.target === d) closeDlg(d); }));
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") [settingsDlg, memoriesDlg].forEach(closeDlg);
-  });
-
-  function renderMemories() {
-    const mems = Gemini.getMemories();
-    const list = $("#mem-list");
-    list.innerHTML = "";
-    $("#mem-empty").style.display = mems.length ? "none" : "";
-    for (const m of mems) {
-      const li = document.createElement("li");
-      li.innerHTML = `<span></span><button class="chip" aria-label="Delete this memory">Delete</button>`;
-      li.querySelector("span").textContent = m.text;
-      li.querySelector("button").addEventListener("click", () => {
-        Gemini.setMemories(Gemini.getMemories().filter((x) => x.id !== m.id));
-        renderMemories();
-      });
-      list.appendChild(li);
-    }
-  }
-  $("#mem-clear").addEventListener("click", () => { Gemini.setMemories([]); renderMemories(); });
-  document.addEventListener("memories-changed", renderMemories);
 })();
