@@ -1,0 +1,96 @@
+"""HTTP API for local development.
+
+A dependency-free http.server app so the frontend can talk to the backend
+without installing a web framework. For AWS, lambda_handler (below) wraps
+the same Orchestrator behind API Gateway — build now, deploy later.
+
+Endpoints:
+    POST /api/turn    body: {session_id?, message?, profile_updates?, assumption_updates?}
+    GET  /health
+"""
+from __future__ import annotations
+
+import json
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+from .orchestrator import Orchestrator
+
+_orchestrator = Orchestrator()
+
+
+def _handle_turn(payload: dict) -> dict:
+    return _orchestrator.handle_turn(
+        session_id=payload.get("session_id"),
+        message=payload.get("message", ""),
+        profile_updates=payload.get("profile_updates"),
+        assumption_updates=payload.get("assumption_updates"),
+    )
+
+
+class Handler(BaseHTTPRequestHandler):
+    def _send(self, code: int, body: dict) -> None:
+        data = json.dumps(body).encode("utf-8")
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Access-Control-Allow-Origin", "*")  # demo only
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+    def do_OPTIONS(self):  # CORS preflight
+        self._send(204, {})
+
+    def do_GET(self):
+        if self.path == "/health":
+            self._send(200, {"status": "ok"})
+        else:
+            self._send(404, {"error": "not found"})
+
+    def do_POST(self):
+        if self.path != "/api/turn":
+            self._send(404, {"error": "not found"})
+            return
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            payload = json.loads(self.rfile.read(length) or b"{}")
+        except (ValueError, json.JSONDecodeError):
+            self._send(400, {"error": "invalid JSON body"})
+            return
+        try:
+            self._send(200, _handle_turn(payload))
+        except Exception as exc:  # never leak a stack trace to the client
+            self._send(500, {"error": "internal error", "detail": str(exc)})
+
+    def log_message(self, *args):  # quieter console
+        pass
+
+
+def lambda_handler(event, context=None):
+    """AWS Lambda entry point (API Gateway proxy integration). Build-only for
+    now — not deployed. Wraps the same Orchestrator."""
+    try:
+        body = json.loads(event.get("body") or "{}")
+    except (ValueError, json.JSONDecodeError):
+        return {"statusCode": 400, "body": json.dumps({"error": "invalid JSON body"})}
+    result = _handle_turn(body)
+    return {
+        "statusCode": 200,
+        "headers": {"Content-Type": "application/json",
+                    "Access-Control-Allow-Origin": "*"},
+        "body": json.dumps(result),
+    }
+
+
+def main(host: str = "127.0.0.1", port: int = 8000) -> None:
+    server = ThreadingHTTPServer((host, port), Handler)
+    print(f"Lifeline backend on http://{host}:{port}  (POST /api/turn)")
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        server.shutdown()
+
+
+if __name__ == "__main__":
+    main()

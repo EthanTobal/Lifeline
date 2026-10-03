@@ -3,3 +3,13 @@ archive/**/v.png
 .DS_Store
 __pycache__/
 *.pyc
+
+# Kiro assistant workspace (local tooling, not app code)
+.kiro/
+
+# Python backend
+.env
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
