@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
   <meta name="theme-color" content="#650030" />
   <title>Lifeline — Life insurance, made simple</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -18,6 +18,12 @@
       <span class="brand-name">Lifeline</span>
     </a>
 
+    <button type="button" class="btn btn-outline documents-toggle" id="documents-btn" aria-controls="documents-panel" aria-expanded="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5" /></svg>
+      <span class="documents-label">Documents</span>
+      <span class="documents-count" id="documents-count" aria-hidden="true">0</span>
+    </button>
+
     <div class="topbar-actions">
       <div class="text-size" role="group" aria-label="Text size">
         <button class="ts" data-size="normal" aria-pressed="true" aria-label="Normal text">A</button>
@@ -27,10 +33,10 @@
       <button class="icon-btn" id="memories-btn" aria-label="View saved memories" title="Saved memories">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
       </button>
-      <button class="icon-btn" id="settings-btn" aria-label="API key settings" title="API key settings">
+      <button class="icon-btn" id="settings-btn" aria-label="OpenRouter settings" title="OpenRouter settings">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9c.3.6.9 1 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></svg>
       </button>
-      <button class="btn btn-outline" id="new-chat-btn" hidden>
+      <button class="btn btn-outline" id="new-chat-btn" aria-label="New chat" title="New chat" hidden>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
         <span>New chat</span>
       </button>
@@ -40,13 +46,44 @@
   <!-- ============ DIALOGS ============ -->
   <div class="dlg" id="settings-dlg" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
     <div class="dlg-card">
-      <h2 id="settings-title">Gemini API key</h2>
+      <h2 id="settings-title">OpenRouter settings</h2>
       <p class="dlg-note">This is a demo. Your key is stored only in this browser. Real apps should call the API from a secure server, never the browser.</p>
-      <label for="key-input">API key</label>
+      <label for="key-input">OpenRouter API key</label>
       <input id="key-input" type="password" autocomplete="off" placeholder="Paste your key here" />
+      <label for="model-input" class="model-label">Model</label>
+      <input id="model-input" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="model-note" />
+      <p class="dlg-note model-note" id="model-note">Enter an OpenRouter model ID in provider/model format. Choose a model that supports tools for memories, documents and embeds. Leave the API key empty to use the demo.</p>
+      <label for="voice-model-input" class="model-label">Voice model (optional)</label>
+      <input id="voice-model-input" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" list="openrouter-models" aria-describedby="voice-model-note" placeholder="Use the same model as chat" />
+      <p class="dlg-note" id="voice-model-note">Use a model with tools, such as google/gemini-3.8-flash. Speech playback is configured below.</p>
+      <label for="voice-input-mode" class="model-label">Voice input</label>
+      <select id="voice-input-mode" aria-describedby="voice-input-note">
+        <option value="auto">Automatic — browser speech with microphone fallback</option>
+        <option value="audio">OpenRouter audio — use the microphone directly</option>
+      </select>
+      <p class="dlg-note" id="voice-input-note">Automatic switches to microphone audio if browser speech fails. Pause briefly after speaking to send your turn. Microphone access requires HTTPS or localhost.</p>
+      <label for="transcription-model-input" class="model-label">Speech transcription model (optional)</label>
+      <input id="transcription-model-input" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="transcription-model-note" placeholder="google/gemini-3.8-flash" />
+      <p class="dlg-note" id="transcription-model-note">Microphone audio uses google/gemini-3.8-flash by default to transcribe speech. You can choose another OpenRouter model with audio input and text output. Your voice model still answers questions and creates documents.</p>
+      <button type="button" class="btn btn-outline" id="load-models">Load available models</button>
+      <p class="dlg-note" id="models-status" role="status"></p>
+      <datalist id="openrouter-models"></datalist>
+      <label for="speech-output" class="model-label">Spoken replies</label>
+      <select id="speech-output" aria-describedby="speech-output-note">
+        <option value="auto">Automatic — OpenRouter speech when a key is provided</option>
+        <option value="browser">Browser voices only</option>
+      </select>
+      <p class="dlg-note" id="speech-output-note">Automatic uses your OpenRouter key for speech in voice mode and Read aloud. Without a key, it uses installed browser voices.</p>
+      <label for="tts-model-input" class="model-label">Speech model</label>
+      <input id="tts-model-input" autocomplete="off" autocapitalize="none" spellcheck="false" />
+      <label for="tts-voice-input" class="model-label">Speech voice</label>
+      <input id="tts-voice-input" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="tts-note" />
+      <p class="dlg-note" id="tts-note">The default Microsoft speech model uses en-US-Harper:MAI-Voice-2.1-Flash. Voice IDs must match the speech model.</p>
+      <button type="button" class="btn btn-outline" id="test-voice-btn">Test voice</button>
+      <p class="dlg-note" id="speech-test-status" role="status"></p>
       <div class="dlg-actions">
         <button class="btn btn-outline" data-close>Cancel</button>
-        <button class="btn btn-primary" id="key-save">Save key</button>
+        <button class="btn btn-primary" id="key-save">Save settings</button>
       </div>
     </div>
   </div>
@@ -65,6 +102,8 @@
   </div>
 
   <!-- ============ MAIN ============ -->
+  <div class="session-layout" id="session-layout">
+  <div class="conversation-pane" id="conversation-pane">
   <main class="app">
     <!-- Home -->
     <section class="home" id="home" aria-labelledby="home-title">
@@ -112,21 +151,51 @@
       <button type="button" class="icon-btn" id="voice-btn" aria-label="Talk instead of typing" title="Talk instead of typing">
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg>
       </button>
-      <button type="submit" class="btn btn-primary" id="send-btn" disabled>
+      <button type="submit" class="btn btn-primary" id="send-btn" aria-label="Send message" disabled>
         <span class="send-label">Send</span>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6" /></svg>
       </button>
     </form>
     <p class="fineprint">Private and secure · You can ask for a real person at any time</p>
   </footer>
+  </div>
+
+  <!-- ============ SESSION DOCUMENTS ============ -->
+  <aside class="documents-panel" id="documents-panel" role="region" aria-labelledby="documents-title" hidden>
+    <div class="documents-heading">
+      <div>
+        <h2 id="documents-title">Documents</h2>
+        <p id="documents-summary" role="status">No documents in this chat yet</p>
+      </div>
+      <button type="button" class="icon-btn" id="documents-close" aria-label="Close document viewer" title="Close document viewer">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+      </button>
+    </div>
+    <p class="documents-empty" id="documents-empty">Ask Lifeline for a summary, checklist, or plan. Every document created in this chat will appear here.</p>
+    <nav class="documents-nav" aria-label="Documents in this chat" id="documents-nav" hidden>
+      <ol class="documents-list" id="documents-list"></ol>
+    </nav>
+    <article class="document-preview" id="document-preview" aria-labelledby="document-title" hidden>
+      <div class="document-toolbar">
+        <h3 id="document-title"></h3>
+        <button type="button" class="btn btn-outline" id="document-print">Print</button>
+      </div>
+      <div class="markdown-content document-content" id="document-content"></div>
+    </article>
+  </aside>
+  </div>
+  <div class="documents-backdrop" id="documents-backdrop" hidden></div>
 
   <!-- ============ VOICE MODE ============ -->
   <div class="voice" id="voice" role="dialog" aria-modal="true" aria-labelledby="voice-status" hidden>
+    <div class="voice-layout">
     <div class="voice-inner">
       <div class="orb orb-voice" id="voice-orb" data-state="listening" aria-hidden="true"><span class="orb-core"></span></div>
 
       <h2 class="voice-status" id="voice-status" aria-live="assertive">Listening</h2>
       <p class="voice-transcript" id="voice-transcript" aria-live="polite">Go ahead, I'm listening.</p>
+      <p class="dlg-note" id="voice-input-status" role="status"></p>
+      <p class="dlg-note" id="voice-output-status" role="status"></p>
 
       <div class="voice-controls">
         <button class="btn btn-outline btn-lg" id="mute-btn" aria-pressed="false">
@@ -139,6 +208,22 @@
           <span>End</span>
         </button>
       </div>
+      <form id="voice-reply-form" class="voice-reply-form">
+        <label for="voice-reply-input" class="sr-only">Type a reply during voice mode</label>
+        <input id="voice-reply-input" placeholder="Or type your reply…" autocomplete="off" />
+        <button class="btn btn-outline" type="submit" id="voice-reply-send">Send</button>
+      </form>
+      <div id="voice-follow-up" class="voice-follow-up" hidden></div>
+    </div>
+    <aside class="voice-canvas" aria-labelledby="voice-canvas-title">
+      <div class="voice-canvas-heading">
+        <span class="content-label">Your workspace</span>
+        <h2 id="voice-canvas-title">Documents &amp; resources</h2>
+        <p>View and print documents while we talk.</p>
+      </div>
+      <p id="voice-canvas-empty" class="voice-canvas-empty">Ask for a summary, checklist, or plan. Lifeline will put it here.</p>
+      <div id="voice-canvas-content"></div>
+    </aside>
     </div>
   </div>
 
@@ -154,6 +239,9 @@
         <button data-dev="thinking">Thinking</button>
         <button data-dev="stop">Stop thinking</button>
         <button data-dev="long">Long reply</button>
+        <button data-dev="markdown">Markdown</button>
+        <button data-dev="artifact">Summary artifact</button>
+        <button data-dev="embed">Embeds</button>
         <button data-dev="error">Error</button>
         <button data-dev="clear">Home</button>
       </div>
@@ -167,7 +255,12 @@
     </div>
   </aside>
 
-  <script src="gemini.js"></script>
+  <script src="vendor/marked.umd.js"></script>
+  <script src="vendor/purify.min.js"></script>
+  <script src="content.js"></script>
+  <script src="speech.js"></script>
+  <script src="voice-input.js"></script>
+  <script src="openrouter.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
