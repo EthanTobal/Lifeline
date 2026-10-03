@@ -435,3 +435,60 @@ h1 #greeting { font-weight: 700; color: var(--hl); }
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
   .shimmer { color: var(--ink-soft); background: none; }
 }
+
+/* ============ Coverage result card ============ */
+.coverage-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--hl-tint-2);
+  padding: 20px 22px;
+  box-shadow: var(--shadow);
+  max-width: 560px;
+}
+.coverage-card .cc-label {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: .9em;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.coverage-card .cc-total {
+  margin: 2px 0 14px;
+  font-size: 2.1em;
+  font-weight: 700;
+  color: var(--sh);
+  line-height: 1.1;
+}
+.coverage-card .cc-breakdown {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+.coverage-card .cc-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--line);
+}
+.coverage-card .cc-row span { display: flex; flex-direction: column; }
+.coverage-card .cc-row small { color: var(--ink-soft); font-size: .82em; margin-top: 1px; }
+.coverage-card .cc-row b { color: var(--ink); white-space: nowrap; }
+.coverage-card .cc-sub b { color: var(--ink-soft); }
+.coverage-card .cc-premium { margin: 14px 0 0; }
+.coverage-card .cc-cross { margin: 10px 0 0; color: var(--ink-soft); font-size: .9em; }
+.coverage-card .cc-flag {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  background: var(--hl-tint);
+  border-left: 3px solid var(--hl);
+  border-radius: var(--radius);
+  font-size: .92em;
+}
+.coverage-card .cc-actions { margin-top: 16px; }
+.coverage-card .cc-fine {
+  margin: 14px 0 0;
+  color: var(--ink-soft);
+  font-size: .78em;
+  line-height: 1.4;
+}

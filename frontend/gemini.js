@@ -48,6 +48,29 @@ const Gemini = (() => {
         setMemories(kept);
         return { ok: true, removed };
       }
+      case "calculate_coverage": {
+        if (typeof Life === "undefined")
+          return { ok: false, error: "Calculator not loaded." };
+        const rec = Life.recommend(args);
+        const summary = Life.buildSummary(args);
+        // Hand the UI a ready-to-render payload so it can show a result
+        // card and a print button. The model also receives these numbers
+        // (as plain text) so it can explain them without doing math.
+        document.dispatchEvent(new CustomEvent("coverage-result", { detail: { rec, summary, input: args } }));
+        return {
+          ok: true,
+          recommendedCoverage: rec.recommendedCoverage,
+          recommendedCoverageText: Life.USD(rec.recommendedCoverage),
+          breakdown: rec.primary.breakdown.map((b) => ({ label: b.label, detail: b.detail, amount: b.amount })),
+          offsets: rec.primary.offsetLines.filter((o) => o.amount > 0).map((o) => ({ label: o.label, amount: o.amount })),
+          sanityCheckBand: { low: rec.sanityCheck.low, high: rec.sanityCheck.high },
+          humanLifeValue: rec.humanLifeValue ? rec.humanLifeValue.total : null,
+          estimatedMonthlyPremiumText: summary.estimatedMonthlyPremiumText,
+          flags: rec.flags,
+          disclaimer: rec.disclaimer,
+          note: "A result card with a printable summary has been shown to the user. Explain these numbers in plain, calm language; do not recompute them.",
+        };
+      }
       default:
         return { ok: false, error: "Unknown tool." };
     }
@@ -78,6 +101,32 @@ const Gemini = (() => {
         required: ["text"],
       },
     },
+    {
+      name: "calculate_coverage",
+      description:
+        "Calculate how much life insurance coverage the user needs, using verified math (DIME needs analysis, a 10-15x income cross-check, Human Life Value, and a rough term premium). " +
+        "You MUST call this tool to produce any coverage amount, gap, or premium figure — never do the arithmetic yourself. " +
+        "Call it as soon as you have at least the annual income; pass every other value the user has given. Omit values you don't have yet (they default sensibly). " +
+        "After it returns, explain the result in plain, calm language and offer to save a printable summary.",
+      parameters: {
+        type: "object",
+        properties: {
+          annualIncome: { type: "number", description: "Gross annual income in dollars. Required for a meaningful result." },
+          age: { type: "number", description: "The user's age in years." },
+          sex: { type: "string", description: "'male' or 'female', used only for the cost estimate." },
+          smoker: { type: "boolean", description: "True if the user uses tobacco." },
+          health: { type: "string", description: "One of: excellent, good, average, poor." },
+          numChildren: { type: "number", description: "Number of children or dependents." },
+          mortgageBalance: { type: "number", description: "Remaining mortgage balance in dollars." },
+          nonMortgageDebt: { type: "number", description: "Other debts (credit cards, car, student loans) in dollars." },
+          existingCoverage: { type: "number", description: "Life insurance they already have (employer + personal) in dollars." },
+          liquidSavings: { type: "number", description: "Savings and investments available to the family in dollars." },
+          incomeReplacementYears: { type: "number", description: "Years of income to replace (default 10)." },
+          termYears: { type: "number", description: "Term length for the premium estimate (e.g. 10, 20, 30)." },
+        },
+        required: ["annualIncome"],
+      },
+    },
   ];
 
   const toolsForInteractions = () =>
@@ -92,6 +141,11 @@ const Gemini = (() => {
       "Most users are older adults: explain things simply, never use jargon without defining it, and keep answers short and clear.",
       "You are not a licensed agent; remind users to confirm important details with a real adviser and that you can connect them to a person at any time.",
       "When the user shares something important about themselves (name, family situation, health, policy type), call save_memory. If they ask what you remember, call list_memories. If they ask you to forget something, call forget_memory.",
+      "",
+      "FIGURING OUT HOW MUCH COVERAGE THEY NEED:",
+      "When a user wants a quote, a coverage amount, or to know how much insurance they need, gently gather their details ONE question at a time: annual income first, then dependents, mortgage, other debts, existing coverage, savings, and (for a cost estimate) age, whether they use tobacco, and general health. Keep it conversational, not a form.",
+      "You MUST NOT calculate any dollar amount, coverage gap, or premium yourself — language models get numbers wrong. The moment you have at least their annual income, call the calculate_coverage tool with everything they've told you so far; leave out anything you don't know yet. It is fine to call it again with more details as the conversation continues.",
+      "After the tool returns, explain the number in plain, reassuring language, walk through the breakdown simply, and reassure them this is a planning estimate, not a bill. Then offer to save them a printable summary they can keep or share.",
       mems.length ? `Things to remember about this user:\n- ${mems.map((m) => m.text).join("\n- ")}` : "",
     ].filter(Boolean).join("\n");
   }

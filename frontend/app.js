@@ -608,4 +608,59 @@
   }
   $("#mem-clear").addEventListener("click", () => { Gemini.setMemories([]); renderMemories(); });
   document.addEventListener("memories-changed", renderMemories);
+
+  /* ---------- Coverage result card ----------
+     gemini.js dispatches "coverage-result" when the calculate_coverage
+     tool runs. We render a clear, printable card into the chat so the
+     user sees the real breakdown (not just the AI's prose) and can keep
+     a copy. The actual math lives in calculator.js (Life). */
+  document.addEventListener("coverage-result", (e) => {
+    const { rec, summary } = e.detail || {};
+    if (!rec || typeof Life === "undefined") return;
+    showChat();
+
+    const li = document.createElement("li");
+    li.className = "msg msg-ai";
+    li.appendChild(smallOrb("idle"));
+
+    const card = document.createElement("div");
+    card.className = "coverage-card";
+
+    const need = rec.primary;
+    const rows = need.breakdown
+      .map((b) => `<div class="cc-row"><span>${b.label}<small>${b.detail}</small></span><b>${Life.USD(b.amount)}</b></div>`)
+      .join("");
+    const offsets = need.offsetLines
+      .filter((o) => o.amount > 0)
+      .map((o) => `<div class="cc-row cc-sub"><span>Less: ${o.label}</span><b>−${Life.USD(o.amount)}</b></div>`)
+      .join("");
+    const premium = summary.estimatedMonthlyPremiumText
+      ? `<p class="cc-premium">Rough cost: about <b>${summary.estimatedMonthlyPremiumText}</b> for term coverage (an estimate, not a quote).</p>`
+      : "";
+    const flags = (rec.flags || [])
+      .map((f) => `<p class="cc-flag">${f}</p>`).join("");
+
+    card.innerHTML =
+      `<p class="cc-label">Estimated coverage you may need</p>` +
+      `<p class="cc-total">${Life.USD(rec.recommendedCoverage)}</p>` +
+      `<div class="cc-breakdown">${rows}${offsets}</div>` +
+      premium + flags +
+      `<p class="cc-cross">Quick cross-check (10–15× income): ${Life.USD(rec.sanityCheck.low)} – ${Life.USD(rec.sanityCheck.high)}</p>` +
+      `<div class="cc-actions">` +
+      `<button class="btn btn-primary cc-print">Save / print my summary</button>` +
+      `</div>` +
+      `<p class="cc-fine">${rec.disclaimer}</p>`;
+
+    card.querySelector(".cc-print").addEventListener("click", () => {
+      const ok = Life.printSummary(summary);
+      if (!ok) toast("Please allow pop-ups to print your summary");
+    });
+
+    const body = document.createElement("div");
+    body.className = "msg-body";
+    body.appendChild(card);
+    li.appendChild(body);
+    el.messages.appendChild(li);
+    scrollDown();
+  });
 })();
