@@ -1,0 +1,42 @@
+{
+  "status": "success",
+  "title": "Individuals",
+  "source_url": "https://www.lincolnfinancial.com/public/individuals",
+  "canonical_url": "https://www.lincolnfinancial.com/public/individuals",
+  "vanity_url": "public/individuals",
+  "retrieved_at": "2026-10-03T20:10:42.874301+00:00",
+  "resource_category": "consumer-entry-point",
+  "headings": [
+    "Register",
+    "Find a financial professional",
+    "Find a form",
+    "Find a dentist",
+    "File a claim",
+    "Customer service",
+    "Access private market strategies to help you enhance portfolio resilience through market cycles",
+    "The list is out. Guess who's in?",
+    "Make your pastimes last a lifetime",
+    "Announcements",
+    "About Lincoln Financial",
+    "Tools and calculators",
+    "Privacy"
+  ],
+  "reason": "",
+  "http_status": null,
+  "content_type": "",
+  "raw_bytes": 159950,
+  "body_characters": 958,
+  "word_count": 159,
+  "warnings": [
+    "thin page: 958 characters is below the 1200-character review threshold"
+  ],
+  "output_files": [
+    "knowledge/lincoln-documents/raw/individuals-home.json",
+    "knowledge/lincoln-documents/cleaned/individuals-home.md"
+  ],
+  "excluded_from_rag": true,
+  "exclusion_reason": "Consumer entry-point hub. Its content is almost entirely quick-link tiles and corporate/footer headings (Register, Find a form, Find a dentist, File a claim, Privacy) with only 159 words of prose. Low retrieval value for the LifeLine analyzer. Raw and cleaned files are kept for provenance but this document must not be uploaded to the knowledge base.",
+  "audience": "individuals",
+  "page_asset_name": "Individuals & Families",
+  "page_asset_id": "1599564836690"
+}

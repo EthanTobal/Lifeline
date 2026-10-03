@@ -1,0 +1,34 @@
+{
+  "status": "success",
+  "title": "Calculators and tools",
+  "source_url": "https://www.lincolnfinancial.com/public/individuals/planning/calculatorsandtools",
+  "canonical_url": "https://www.lincolnfinancial.com/public/individuals/planning/calculatorsandtools",
+  "vanity_url": "public/individuals/planning/calculatorsandtools",
+  "retrieved_at": "2026-10-03T20:11:33.204537+00:00",
+  "resource_category": "planning-tools",
+  "headings": [
+    "Financial wellness",
+    "Insurance",
+    "IRS-qualified plans",
+    "Retirement",
+    "Find a financial professional"
+  ],
+  "reason": "",
+  "http_status": null,
+  "content_type": "",
+  "raw_bytes": 174278,
+  "body_characters": 2234,
+  "word_count": 357,
+  "warnings": [
+    "removed duplicate heading identical to the page title: 'Calculators and tools'"
+  ],
+  "output_files": [
+    "knowledge/lincoln-documents/raw/financial-planning-tools.json",
+    "knowledge/lincoln-documents/cleaned/financial-planning-tools.md"
+  ],
+  "excluded_from_rag": false,
+  "exclusion_reason": "",
+  "audience": "individuals",
+  "page_asset_name": "Calculators and Tools",
+  "page_asset_id": "1599565038335"
+}

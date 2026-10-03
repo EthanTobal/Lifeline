@@ -1,0 +1,88 @@
+{
+  "_comment": "Approved seed resources for the LifeLine RAG knowledge base. Only PUBLIC, consumer-facing pages on official Lincoln Financial domains. Content is retrieved from the same public JSON endpoint the site's own Angular frontend uses (/pbl-api/getcontent), one vanityUrl per approved page. The crawler never follows links automatically; discovered links are written to discovered_links.json for human review. To add a page, append it here with its vanityUrl (the URL path without the leading slash) and ensure it is public consumer content.",
+  "allowed_domains": [
+    "lincolnfinancial.com",
+    "www.lincolnfinancial.com"
+  ],
+  "user_agent": "LifeLineRAGBot/0.1 (+codeLinc11 hackathon educational research; non-commercial)",
+  "respect_robots_txt": true,
+  "crawl_delay_seconds": 10,
+  "request_timeout_seconds": 30,
+  "max_retries": 2,
+  "output_root": "knowledge/lincoln-documents",
+  "resources": [
+    {
+      "id": "individuals-home",
+      "url": "https://www.lincolnfinancial.com/public/individuals",
+      "resource_category": "consumer-entry-point",
+      "title_hint": "Individuals homepage",
+      "purpose": "Broad consumer entry point and access to planning resources.",
+      "filename": "individuals-home",
+      "vanityUrl": "public/individuals",
+      "approved_public": true,
+      "excluded_from_rag": true,
+      "exclusion_reason": "Consumer entry-point hub. Its content is almost entirely quick-link tiles and corporate/footer headings (Register, Find a form, Find a dentist, File a claim, Privacy) with only 159 words of prose. Low retrieval value for the LifeLine analyzer. Raw and cleaned files are kept for provenance but this document must not be uploaded to the knowledge base."
+    },
+    {
+      "id": "life-insurance-overview",
+      "url": "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance",
+      "resource_category": "product-overview",
+      "title_hint": "Life insurance overview",
+      "purpose": "Overview of life insurance product categories.",
+      "filename": "life-insurance-overview",
+      "vanityUrl": "public/individuals/products/lifeinsurance",
+      "approved_public": true,
+      "excluded_from_rag": false
+    },
+    {
+      "id": "what-are-your-goals",
+      "url": "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance/whatareyourgoals",
+      "resource_category": "needs-and-goals",
+      "title_hint": "What are your goals?",
+      "purpose": "Customer-focused information about life insurance needs and goals.",
+      "filename": "what-are-your-goals",
+      "vanityUrl": "public/individuals/products/lifeinsurance/whatareyourgoals",
+      "approved_public": true,
+      "excluded_from_rag": false
+    },
+    {
+      "id": "permanent-life-insurance",
+      "url": "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance/permanentlife",
+      "resource_category": "product-education",
+      "title_hint": "Permanent life insurance",
+      "purpose": "Background on permanent life insurance options.",
+      "filename": "permanent-life-insurance",
+      "vanityUrl": "public/individuals/products/lifeinsurance/permanentlife",
+      "approved_public": true,
+      "excluded_from_rag": false
+    },
+    {
+      "id": "ready-to-get-started",
+      "url": "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance/readytogetstarted",
+      "resource_category": "next-steps",
+      "title_hint": "Ready to get started?",
+      "purpose": "Consumer information about taking the next step.",
+      "filename": "ready-to-get-started",
+      "vanityUrl": "public/individuals/products/lifeinsurance/readytogetstarted",
+      "approved_public": true,
+      "excluded_from_rag": false
+    },
+    {
+      "id": "financial-planning-tools",
+      "url": "https://www.lincolnfinancial.com/public/individuals/planning/calculatorsandtools",
+      "resource_category": "planning-tools",
+      "title_hint": "Calculators and tools",
+      "purpose": "Financial planning tools and resources.",
+      "filename": "financial-planning-tools",
+      "vanityUrl": "public/individuals/planning/calculatorsandtools",
+      "approved_public": true,
+      "excluded_from_rag": false
+    }
+  ],
+  "content_api": {
+    "path": "/pbl-api/getcontent",
+    "base_url": "https://www.lincolnfinancial.com",
+    "audience": "global",
+    "note": "Request format verified from Lincoln's own public frontend bundle: GET {base_url}{path}?vanityUrl=<path without leading slash>&audience=global. This code path uses no reCAPTCHA token and no Authorization header."
+  }
+}

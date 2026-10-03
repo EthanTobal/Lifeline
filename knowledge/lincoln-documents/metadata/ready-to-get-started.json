@@ -1,0 +1,33 @@
+{
+  "status": "success",
+  "title": "Ready to get started?",
+  "source_url": "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance/readytogetstarted",
+  "canonical_url": "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance/readytogetstarted",
+  "vanity_url": "public/individuals/products/lifeinsurance/readytogetstarted",
+  "retrieved_at": "2026-10-03T20:11:23.176289+00:00",
+  "resource_category": "next-steps",
+  "headings": [
+    "Simplifying LIFE",
+    "Ready to apply?",
+    "Count on Lincoln for Life"
+  ],
+  "reason": "",
+  "http_status": null,
+  "content_type": "",
+  "raw_bytes": 137758,
+  "body_characters": 794,
+  "word_count": 121,
+  "warnings": [
+    "removed duplicate heading identical to the page title: 'Ready to get started?'",
+    "thin page: 794 characters is below the 1200-character review threshold"
+  ],
+  "output_files": [
+    "knowledge/lincoln-documents/raw/ready-to-get-started.json",
+    "knowledge/lincoln-documents/cleaned/ready-to-get-started.md"
+  ],
+  "excluded_from_rag": false,
+  "exclusion_reason": "",
+  "audience": "individuals",
+  "page_asset_name": "Life - Ready to get started",
+  "page_asset_id": "1632772015070"
+}

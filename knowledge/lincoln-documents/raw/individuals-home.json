@@ -1,0 +1,3532 @@
+{
+  "StatusCode": "200",
+  "Page": {
+    "name": "Individuals & Families",
+    "id": 1599564836690,
+    "subtype": "AudienceHomePage",
+    "template": "AudienceHomePage",
+    "createddate": "Fri Jun 11 11:52:46 UTC 2021",
+    "updateddate": "Thu Aug 06 17:14:35 UTC 2026",
+    "assetType": "Page",
+    "MetaTitle": "Individuals",
+    "MetaKeywords": "Lincoln Financial, financial resources and planning, annuities, long-term care, how to plan for retirement",
+    "MetaDesc": "Lincoln Financial Group provides resources and solutions that help empower Americans to take charge of their financial lives with confidence and optimism.",
+    "NavTitle": "Individuals",
+    "LCN": "LCN-9062853-080626",
+    "PageURLLFG": "individuals",
+    "PageOwner": "LFG",
+    "ShowInNav": "Yes",
+    "RetirePage": "No",
+    "Banner": {
+      "name": "Individuals - Action Plan - banner",
+      "id": 1632777051406,
+      "subtype": "Banner",
+      "template": "FlexiblePageBanner",
+      "createddate": "Thu Apr 23 14:07:17 UTC 2026",
+      "updateddate": "Thu Apr 23 14:12:23 UTC 2026",
+      "assetType": "LFGComponent",
+      "BannerText": "<h1 class=\"copy\">You have a retirement plan, but do you have an action plan?</h1>",
+      "TaglineTextColor": "#650030",
+      "ContentContainerWidth": "50%",
+      "MediaAssoc": {
+        "name": "Individuals - Action Plan - banner image",
+        "id": 1632777051276,
+        "subtype": "LFGImage",
+        "template": "Image",
+        "createddate": "Thu Apr 23 13:59:13 UTC 2026",
+        "updateddate": "Thu Apr 23 14:07:52 UTC 2026",
+        "assetType": "LFGMedia",
+        "ImageFile": "pbl-static/image/tablet/Individuals---Action-Plan---banner-image.jpg",
+        "BigImageFile": "pbl-static/image/desktop/Individuals---Action-Plan---banner-image.jpg",
+        "ThumbnailFile": "pbl-static/image/mobile/Individuals---Action-Plan---banner-image.jpg",
+        "ImageCategory": "None(default)"
+      },
+      "Link": {
+        "name": "Individuals - Action Plan - button",
+        "id": 1632777051565,
+        "subtype": "Link",
+        "template": "Button",
+        "createddate": "Thu Apr 23 14:09:30 UTC 2026",
+        "updateddate": "Thu Apr 23 14:13:45 UTC 2026",
+        "assetType": "LFGComponent",
+        "LinkText": "Take action",
+        "PageAssoc": {
+          "url": "public/general/actionplan",
+          "NavTitle": "The Action Plan"
+        },
+        "AriaLabel": "Action Plan",
+        "LinkStyleIcon": "far fa-arrow-alt-circle-right",
+        "ButtonType": "primary"
+      }
+    },
+    "BannerOverlay": {
+      "name": "New Brand - individual home - quick links",
+      "id": 1632771752770,
+      "subtype": "ComponentList",
+      "template": "QuickLinks",
+      "createddate": "Mon Aug 12 18:15:55 UTC 2024",
+      "updateddate": "Tue May 06 20:15:01 UTC 2025",
+      "assetType": "LFGComponent",
+      "ComponentAssoc": {
+        "ComponentListCount": "6",
+        "ComponentArray": [
+          {
+            "name": "New Brand - quick link - register",
+            "id": 1632771750478,
+            "subtype": "Callout",
+            "template": "QuickLink",
+            "createddate": "Mon Aug 12 17:59:03 UTC 2024",
+            "updateddate": "Tue Aug 13 16:40:43 UTC 2024",
+            "assetType": "LFGComponent",
+            "Heading": "Register",
+            "MediaAssoc": {
+              "name": "ICON orange - register - user checkmark",
+              "id": 1632771750355,
+              "subtype": "LFGImage",
+              "template": "Image",
+              "createddate": "Mon Aug 12 17:57:56 UTC 2024",
+              "updateddate": "Mon Mar 24 19:49:20 UTC 2025",
+              "assetType": "LFGMedia",
+              "ImageFile": "pbl-static/image/tablet/ICON-orange---register---user-checkmark.svg",
+              "BigImageFile": "pbl-static/image/desktop/ICON-orange---register---user-checkmark.svg",
+              "ThumbnailFile": "pbl-static/image/mobile/ICON-orange---register---user-checkmark.svg",
+              "ImageCategory": "Icon"
+            },
+            "Links": {
+              "LinksCount": "1",
+              "LinksArray": [
+                {
+                  "name": "Register Quicklinks - Link",
+                  "id": 1632764788104,
+                  "subtype": "Link",
+                  "template": "Link",
+                  "createddate": "Mon Mar 14 20:27:28 UTC 2022",
+                  "updateddate": "Mon Mar 14 20:28:04 UTC 2022",
+                  "assetType": "LFGComponent",
+                  "PageAssoc": {
+                    "url": "public/general/registration",
+                    "NavTitle": "Register"
+                  },
+                  "LinkTarget": "_self",
+                  "AriaLabel": "Registration"
+                }
+              ]
+            }
+          },
+          {
+            "name": "New Brand - quick link - find a financial professional",
+            "id": 1632771750831,
+            "subtype": "Callout",
+            "template": "QuickLink",
+            "createddate": "Mon Aug 12 18:03:10 UTC 2024",
+            "updateddate": "Mon Mar 24 19:18:40 UTC 2025",
+            "assetType": "LFGComponent",
+            "Heading": "Find a financial professional",
+            "MediaAssoc": {
+              "name": "ICON orange - find a financial professional",
+              "id": 1599564912984,
+              "subtype": "LFGImage",
+              "template": "Image",
+              "createddate": "Mon Jun 21 18:47:17 UTC 2021",
+              "updateddate": "Tue Mar 11 19:31:25 UTC 2025",
+              "assetType": "LFGMedia",
+              "ImageFile": "pbl-static/image/tablet/ICON-orange---find-a-financial-professional.svg",
+              "BigImageFile": "pbl-static/image/desktop/ICON-orange---find-a-financial-professional.svg",
+              "ThumbnailFile": "pbl-static/image/mobile/ICON-orange---find-a-financial-professional.svg",
+              "ImageCategory": "Icon"
+            },
+            "Links": {
+              "LinksCount": "1",
+              "LinksArray": [
+                {
+                  "name": "FAFP - link (THIS IS THE MAIN COMPONENT FOR ALL FAFP LINKS)",
+                  "id": 1599565037476,
+                  "subtype": "Link",
+                  "template": "Link",
+                  "createddate": "Wed Jun 30 02:05:55 UTC 2021",
+                  "updateddate": "Mon Jul 11 20:06:55 UTC 2022",
+                  "assetType": "LFGComponent",
+                  "LinkText": "Find a financial professional",
+                  "PageAssoc": {
+                    "url": "public/individuals/support/findafinancialprofessional",
+                    "NavTitle": "Find a financial professional"
+                  },
+                  "LinkStyleIcon": "far fa-arrow-alt-circle-right"
+                }
+              ]
+            }
+          },
+          {
+            "name": "New Brand - quick link - find a form",
+            "id": 1632771751386,
+            "subtype": "Callout",
+            "template": "QuickLink",
+            "createddate": "Mon Aug 12 18:06:58 UTC 2024",
+            "updateddate": "Mon Mar 24 19:21:35 UTC 2025",
+            "assetType": "LFGComponent",
+            "Heading": "Find a form",
+            "MediaAssoc": {
+              "name": "ICON orange - forms - pen paper",
+              "id": 1599564913069,
+              "subtype": "LFGImage",
+              "template": "Image",
+              "createddate": "Mon Jun 21 18:48:04 UTC 2021",
+              "updateddate": "Tue Mar 11 19:37:37 UTC 2025",
+              "assetType": "LFGMedia",
+              "ImageFile": "pbl-static/image/tablet/ICON-orange---forms---pen-paper.svg",
+              "BigImageFile": "pbl-static/image/desktop/ICON-orange---forms---pen-paper.svg",
+              "ThumbnailFile": "pbl-static/image/mobile/ICON-orange---forms---pen-paper.svg",
+              "ImageCategory": "Icon"
+            },
+            "Links": {
+              "LinksCount": "1",
+              "LinksArray": [
+                {
+                  "name": "Customer service - Internal Link",
+                  "id": 1599565463078,
+                  "subtype": "Link",
+                  "template": "Link",
+                  "createddate": "Thu Aug 05 16:04:20 UTC 2021",
+                  "updateddate": "Mon Feb 07 18:43:33 UTC 2022",
+                  "assetType": "LFGComponent",
+                  "LinkText": "Customer service",
+                  "PageAssoc": {
+                    "url": "public/individuals/support/customerservice",
+                    "NavTitle": "Customer service"
+                  },
+                  "LinkTarget": "_self",
+                  "AriaLabel": "Customer service"
+                }
+              ]
+            }
+          },
+          {
+            "name": "New Brand - quick link - find a dentist",
+            "id": 1632771751732,
+            "subtype": "Callout",
+            "template": "QuickLink",
+            "createddate": "Mon Aug 12 18:10:12 UTC 2024",
+            "updateddate": "Mon Mar 24 19:16:16 UTC 2025",
+            "assetType": "LFGComponent",
+            "Heading": "Find a dentist",
+            "MediaAssoc": {
+              "name": "ICON orange - find a dentist - tooth",
+              "id": 1599564912817,
+              "subtype": "LFGImage",
+              "template": "Image",
+              "createddate": "Mon Jun 21 18:45:54 UTC 2021",
+              "updateddate": "Tue Mar 11 19:26:57 UTC 2025",
+              "assetType": "LFGMedia",
+              "ImageFile": "pbl-static/image/tablet/ICON-orange---find-a-dentist---tooth.svg",
+              "BigImageFile": "pbl-static/image/desktop/ICON-orange---find-a-dentist---tooth.svg",
+              "ThumbnailFile": "pbl-static/image/mobile/ICON-orange---find-a-dentist---tooth.svg",
+              "ImageCategory": "Icon"
+            },
+            "Links": {
+              "LinksCount": "1",
+              "LinksArray": [
+                {
+                  "name": "Find a Dentist - EXT Link",
+                  "id": 1599565015496,
+                  "subtype": "Link",
+                  "template": "Link",
+                  "createddate": "Tue Jun 29 00:09:49 UTC 2021",
+                  "updateddate": "Tue Nov 25 16:23:03 UTC 2025",
+                  "assetType": "LFGComponent",
+                  "LinkText": "Find a dentist",
+                  "ExternalLinkURL": "https://clients.go2dental.com/lfg/FindADentist",
+                  "LinkTarget": "_blank",
+                  "LinkStyleIcon": "fas fa-external-link-alt"
+                }
+              ]
+            }
+          },
+          {
+            "name": "New Brand - quick link - file a claim",
+            "id": 1632771752149,
+            "subtype": "Callout",
+            "template": "QuickLink",
+            "createddate": "Mon Aug 12 18:12:38 UTC 2024",
+            "updateddate": "Mon Mar 24 19:08:18 UTC 2025",
+            "assetType": "LFGComponent",
+            "Heading": "File a claim",
+            "MediaAssoc": {
+              "name": "ICON orange - claims - paper circle check",
+              "id": 1599564911419,
+              "subtype": "LFGImage",
+              "template": "Image",
+              "createddate": "Mon Jun 21 18:18:58 UTC 2021",
+              "updateddate": "Tue Mar 11 18:34:44 UTC 2025",
+              "assetType": "LFGMedia",
+              "ImageFile": "pbl-static/image/tablet/ICON-orange---claims---paper-circle-check.svg",
+              "BigImageFile": "pbl-static/image/desktop/ICON-orange---claims---paper-circle-check.svg",
+              "ThumbnailFile": "pbl-static/image/mobile/ICON-orange---claims---paper-circle-check.svg",
+              "ImageCategory": "Icon"
+            },
+            "Links": {
+              "LinksCount": "1",
+              "LinksArray": [
+                {
+                  "name": "File a Claim - Link",
+                  "id": 1632764788923,
+                  "subtype": "Link",
+                  "template": "Link",
+                  "createddate": "Tue Mar 15 12:59:25 UTC 2022",
+                  "updateddate": "Tue Mar 15 13:00:18 UTC 2022",
+                  "assetType": "LFGComponent",
+                  "LinkText": "File a claim",
+                  "PageAssoc": {
+                    "url": "public/general/fileaclaimtool",
+                    "NavTitle": "File a claim"
+                  },
+                  "LinkTarget": "_self"
+                }
+              ]
+            }
+          },
+          {
+            "name": "New Brand - quick link - customer service",
+            "id": 1632771752610,
+            "subtype": "Callout",
+            "template": "QuickLink",
+            "createddate": "Mon Aug 12 18:15:07 UTC 2024",
+            "updateddate": "Mon Mar 24 19:13:23 UTC 2025",
+            "assetType": "LFGComponent",
+            "Heading": "Customer service",
+            "MediaAssoc": {
+              "name": "ICON orange - faq - circle question mark",
+              "id": 1599564912735,
+              "subtype": "LFGImage",
+              "template": "Image",
+              "createddate": "Mon Jun 21 18:45:14 UTC 2021",
+              "updateddate": "Fri Mar 14 19:33:36 UTC 2025",
+              "assetType": "LFGMedia",
+              "ImageFile": "pbl-static/image/tablet/ICON-orange---faq---circle-question-mark.svg",
+              "BigImageFile": "pbl-static/image/desktop/ICON-orange---faq---circle-question-mark.svg",
+              "ThumbnailFile": "pbl-static/image/mobile/ICON-orange---faq---circle-question-mark.svg",
+              "ImageCategory": "Icon"
+            },
+            "Links": {
+              "LinksCount": "1",
+              "LinksArray": [
+                {
+                  "name": "Customer service - Internal Link",
+                  "id": 1599565463078,
+                  "subtype": "Link",
+                  "template": "Link",
+                  "createddate": "Thu Aug 05 16:04:20 UTC 2021",
+                  "updateddate": "Mon Feb 07 18:43:33 UTC 2022",
+                  "assetType": "LFGComponent",
+                  "LinkText": "Customer service",
+                  "PageAssoc": {
+                    "url": "public/individuals/support/customerservice",
+                    "NavTitle": "Customer service"
+                  },
+                  "LinkTarget": "_self",
+                  "AriaLabel": "Customer service"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "MainContent": {
+      "MainContentCount": "3",
+      "MainContentComponentArray": [
+        {
+          "name": "New Brand - individual home 3 col - gridblock - top",
+          "id": 1632772607781,
+          "subtype": "GridBlock",
+          "template": "GridBlock",
+          "createddate": "Mon Jan 13 18:26:24 UTC 2025",
+          "updateddate": "Wed Aug 05 17:50:29 UTC 2026",
+          "assetType": "LFGComponent",
+          "ColumnSplit": "3",
+          "ComponentAssoc": {
+            "ComponentCount": "3",
+            "ComponentArray": [
+              {
+                "name": "PMF - overlap - IND - callout",
+                "id": 1632774615098,
+                "subtype": "Callout",
+                "template": "CallOutOverlapImage",
+                "createddate": "Mon Oct 20 15:12:02 UTC 2025",
+                "updateddate": "Mon Oct 20 16:03:59 UTC 2025",
+                "assetType": "LFGComponent",
+                "Heading": "Access private market strategies to help you enhance portfolio resilience through market cycles",
+                "MediaAssoc": {
+                  "name": "PMF - overlap IND_PRO - callout - image",
+                  "id": 1632774615277,
+                  "subtype": "LFGImage",
+                  "template": "Image",
+                  "createddate": "Mon Oct 20 15:13:03 UTC 2025",
+                  "updateddate": "Mon Oct 20 16:05:38 UTC 2025",
+                  "assetType": "LFGMedia",
+                  "ImageFile": "pbl-static/image/tablet/PMF---overlap-IND_PRO---callout---image.jpg",
+                  "BigImageFile": "pbl-static/image/desktop/PMF---overlap-IND_PRO---callout---image.jpg",
+                  "ThumbnailFile": "pbl-static/image/mobile/PMF---overlap-IND_PRO---callout---image.jpg",
+                  "AltText": "Powerful. Strategic. Unmatched.",
+                  "ImageCategory": "None(default)"
+                },
+                "Links": {
+                  "LinksCount": "1",
+                  "LinksArray": [
+                    {
+                      "name": "PMF - overlap - IND callout - button",
+                      "id": 1632774615617,
+                      "subtype": "Link",
+                      "template": "Button",
+                      "createddate": "Mon Oct 20 15:15:51 UTC 2025",
+                      "updateddate": "Mon Oct 20 16:06:38 UTC 2025",
+                      "assetType": "LFGComponent",
+                      "LinkText": "Private Market Funds",
+                      "PageAssoc": {
+                        "url": "public/individuals/products/lincolnfinancialinvestments",
+                        "NavTitle": "Investments"
+                      },
+                      "AriaLabel": "Private Market Funds",
+                      "ButtonType": "secondary"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "Individual homepage - Barrons 2026 - callout",
+                "id": 1632777979307,
+                "subtype": "Callout",
+                "template": "CallOutOverlapImage",
+                "createddate": "Wed Aug 05 17:42:40 UTC 2026",
+                "updateddate": "Wed Aug 05 17:49:31 UTC 2026",
+                "assetType": "LFGComponent",
+                "Heading": "The list is out. Guess who's in?",
+                "Copy": "<p><em>Barron&#39;s</em> named &quot;The 100 Best Annuities&quot;</p>\r\n\r\n<p>Lincoln Financial showed <strong>6 times!</strong></p>\r\n",
+                "MediaAssoc": {
+                  "name": "Individual Homepage Barrons 2026 - callout image",
+                  "id": 1632777979621,
+                  "subtype": "LFGImage",
+                  "template": "Image",
+                  "createddate": "Wed Aug 05 17:45:31 UTC 2026",
+                  "updateddate": "Wed Aug 05 20:57:30 UTC 2026",
+                  "assetType": "LFGMedia",
+                  "ImageFile": "pbl-static/image/tablet/Individual-Homepage-Barrons-2026---callout-image.png",
+                  "BigImageFile": "pbl-static/image/desktop/Individual-Homepage-Barrons-2026---callout-image.png",
+                  "ThumbnailFile": "pbl-static/image/mobile/Individual-Homepage-Barrons-2026---callout-image.png",
+                  "AltText": "Barron's",
+                  "ImageCategory": "None(default)"
+                },
+                "Links": {
+                  "LinksCount": "1",
+                  "LinksArray": [
+                    {
+                      "name": "Barrons 2026 - secondary button - modal button",
+                      "id": 1632777979855,
+                      "subtype": "Link",
+                      "template": "ModalButton",
+                      "createddate": "Wed Aug 05 17:48:09 UTC 2026",
+                      "updateddate": "Thu Aug 27 16:07:18 UTC 2026",
+                      "assetType": "LFGComponent",
+                      "LinkText": "Check out the 2026 list",
+                      "LinkTarget": "_blank",
+                      "LinkStyleIcon": "fas fa-external-link-alt",
+                      "ButtonType": "secondary",
+                      "LinkCompAssocFragment": {
+                        "name": "Professionals - Barrons 2026 banner - bumper",
+                        "id": 1632778090427,
+                        "subtype": "GenericComponent",
+                        "template": "GenericComponent",
+                        "createddate": "Wed Aug 26 17:04:09 UTC 2026",
+                        "updateddate": "Wed Aug 26 17:14:34 UTC 2026",
+                        "assetType": "LFGComponent",
+                        "Copy": "<p><span id=\"Widget_0_1632774079860_1632778090427\">[Asset Included(LFGComponent:1632774079860)]</span></p>\r\n\r\n<p><span id=\"Widget_1_1632777979013_1632778090427\">[Asset Included(LFGComponent:1632777979013)]</span></p>",
+                        "ShowBorder": "No",
+                        "WidgetArrayJSON": [
+                          {
+                            "Widget_0_1632774079860_1632778090427": {
+                              "name": "Leaving Lincoln - generic redirect disclaimer",
+                              "id": 1632774079860,
+                              "subtype": "GenericComponent",
+                              "template": "GenericComponent",
+                              "createddate": "Thu Sep 18 15:00:18 UTC 2025",
+                              "updateddate": "Wed Aug 19 17:30:26 UTC 2026",
+                              "assetType": "LFGComponent",
+                              "Copy": "<p>The site you are about to visit is not operated or controlled by Lincoln Financial and may have different privacy and security practices. By proceeding, you acknowledge that you are responsible for reviewing and accepting any risks associated with your use of the third-party site.</p>\r\n",
+                              "ShowBorder": "No"
+                            }
+                          },
+                          {
+                            "Widget_1_1632777979013_1632778090427": {
+                              "name": "Professionals - Barrons 2026 banner - link",
+                              "id": 1632777979013,
+                              "subtype": "Link",
+                              "template": "Button",
+                              "createddate": "Wed Aug 05 17:29:25 UTC 2026",
+                              "updateddate": "Wed Aug 26 17:19:41 UTC 2026",
+                              "assetType": "LFGComponent",
+                              "LinkText": "Continue to article",
+                              "ExternalLinkURL": "https://webreprints.djreprints.com/2688654.html",
+                              "LinkTarget": "_blank",
+                              "LinkStyleIcon": "fas fa-external-link-alt",
+                              "ButtonType": "primary"
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "New Brand - pastimes last a lifetime - overlap callout",
+                "id": 1632771755157,
+                "subtype": "Callout",
+                "template": "CallOutOverlapImage",
+                "createddate": "Mon Aug 12 18:38:17 UTC 2024",
+                "updateddate": "Thu Apr 30 15:44:51 UTC 2026",
+                "assetType": "LFGComponent",
+                "Heading": "Make your pastimes last a lifetime",
+                "Copy": "<p>You have no plans to slow down in retirement. That&rsquo;s why we want to make sure your financial future can keep up.</p>\r\n",
+                "MediaAssoc": {
+                  "name": "New Brand - pastimes last a lifetime - image 2",
+                  "id": 1632777177786,
+                  "subtype": "LFGImage",
+                  "template": "Image",
+                  "createddate": "Thu Apr 30 15:42:27 UTC 2026",
+                  "updateddate": "Thu Apr 30 15:42:58 UTC 2026",
+                  "assetType": "LFGMedia",
+                  "ImageFile": "pbl-static/image/tablet/New-Brand---pastimes-last-a-lifetime---image-2.jpg",
+                  "BigImageFile": "pbl-static/image/desktop/New-Brand---pastimes-last-a-lifetime---image-2.jpg",
+                  "ThumbnailFile": "pbl-static/image/mobile/New-Brand---pastimes-last-a-lifetime---image-2.jpg",
+                  "ImageCategory": "None(default)"
+                },
+                "Links": {
+                  "LinksCount": "1",
+                  "LinksArray": [
+                    {
+                      "name": "New Brand - pastimes last a lifetime - button",
+                      "id": 1632771754401,
+                      "subtype": "Link",
+                      "template": "Button",
+                      "createddate": "Mon Aug 12 18:33:53 UTC 2024",
+                      "updateddate": "Mon Sep 15 14:33:21 UTC 2025",
+                      "assetType": "LFGComponent",
+                      "LinkText": "Take action today",
+                      "PageAssoc": {
+                        "url": "public/general/actionplan",
+                        "NavTitle": "The Action Plan"
+                      },
+                      "ButtonType": "secondary"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "New Brand - individual home 2 col - grid",
+          "id": 1632771756483,
+          "subtype": "GridBlock",
+          "template": "GridBlock",
+          "createddate": "Mon Aug 12 18:46:00 UTC 2024",
+          "updateddate": "Thu Feb 06 11:52:44 UTC 2025",
+          "assetType": "LFGComponent",
+          "ColumnSplit": "2",
+          "ComponentAssoc": {
+            "ComponentCount": "2",
+            "ComponentArray": [
+              {
+                "name": "New Brand - announcements - gen comp",
+                "id": 1632771756117,
+                "subtype": "GenericComponent",
+                "template": "GenericComponent",
+                "createddate": "Mon Aug 12 18:45:18 UTC 2024",
+                "updateddate": "Fri May 01 15:16:55 UTC 2026",
+                "assetType": "LFGComponent",
+                "Copy": "<span id=\"Widget_0_1632777181328_1632771756117\">[Asset Included(LFGMedia:1632777181328)]</span>",
+                "ShowBorder": "No",
+                "WidgetArrayJSON": [
+                  {
+                    "Widget_0_1632777181328_1632771756117": {
+                      "name": "Individuals - announcements - image",
+                      "id": 1632777181328,
+                      "subtype": "LFGImage",
+                      "template": "Image",
+                      "createddate": "Fri May 01 15:14:36 UTC 2026",
+                      "updateddate": "Fri May 01 15:15:45 UTC 2026",
+                      "assetType": "LFGMedia",
+                      "ImageFile": "pbl-static/image/tablet/Individuals---announcements---image.jpg",
+                      "BigImageFile": "pbl-static/image/desktop/Individuals---announcements---image.jpg",
+                      "ThumbnailFile": "pbl-static/image/mobile/Individuals---announcements---image.jpg",
+                      "ImageCategory": "None(default)"
+                    }
+                  }
+                ]
+              },
+              {
+                "name": "Announcements (shared)",
+                "id": 1599564841703,
+                "subtype": "ComponentList",
+                "template": "LinkListWithSeparator",
+                "createddate": "Sun Jun 13 19:38:36 UTC 2021",
+                "updateddate": "Mon Aug 10 14:38:00 UTC 2026",
+                "assetType": "LFGComponent",
+                "Heading": "Announcements",
+                "ComponentAssoc": {
+                  "ComponentListCount": "3",
+                  "ComponentArray": [
+                    {
+                      "name": "20260730 - 2Q2026 earnings reported - link",
+                      "id": 1632777940762,
+                      "subtype": "Link",
+                      "template": "Link",
+                      "createddate": "Thu Jul 30 18:02:09 UTC 2026",
+                      "updateddate": "Thu Jul 30 18:02:09 UTC 2026",
+                      "assetType": "LFGComponent",
+                      "LinkText": "Lincoln Financial Reports 2026 Second Quarter Results",
+                      "ExternalLinkURL": "https://www.businesswire.com/news/home/20260730378915/en/Lincoln-Financial-Reports-2026-Second-Quarter-Results",
+                      "LinkTarget": "_blank",
+                      "LinkStyleIcon": "fas fa-external-link-alt"
+                    },
+                    {
+                      "name": "20260316 - New FIA - link",
+                      "id": 1632775362244,
+                      "subtype": "Link",
+                      "template": "Link",
+                      "createddate": "Mon Mar 09 19:09:16 UTC 2026",
+                      "updateddate": "Mon Mar 09 19:10:06 UTC 2026",
+                      "assetType": "LFGComponent",
+                      "LinkText": "Lincoln Financial unveils new fixed indexed annuity income solutions with category-first legacy planning",
+                      "PageAssoc": {
+                        "url": "public/aboutus/newsroom/pressreleases/Lincoln-New-FIA-Income-Solutions",
+                        "NavTitle": "Lincoln Financial unveils new fixed indexed annuity income solutions with category-first legacy planning"
+                      },
+                      "LinkStyleIcon": "far fa-arrow-alt-circle-right"
+                    },
+                    {
+                      "name": "20251215 - CP ETF - link",
+                      "id": 1632774949076,
+                      "subtype": "Link",
+                      "template": "Link",
+                      "createddate": "Wed Dec 10 17:48:38 UTC 2025",
+                      "updateddate": "Thu Dec 11 18:19:18 UTC 2025",
+                      "assetType": "LFGComponent",
+                      "LinkText": "Lincoln Financial introduces first Capital Group ETF strategy for fixed indexed annuities",
+                      "PageAssoc": {
+                        "url": "public/aboutus/newsroom/pressreleases/Capital-Group-ETF-strategy",
+                        "NavTitle": "Lincoln Financial introduces first Capital Group ETF strategy for fixed indexed annuities"
+                      },
+                      "LinkStyleIcon": "far fa-arrow-alt-circle-right"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "New Brand - individual home 3 col - grid",
+          "id": 1632771809990,
+          "subtype": "GridBlock",
+          "template": "GridBlock",
+          "createddate": "Mon Aug 19 18:24:19 UTC 2024",
+          "updateddate": "Mon Aug 19 18:25:07 UTC 2024",
+          "assetType": "LFGComponent",
+          "ColumnSplit": "3",
+          "ComponentAssoc": {
+            "ComponentCount": "3",
+            "ComponentArray": [
+              {
+                "name": "New Brand - about lincoln - callout",
+                "id": 1632771755611,
+                "subtype": "Callout",
+                "template": "CallOutOverlapImage",
+                "createddate": "Mon Aug 12 18:41:08 UTC 2024",
+                "updateddate": "Thu Sep 05 19:19:33 UTC 2024",
+                "assetType": "LFGComponent",
+                "Heading": "About Lincoln Financial",
+                "Copy": "<p>A trusted name, working for your financial future. See how our past lets us deliver for your future.</p>\r\n",
+                "MediaAssoc": {
+                  "name": "New Brand - about lincoln - image",
+                  "id": 1632771753678,
+                  "subtype": "LFGImage",
+                  "template": "Image",
+                  "createddate": "Mon Aug 12 18:28:43 UTC 2024",
+                  "updateddate": "Fri Aug 16 15:32:42 UTC 2024",
+                  "assetType": "LFGMedia",
+                  "ImageFile": "pbl-static/image/tablet/New-Brand---about-lincoln---image.jpg",
+                  "BigImageFile": "pbl-static/image/desktop/New-Brand---about-lincoln---image.jpg",
+                  "ThumbnailFile": "pbl-static/image/mobile/New-Brand---about-lincoln---image.jpg",
+                  "ImageCategory": "None(default)"
+                },
+                "Links": {
+                  "LinksCount": "1",
+                  "LinksArray": [
+                    {
+                      "name": "New Brand - about lincoln - link",
+                      "id": 1632771754774,
+                      "subtype": "Link",
+                      "template": "Link",
+                      "createddate": "Mon Aug 12 18:36:16 UTC 2024",
+                      "updateddate": "Tue Jun 10 19:05:08 UTC 2025",
+                      "assetType": "LFGComponent",
+                      "LinkText": "Learn about our values and goals",
+                      "PageAssoc": {
+                        "url": "public/aboutus/companyoverview",
+                        "NavTitle": "About us"
+                      },
+                      "LinkStyleIcon": "far fa-arrow-alt-circle-right"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "New Brand - tools and calcs - callout",
+                "id": 1632771765367,
+                "subtype": "Callout",
+                "template": "CallOutOverlapImage",
+                "createddate": "Tue Aug 13 17:10:53 UTC 2024",
+                "updateddate": "Tue Aug 13 17:12:05 UTC 2024",
+                "assetType": "LFGComponent",
+                "Heading": "Tools and calculators",
+                "Copy": "<p>Our resources are here to help you make confident decisions that fit your needs.</p>\r\n",
+                "MediaAssoc": {
+                  "name": "New Brand - tools and calcs - image",
+                  "id": 1632771765040,
+                  "subtype": "LFGImage",
+                  "template": "Image",
+                  "createddate": "Tue Aug 13 17:07:56 UTC 2024",
+                  "updateddate": "Fri Aug 16 15:31:40 UTC 2024",
+                  "assetType": "LFGMedia",
+                  "ImageFile": "pbl-static/image/tablet/New-Brand---tools-and-calcs---image.jpg",
+                  "BigImageFile": "pbl-static/image/desktop/New-Brand---tools-and-calcs---image.jpg",
+                  "ThumbnailFile": "pbl-static/image/mobile/New-Brand---tools-and-calcs---image.jpg",
+                  "ImageCategory": "None(default)"
+                },
+                "Links": {
+                  "LinksCount": "1",
+                  "LinksArray": [
+                    {
+                      "name": "New Brand - tools and calcs - link",
+                      "id": 1632771765237,
+                      "subtype": "Link",
+                      "template": "Link",
+                      "createddate": "Tue Aug 13 17:09:28 UTC 2024",
+                      "updateddate": "Mon Aug 19 20:27:15 UTC 2024",
+                      "assetType": "LFGComponent",
+                      "LinkText": "Make financial planning easier",
+                      "PageAssoc": {
+                        "url": "public/individuals/planning/calculatorsandtools",
+                        "NavTitle": "Calculators and tools"
+                      },
+                      "LinkStyleIcon": "far fa-arrow-alt-circle-right"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "New Brand - privacy - callout",
+                "id": 1632771755910,
+                "subtype": "Callout",
+                "template": "CallOutOverlapImage",
+                "createddate": "Mon Aug 12 18:42:16 UTC 2024",
+                "updateddate": "Tue Aug 13 16:40:34 UTC 2024",
+                "assetType": "LFGComponent",
+                "Heading": "Privacy",
+                "Copy": "<p>We are committed to keeping personal information confidential and secure, and in compliance with state and federal laws.</p>\r\n",
+                "MediaAssoc": {
+                  "name": "New Brand - privacy - image",
+                  "id": 1632771753870,
+                  "subtype": "LFGImage",
+                  "template": "Image",
+                  "createddate": "Mon Aug 12 18:29:32 UTC 2024",
+                  "updateddate": "Wed Aug 14 20:37:57 UTC 2024",
+                  "assetType": "LFGMedia",
+                  "ImageFile": "pbl-static/image/tablet/New-Brand---privacy---image.jpg",
+                  "BigImageFile": "pbl-static/image/desktop/New-Brand---privacy---image.jpg",
+                  "ThumbnailFile": "pbl-static/image/mobile/New-Brand---privacy---image.jpg",
+                  "ImageCategory": "None(default)"
+                },
+                "Links": {
+                  "LinksCount": "1",
+                  "LinksArray": [
+                    {
+                      "name": "New Brand - privacy - link",
+                      "id": 1632771754964,
+                      "subtype": "Link",
+                      "template": "Link",
+                      "createddate": "Mon Aug 12 18:37:09 UTC 2024",
+                      "updateddate": "Mon Aug 19 20:27:47 UTC 2024",
+                      "assetType": "LFGComponent",
+                      "LinkText": "How Lincoln handles your data",
+                      "PageAssoc": {
+                        "url": "public/general/privacy",
+                        "NavTitle": "Privacy"
+                      },
+                      "LinkStyleIcon": "far fa-arrow-alt-circle-right"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "Navigation": {
+    "Audience": "individuals",
+    "GlobalHeader": {
+      "SearchUrl": {
+        "url": "public/general/searchresults",
+        "NavTitle": "Search Results"
+      },
+      "PrimaryLogo": {
+        "name": "New Brand - logo color - image",
+        "id": 1599568556003,
+        "subtype": "LFGImage",
+        "template": "Image",
+        "createddate": "Mon Aug 19 19:58:33 UTC 2024",
+        "updateddate": "Wed Jul 09 16:45:31 UTC 2025",
+        "assetType": "LFGMedia",
+        "ImageFile": "pbl-static/image/tablet/New-Brand---logo-color---image.svg",
+        "BigImageFile": "pbl-static/image/desktop/New-Brand---logo-color---image.svg",
+        "ThumbnailFile": "pbl-static/image/mobile/New-Brand---logo-color---image.svg",
+        "AltText": "Lincoln Financial",
+        "ImageCategory": "None(default)",
+        "link": "/public/individuals"
+      },
+      "PrimaryNavExtnArray": [
+        {
+          "ShowLineSeparator": "Yes",
+          "NavTitle": "Questions?",
+          "TelNum": "1-877-275-5462",
+          "link": "tel:1-877-275-5462",
+          "id": "ext0",
+          "level": "3",
+          "showInNav": "Yes"
+        }
+      ],
+      "PrimaryNav": [
+        {
+          "id": 1599564836690,
+          "link": "/public/individuals",
+          "NavTitle": "Individuals",
+          "level": 1,
+          "showInNav": "Yes",
+          "selected": "Yes",
+          "subNav": [
+            {
+              "id": 1599564837743,
+              "NavTitle": "Products ",
+              "level": 2,
+              "showInNav": "Yes",
+              "subNav": [
+                {
+                  "id": 1632773700395,
+                  "link": "/public/individuals/products/annuities",
+                  "NavTitle": "Annuities",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": [
+                    {
+                      "id": 1599564890216,
+                      "link": "/public/individuals/products/annuities/whattypeisrightforme",
+                      "NavTitle": "What type is right for me?",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599564891209,
+                      "link": "/public/individuals/products/annuities/fixedannuities",
+                      "NavTitle": "Fixed annuities",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599564895693,
+                      "link": "/public/individuals/products/annuities/fixedindexedannuities",
+                      "NavTitle": "Fixed indexed annuities",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599564895908,
+                      "link": "/public/individuals/products/annuities/variableannuities",
+                      "NavTitle": "Variable annuities",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632770823469,
+                      "link": "/public/individuals/products/annuities/indexlinkedannuities",
+                      "NavTitle": "Index-linked annuities",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    }
+                  ]
+                },
+                {
+                  "id": 1632773856534,
+                  "link": "/public/individuals/products/lincolnfinancialinvestments",
+                  "NavTitle": "Investments",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": [
+                    {
+                      "id": 1632773868751,
+                      "link": "/public/individuals/products/lincolnfinancialinvestments/privatemarketfunds",
+                      "NavTitle": "Private market funds",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632773868414,
+                      "link": "/public/individuals/products/lincolnfinancialinvestments/insights",
+                      "NavTitle": "Insights",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632773868071,
+                      "link": "/public/individuals/products/lincolnfinancialinvestments/howtoinvest",
+                      "NavTitle": "How to invest in private market funds",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    }
+                  ]
+                },
+                {
+                  "id": 1632772039631,
+                  "link": "/public/individuals/products/lifeinsurance",
+                  "NavTitle": "Life insurance",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": [
+                    {
+                      "id": 1632771498230,
+                      "link": "/public/individuals/products/lifeinsurance/whatareyourgoals",
+                      "NavTitle": "What are your goals?",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599565019518,
+                      "link": "/public/individuals/products/lifeinsurance/beyondprotection",
+                      "NavTitle": "Explore the benefits",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632772015070,
+                      "link": "/public/individuals/products/lifeinsurance/readytogetstarted",
+                      "NavTitle": "Ready to get started?",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599565019795,
+                      "link": "/public/individuals/products/lifeinsurance/termlife",
+                      "NavTitle": "Term Life ",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599565019859,
+                      "link": "/public/individuals/products/lifeinsurance/permanentlife",
+                      "NavTitle": "Permanent Life Insurance",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599565020252,
+                      "link": "/public/individuals/products/lifeinsurance/billpayment",
+                      "NavTitle": "Bill payment center",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "isPlaceHolder": "Yes",
+                      "id": 1599565848191,
+                      "link": "https://www.lincolnfinancial.com/secure/logout",
+                      "NavTitle": "View my policy",
+                      "ShowRedirectDisclaimer": "No",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    }
+                  ]
+                },
+                {
+                  "id": 1599564798891,
+                  "link": "/public/individuals/products/longtermcareplanning",
+                  "NavTitle": "Lincoln <em>MoneyGuard</em><sup>®</sup> solutions (long-term care planning)",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": [
+                    {
+                      "id": 1599564800010,
+                      "link": "/public/individuals/products/longtermcareplanning/learnthebasics",
+                      "NavTitle": "Learn the basics",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599564800614,
+                      "link": "/public/individuals/products/longtermcareplanning/whentoplan",
+                      "NavTitle": "When to plan",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599564815723,
+                      "link": "/public/individuals/products/longtermcareplanning/moneyguardsolutions",
+                      "NavTitle": "<em>MoneyGuard</em><sup>®</sup> solutions",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599564842349,
+                      "link": "/public/individuals/products/longtermcareplanning/resources",
+                      "NavTitle": "Resources",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    }
+                  ]
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1599564838267,
+                  "NavTitle": "FROM YOUR EMPLOYER",
+                  "ShowLineSeparator": "Yes",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "id": 1599564789041,
+                  "link": "/public/individuals/products/employeebenefits",
+                  "NavTitle": "Employee benefits",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": [
+                    {
+                      "id": 1599565021147,
+                      "link": "/public/individuals/products/employeebenefits/whatweoffer",
+                      "NavTitle": "What we offer",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "isPlaceHolder": "Yes",
+                      "id": 1599565015496,
+                      "link": "https://clients.go2dental.com/lfg/FindADentist",
+                      "NavTitle": "Find a dentist",
+                      "ShowRedirectDisclaimer": "No",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "isPlaceHolder": "Yes",
+                      "id": 1599565015539,
+                      "link": "https://lincolnfinancial.yourvisionplan.com/MWP/Landing",
+                      "NavTitle": "Find a vision care provider",
+                      "ShowRedirectDisclaimer": "No",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "isPlaceHolder": "Yes",
+                      "id": 1599565015915,
+                      "link": "https://provider.mylincolnportal.com/dental/login?utm_source=lfg&utm_medium=web&utm_campaign=DentistPortal",
+                      "NavTitle": "Dental provider portal",
+                      "ShowRedirectDisclaimer": "No",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    }
+                  ]
+                },
+                {
+                  "id": 1632766551772,
+                  "link": "/public/individuals/products/workplaceplan",
+                  "NavTitle": "Retirement plans",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": [
+                    {
+                      "id": 1599565021648,
+                      "link": "/public/individuals/products/workplaceplan/getstarted",
+                      "NavTitle": "Get started",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599565021669,
+                      "link": "/public/individuals/products/workplaceplan/investwisely",
+                      "NavTitle": "Invest wisely",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599565021690,
+                      "link": "/public/individuals/products/workplaceplan/savemore",
+                      "NavTitle": "Save more",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599565021887,
+                      "link": "/public/individuals/products/workplaceplan/retirewell",
+                      "NavTitle": "Retire well",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599565021711,
+                      "link": "/public/individuals/products/workplaceplan/financialwellness",
+                      "NavTitle": "Financial wellness",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632770403847,
+                      "link": "/public/individuals/products/workplaceplan/lifeevents",
+                      "NavTitle": "Life events",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "isPlaceHolder": "Yes",
+                      "id": 1599565848191,
+                      "link": "https://www.lincolnfinancial.com/secure/logout",
+                      "NavTitle": "View account balance",
+                      "ShowRedirectDisclaimer": "No",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "isPlaceHolder": "Yes",
+                      "id": 1599565022028,
+                      "link": "https://www.lincolnfinancial.com/secure/consumer/forms",
+                      "NavTitle": "Download forms",
+                      "ShowRedirectDisclaimer": "No",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": 1599564837811,
+              "NavTitle": "Planning",
+              "level": 2,
+              "showInNav": "Yes",
+              "subNav": [
+                {
+                  "id": 1599565038335,
+                  "link": "/public/individuals/planning/calculatorsandtools",
+                  "NavTitle": "Calculators and tools",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1632769817496,
+                  "link": "public/individuals/products/workplaceplan/lifeevents",
+                  "NavTitle": "Life events",
+                  "ShowRedirectDisclaimer": "No",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "id": 1632770036665,
+                  "link": "/public/general/actionplan",
+                  "NavTitle": "The Action Plan",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": [
+                    {
+                      "id": 1632777629191,
+                      "link": "/public/general/theactionplan/annuities",
+                      "NavTitle": "Annuities",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": 1599564837856,
+              "NavTitle": "Service and support",
+              "level": 2,
+              "showInNav": "Yes",
+              "subNav": [
+                {
+                  "id": 1632766757396,
+                  "link": "/public/individuals/support/customerservice/taxcenter",
+                  "NavTitle": "Tax information",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "id": 1599564989116,
+                  "link": "/public/individuals/support/customerservice",
+                  "NavTitle": "Customer service",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": [
+                    {
+                      "id": 1599567631707,
+                      "link": "/public/individuals/support/customerservice/supportsearch",
+                      "NavTitle": "Search Lincoln support",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599564989498,
+                      "link": "/public/individuals/support/customerservice/annuityresources",
+                      "NavTitle": "Annuity resources",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632766862830,
+                      "link": "/public/individuals/support/customerservice/forms",
+                      "NavTitle": "Forms",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599564989575,
+                      "link": "/public/individuals/support/customerservice/employeebenefitsresources",
+                      "NavTitle": "Benefits from your employer",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599564935423,
+                      "link": "/public/individuals/support/customerservice/lifeinsuranceresources",
+                      "NavTitle": "Life insurance resources",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599564989443,
+                      "link": "/public/individuals/support/customerservice/longtermcareresources",
+                      "NavTitle": "Long-term care resources",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599564919466,
+                      "link": "/public/individuals/support/customerservice/retirementplanresources",
+                      "NavTitle": "Retirement plan resources",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632764785242,
+                      "link": "/public/individuals/support/customerservice/loginregistrationhelp",
+                      "NavTitle": "Login/Registration help",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    }
+                  ]
+                },
+                {
+                  "id": 1599564624218,
+                  "link": "/public/general/fileaclaimtool",
+                  "NavTitle": "File a claim",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1599565015496,
+                  "link": "https://clients.go2dental.com/lfg/FindADentist",
+                  "NavTitle": "Find a dentist",
+                  "ShowRedirectDisclaimer": "No",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "id": 1632765176420,
+                  "link": "/public/individuals/support/findafinancialprofessional",
+                  "NavTitle": "Find a financial professional",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": [
+                    {
+                      "id": 1599564794122,
+                      "link": "/public/individuals/support/findafinancialprofessional/confirmation",
+                      "NavTitle": "Find a financial professional confirmation",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632774176478,
+                      "link": "/public/individuals/support/findafinancialprofessional/privatemarketfunds",
+                      "NavTitle": "Access private market strategies to help you enhance portfolio resilience through market cycles",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    }
+                  ]
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1599565015539,
+                  "link": "https://lincolnfinancial.yourvisionplan.com/MWP/Landing",
+                  "NavTitle": "Find a vision care provider",
+                  "ShowRedirectDisclaimer": "No",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1632764297115,
+                  "link": "public/individuals/products/lifeinsurance/billpayment",
+                  "NavTitle": "Life/LTC payment center",
+                  "ShowRedirectDisclaimer": "No",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1599565015279,
+                  "NavTitle": "GENERAL INQUIRIES",
+                  "ShowLineSeparator": "Yes",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "id": 1599564984138,
+                  "link": "/public/general/companydirectory",
+                  "NavTitle": "Company directory",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1632764254649,
+                  "link": "public/general/cybersecurity",
+                  "NavTitle": "Cybersecurity",
+                  "ShowRedirectDisclaimer": "No",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "id": 1599564466566,
+                  "link": "/public/general/support/lostpolicyinquiry",
+                  "NavTitle": "Lost policy inquiry",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1599564984487,
+                  "link": "public/individuals/support/customerservice/loginregistrationhelp",
+                  "NavTitle": "Login/registration help",
+                  "ShowRedirectDisclaimer": "No",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "id": 1599565015695,
+                  "link": "/public/general/contactformsclaims/unclaimedproperty",
+                  "NavTitle": "Unclaimed property",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": [
+                    {
+                      "id": 1599566109992,
+                      "link": "/public/general/contactandsupport/unclaimedproperty/customerinformationrequrested",
+                      "NavTitle": "Unclaimed property letter verification",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    }
+                  ]
+                },
+                {
+                  "id": 1599564984079,
+                  "link": "/public/general/support/reportfraud",
+                  "NavTitle": "Report fraud",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": [
+                    {
+                      "id": 1599564439154,
+                      "link": "/public/general/support/reportfraud/form",
+                      "NavTitle": "Report fraud form",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": 1599564384931,
+          "link": "/public/employers",
+          "NavTitle": "Employers",
+          "level": 1,
+          "showInNav": "Yes",
+          "selected": "No",
+          "subNav": [
+            {
+              "id": 1599564465182,
+              "NavTitle": "Products",
+              "level": 2,
+              "showInNav": "Yes",
+              "subNav": [
+                {
+                  "id": 1632771419637,
+                  "link": "/public/employers/products/employeebenefitsoverview",
+                  "NavTitle": "Employee benefits",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": [
+                    {
+                      "id": 1632768260442,
+                      "link": "/public/employers/insights/absenceadvisor",
+                      "NavTitle": "Absence Advisor",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599564985129,
+                      "link": "/public/employers/insights/guidancehub",
+                      "NavTitle": "Employee benefits guidance hub",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599564985148,
+                      "link": "/public/employers/products/employeebenefitsoverview/productspotlight",
+                      "NavTitle": "Product spotlight",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    }
+                  ]
+                },
+                {
+                  "id": 1632772359516,
+                  "link": "/public/employers/products/employerretirementplans",
+                  "NavTitle": "Retirement plans",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": [
+                    {
+                      "id": 1599565017883,
+                      "link": "/public/employers/products/employerretirementplans/whatweoffer/personalizedservice",
+                      "NavTitle": "Personalized service",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599565017959,
+                      "link": "/public/employers/products/employerretirementplans/whatweoffer/easytousetechnology",
+                      "NavTitle": "Easy-to-use technology",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599565017995,
+                      "link": "/public/employers/products/employerretirementplans/whatweoffer/innovativesolutions",
+                      "NavTitle": "Innovative solutions",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    }
+                  ]
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1632770768809,
+                  "link": "public/professionals/smallbusiness",
+                  "NavTitle": "Small business solutions",
+                  "ShowRedirectDisclaimer": "No",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1632769918859,
+                  "link": "public/professionals/productandinsights/stablevalueinvestmentonly",
+                  "NavTitle": "Stable value investment only",
+                  "ShowRedirectDisclaimer": "No",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1632770394462,
+                  "link": "public/general/wellnesssolutions",
+                  "NavTitle": "Wellness solutions",
+                  "ShowRedirectDisclaimer": "No",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                }
+              ]
+            },
+            {
+              "id": 1599564465245,
+              "NavTitle": "Insights",
+              "level": 2,
+              "showInNav": "Yes",
+              "subNav": [
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1632765589050,
+                  "link": "public/employers/insights/absenceadvisor",
+                  "NavTitle": "Absence Advisor",
+                  "ShowRedirectDisclaimer": "No",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1632765589194,
+                  "link": "public/employers/insights/guidancehub",
+                  "NavTitle": "Employee benefits guidance hub",
+                  "ShowRedirectDisclaimer": "No",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "id": 1599565018619,
+                  "link": "/public/employers/insights/retirementindustryinsights",
+                  "NavTitle": "Retirement industry insights",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "id": 1632766900751,
+                  "link": "/public/general/secureact",
+                  "NavTitle": "SECURE 2.0 resources",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                }
+              ]
+            },
+            {
+              "id": 1599564465305,
+              "NavTitle": "Service and support",
+              "level": 2,
+              "showInNav": "Yes",
+              "subNav": [
+                {
+                  "id": 1599564985734,
+                  "link": "/public/employers/support/employeebenefits",
+                  "NavTitle": "Employee benefits resources",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "id": 1599564985753,
+                  "link": "/public/employers/support/retirementplans",
+                  "NavTitle": "Retirement plans support",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1599565015043,
+                  "NavTitle": "TOOLS",
+                  "ShowLineSeparator": "Yes",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1599565015915,
+                  "link": "https://provider.mylincolnportal.com/dental/login?utm_source=lfg&utm_medium=web&utm_campaign=DentistPortal",
+                  "NavTitle": "Dental provider portal",
+                  "ShowRedirectDisclaimer": "No",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1599565015496,
+                  "link": "https://clients.go2dental.com/lfg/FindADentist",
+                  "NavTitle": "Find a dentist",
+                  "ShowRedirectDisclaimer": "No",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1599565037476,
+                  "link": "public/individuals/support/findafinancialprofessional",
+                  "NavTitle": "Find a financial professional",
+                  "ShowRedirectDisclaimer": "No",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1599565015539,
+                  "link": "https://lincolnfinancial.yourvisionplan.com/MWP/Landing",
+                  "NavTitle": "Find a vision care provider",
+                  "ShowRedirectDisclaimer": "No",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1599565015304,
+                  "NavTitle": "GENERAL INQUIRIES",
+                  "ShowLineSeparator": "Yes",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1599564984236,
+                  "link": "public/general/companydirectory",
+                  "NavTitle": "Company directory",
+                  "ShowRedirectDisclaimer": "No",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1632764254649,
+                  "link": "public/general/cybersecurity",
+                  "NavTitle": "Cybersecurity",
+                  "ShowRedirectDisclaimer": "No",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1599564985877,
+                  "link": "public/general/support/lostpolicyinquiry",
+                  "NavTitle": "Lost policy inquiry",
+                  "ShowRedirectDisclaimer": "No",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1599564984487,
+                  "link": "public/individuals/support/customerservice/loginregistrationhelp",
+                  "NavTitle": "Login and registration help",
+                  "ShowRedirectDisclaimer": "No",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1599565016350,
+                  "link": "public/general/support/reportfraud",
+                  "NavTitle": "Report fraud",
+                  "ShowRedirectDisclaimer": "No",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1599565016451,
+                  "link": "public/general/contactformsclaims/unclaimedproperty",
+                  "NavTitle": "Unclaimed property",
+                  "ShowRedirectDisclaimer": "No",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": 1599564385091,
+          "link": "/public/professionals",
+          "NavTitle": "Professionals",
+          "level": 1,
+          "showInNav": "Yes",
+          "selected": "No",
+          "subNav": [
+            {
+              "id": 1599564465783,
+              "NavTitle": "Partner with us",
+              "level": 2,
+              "showInNav": "Yes",
+              "subNav": [
+                {
+                  "id": 1599566141953,
+                  "link": "/public/professionals/partnerwithus/lincolnfinancialdistributors",
+                  "NavTitle": "Lincoln Financial Distributors",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": [
+                    {
+                      "id": 1599566156805,
+                      "link": "/public/professionals/partnerwithus/lincolnfinancialdistributors/clientneeds",
+                      "NavTitle": "Address client needs",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599564973707,
+                      "link": "/public/professionals/partnerwithus/lincolnsolutionscenter",
+                      "NavTitle": "Lincoln Solutions Center",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    }
+                  ]
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1632774007617,
+                  "link": "public/professionals/productsandinsights/lincolnfinancialinvestments",
+                  "NavTitle": "Lincoln Financial Investments",
+                  "ShowRedirectDisclaimer": "No",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "id": 1599564973190,
+                  "link": "/public/professionals/partnerwithus/whylincoln",
+                  "NavTitle": "Why Lincoln?",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": [
+                    {
+                      "id": 1599564973253,
+                      "link": "/public/professionals/partnerwithus/whylincoln/distributionnetworkandsalessupport",
+                      "NavTitle": "Distribution Network and Sales Support",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599564973271,
+                      "link": "/public/professionals/partnerwithus/whylincoln/businessbuildingtools",
+                      "NavTitle": "Business-building tools",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    }
+                  ]
+                },
+                {
+                  "id": 1632772141111,
+                  "link": "/public/professionals/partnerwithus/workplacesolutions",
+                  "NavTitle": "Workplace Solutions",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                }
+              ]
+            },
+            {
+              "id": 1599564465213,
+              "NavTitle": "Products and insights",
+              "level": 2,
+              "showInNav": "Yes",
+              "subNav": [
+                {
+                  "id": 1632770659224,
+                  "link": "/public/professionals/productsandinsights/annuities",
+                  "NavTitle": "Annuities",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": [
+                    {
+                      "id": 1632770644345,
+                      "link": "/public/professionals/productsandinsights/annuities/toolsandresources",
+                      "NavTitle": "Tools and resources",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599564921415,
+                      "link": "/public/professionals/productsandinsights/annuities/overview",
+                      "NavTitle": "Product overview",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632772384090,
+                      "link": "/public/professionals/productsandinsights/annuities/form",
+                      "NavTitle": "Let’s make a difference",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    }
+                  ]
+                },
+                {
+                  "id": 1632767571872,
+                  "link": "/public/professionals/productsandinsights/individuallifeinsurance",
+                  "NavTitle": "Individual life insurance",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": [
+                    {
+                      "id": 1599564923035,
+                      "link": "/public/professionals/productsandinsights/individuallifeinsurance/havebetterclientconversations",
+                      "NavTitle": "Have better client conversations",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599564924163,
+                      "link": "/public/professionals/productsandinsights/individuallifeinsurance/partnerwithus",
+                      "NavTitle": "Partner with us",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599564924089,
+                      "link": "/public/professionals/productsandinsights/individuallifeinsurance/growyourbusiness",
+                      "NavTitle": "Grow your business",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632768459343,
+                      "link": "/public/professionals/productsandinsights/individuallifeinsurance/form",
+                      "NavTitle": "Make a connection",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    }
+                  ]
+                },
+                {
+                  "id": 1632773878257,
+                  "link": "/public/professionals/productsandinsights/lincolnfinancialinvestments",
+                  "NavTitle": "Lincoln Financial Investments",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": [
+                    {
+                      "id": 1632775256315,
+                      "link": "/public/professionals/productsandinsights/lincolnfinancialinvestments/LincolnBainCapitalTotalCreditFund",
+                      "NavTitle": "Lincoln Bain Capital Total Credit Fund",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632775323696,
+                      "link": "/public/professionals/productsandinsights/lincolnfinancialinvestments/LincolnPartnersGroupRoyaltyFund",
+                      "NavTitle": "Lincoln Partners Group Royalty Fund",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632775260398,
+                      "link": "/public/professionals/productsandinsights/lincolnfinancialinvestments/insightsandeducation",
+                      "NavTitle": "Insights and education",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632773878713,
+                      "link": "/public/professionals/productsandinsights/lincolnfinancialinvestments/contactus",
+                      "NavTitle": "Contact us about private market funds",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    }
+                  ]
+                },
+                {
+                  "id": 1632771429865,
+                  "link": "/public/professionals/productsandinsights/employeebenefitsoverview",
+                  "NavTitle": "Employee benefits",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": [
+                    {
+                      "id": 1599564971095,
+                      "link": "/public/professionals/productsandinsights/employeebenefitsoverview/guidancehub",
+                      "NavTitle": "Employee benefits guidance hub",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632768869500,
+                      "link": "/public/professionals/productsandinsights/employeebenefitsoverview/dentalinsurance",
+                      "NavTitle": "Dental insurance",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632768872751,
+                      "link": "/public/professionals/productsandinsights/employeebenefitsoverview/disabilityinsurance",
+                      "NavTitle": "Disability insurance",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632769023216,
+                      "link": "/public/professionals/productsandinsights/employeebenefitsoverview/leavemanagementservices",
+                      "NavTitle": "Absence management services",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632768856057,
+                      "link": "/public/professionals/productsandinsights/employeebenefitsoverview/lifeinsurance",
+                      "NavTitle": "Life insurance",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632768838636,
+                      "link": "/public/professionals/productsandinsights/employeebenefitsoverview/supplementalhealthinsurance",
+                      "NavTitle": "Supplemental health insurance",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632768828257,
+                      "link": "/public/professionals/productsandinsights/employeebenefitsoverview/visioninsurance",
+                      "NavTitle": "Vision insurance",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    }
+                  ]
+                },
+                {
+                  "id": 1632766517983,
+                  "link": "/public/professionals/productsandinsights/longtermcare",
+                  "NavTitle": "Long-term care funding",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": [
+                    {
+                      "id": 1632767230693,
+                      "link": "/public/professionals/productsandinsights/longtermcare/form",
+                      "NavTitle": "Deepen your commitment",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632767113035,
+                      "link": "/public/professionals/productsandinsights/longtermcareca",
+                      "NavTitle": "Long-term care funding",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    }
+                  ]
+                },
+                {
+                  "id": 1632772359169,
+                  "link": "/public/professionals/productsandinsights/employerretirementplans",
+                  "NavTitle": "Retirement plans",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": [
+                    {
+                      "id": 1599564933045,
+                      "link": "/public/professionals/productsandinsights/employerretirementplans/whatweoffer/personalizedservice",
+                      "NavTitle": "Personalized service",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599564933403,
+                      "link": "/public/professionals/productsandinsights/employerretirementplans/whatweoffer/easytousetechnology",
+                      "NavTitle": "Easy-to-use technology",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599564933603,
+                      "link": "/public/professionals/productsandinsights/employerretirementplans/whatweoffer/innovativesolutions",
+                      "NavTitle": "Innovative solutions",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599564938332,
+                      "link": "/public/professionals/productsandinsights/employerretirementplans/havebetterclientconversations",
+                      "NavTitle": "Markets we serve",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599564970784,
+                      "link": "/public/professionals/productsandinsights/employerretirementplans/retirementindustryinsights",
+                      "NavTitle": "Retirement industry insights",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    }
+                  ]
+                },
+                {
+                  "id": 1632768868623,
+                  "link": "/public/professionals/smallbusiness",
+                  "NavTitle": "Small business solutions",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": [
+                    {
+                      "id": 1632773176178,
+                      "link": "/public/professionals/smallbusiness/3wayssmallbusinessescanmakebenefitsanadvantage",
+                      "NavTitle": "3 ways small businesses can make benefits an advantage",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632773179876,
+                      "link": "/public/professionals/smallbusiness/makebenefitsatalentretentionmultiplier",
+                      "NavTitle": "Make benefits a talent retention multiplier",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632773208362,
+                      "link": "/public/professionals/smallbusiness/whatsmallbusinessownerswant",
+                      "NavTitle": "What small business owners want",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632770755558,
+                      "link": "/public/professionals/smallbusiness/3wayssmallbusinessescanattractandretainemployees",
+                      "NavTitle": "3 ways small businesses can attract and retain employees",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632770755898,
+                      "link": "/public/professionals/smallbusiness/howsmallbusinessownerscanfosteremployeewell-being",
+                      "NavTitle": "How small business owners can foster employee well-being",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632770756262,
+                      "link": "/public/professionals/smallbusiness/3waystosavetimeasasmallbusinessowner",
+                      "NavTitle": "3 ways to save time as a small business owner",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    }
+                  ]
+                },
+                {
+                  "id": 1632768981566,
+                  "link": "/public/general/wellnesssolutions",
+                  "NavTitle": "Wellness solutions",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": [
+                    {
+                      "id": 1632768996992,
+                      "link": "/public/general/wellnesssolutions/wellnessinsights",
+                      "NavTitle": "Wellness insights",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632768997262,
+                      "link": "/public/general/wellnesssolutions/wellnesspath",
+                      "NavTitle": "Lincoln <em>WellnessPATH</em><sup>&reg;</sup>",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632772200284,
+                      "link": "/public/general/wellnesssolutions/wellnesspathmarketplace",
+                      "NavTitle": "<em>WellnessPATH</em><sup>®</sup> Marketplace",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632768997562,
+                      "link": "/public/general/wellnesssolutions/resourcesforyou",
+                      "NavTitle": "Resources for you",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632768997824,
+                      "link": "/public/general/wellnesssolutions/successstories",
+                      "NavTitle": "Success stories",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    }
+                  ]
+                },
+                {
+                  "id": 1632769753910,
+                  "link": "/public/professionals/productandinsights/stablevalueinvestmentonly",
+                  "NavTitle": "Stable value investment only",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": [
+                    {
+                      "id": 1632772648274,
+                      "link": "/public/professionals/productandinsights/stablevalueinvestmentonly/contactform",
+                      "NavTitle": "Contact Form",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    }
+                  ]
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1599566135650,
+                  "NavTitle": "PROFESSIONAL INSIGHTS",
+                  "ShowLineSeparator": "Yes",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "id": 1599564972478,
+                  "link": "/public/professionals/productsandinsights/blogs",
+                  "NavTitle": "Blogs",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": [
+                    {
+                      "id": 1632778027469,
+                      "link": "/public/professionals/productsandinsights/blogs/conversationsmatter",
+                      "NavTitle": "August 17, 2026 - The retirement planning step most clients miss",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632778174183,
+                      "link": "/public/professionals/productsandinsights/blogs/LifeInsuranceAwarenessMonth2026",
+                      "NavTitle": "September 28, 2026 - From awareness to action: 5 ways to bridge the life insurance gap this LIAM",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632777694080,
+                      "link": "/public/professionals/productsandinsights/blogs/prideinplanning",
+                      "NavTitle": "July 13, 2026 - Pride in planning: How financial professionals can bridge the life insurance gap for LGBTQ+ clients",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632777640955,
+                      "link": "/public/professionals/productsandinsights/blogs/annuities_awareness_month_2026",
+                      "NavTitle": "June 30, 2026 - Start building longevity plans to better manage longevity concerns ",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632777223821,
+                      "link": "/public/professionals/productsandinsights/blogs/beyondtheportfolio",
+                      "NavTitle": "May 19, 2026 - Supporting clients beyond their portfolio",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632776778828,
+                      "link": "/public/professionals/productsandinsights/blogs/taxadvantagedsolutions",
+                      "NavTitle": "April 17, 2026 - Tax season may be over, but conversations about tax-advantaged products should just be getting started.",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632776622894,
+                      "link": "/public/professionals/productsandinsights/blogs/newretirementmath",
+                      "NavTitle": "April 9, 2026 - The new retirement math for income and legacy",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632775750342,
+                      "link": "/public/professionals/productsandinsights/blogs/keyemployees",
+                      "NavTitle": "March 18, 2026 - What do sports teams and business owners have in common?",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632775195761,
+                      "link": "/public/professionals/productsandinsights/blogs/fivewaysyoucanhelpfamilies",
+                      "NavTitle": "February 23, 2026 - Five ways you can help families build and sustain generational wealth",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632775167926,
+                      "link": "/public/professionals/productsandinsights/blogs/spreadthelove",
+                      "NavTitle": "February 11, 2026 - Spreading the Love: Why women are at the heart of the Great Wealth Transfer",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632775158395,
+                      "link": "/public/professionals/productsandinsights/blogs/taxseason2026",
+                      "NavTitle": "February 11, 2026 - Tax season 2026: How you can help turn complexity into client confidence",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632775062409,
+                      "link": "/public/professionals/productsandinsights/blogs/AdvancedPlanningOpportunities",
+                      "NavTitle": "January 12, 2026 - What to expect in 2026: Top 5 advanced planning opportunities",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632774927901,
+                      "link": "/public/professionals/productsandinsights/blogs/sixpointchecklist",
+                      "NavTitle": "December 10, 2025 - Financial goal setting: A win-win for you and your clients",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632774766856,
+                      "link": "/public/professionals/productsandinsights/blogs/LTCAM",
+                      "NavTitle": "November 5, 2025 - Is long-term care planning the elephant in the room for your clients?",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632774629649,
+                      "link": "/public/professionals/productsandinsights/blogs/innovationMatters",
+                      "NavTitle": "October 24, 2025 - When markets shift, innovation matters",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632774081533,
+                      "link": "/public/professionals/productsandinsights/blogs/retirementsToughestTradeoff",
+                      "NavTitle": "September 19, 2025 - Solving retirement's toughest tradeoff",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632773989670,
+                      "link": "/public/professionals/productsandinsights/blogs/navigatingVolatility",
+                      "NavTitle": "September 12, 2025 - Classics for a reason: The benefits of long-term investing",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632773980741,
+                      "link": "/public/professionals/productsandinsights/blogs/LIAM2025",
+                      "NavTitle": "September 10, 2025 - Cash value life insurance still flies under the radar — Here’s why that’s a missed opportunity",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632773794783,
+                      "link": "/public/professionals/productsandinsights/blogs/protectionproducts",
+                      "NavTitle": "July 30, 2025 - Americans are stressed about finances — protection products (and you) can help",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632773625377,
+                      "link": "/public/professionals/productsandinsights/blogs/UWadvantages",
+                      "NavTitle": "June 23, 2025 - Balancing innovation with empathy: Industry-leading underwriting in the digital age",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632773537254,
+                      "link": "/public/professionals/productsandinsights/blogs/4trendsyoushouldwatch",
+                      "NavTitle": "June 10, 2025 - 4 trends you should watch — and 4 client conversations you should have",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632773449888,
+                      "link": "/public/professionals/productsandinsights/blogs/QTIPtrusts",
+                      "NavTitle": "May 16, 2025 - Ensure QTIP trust success by insuring it",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632772945132,
+                      "link": "/public/professionals/productsandinsights/blogs/taxseasonisuponus",
+                      "NavTitle": "March 19, 2025 - Tax season is upon us (and tax-smart income can make a big difference!)",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632773032752,
+                      "link": "/public/professionals/productsandinsights/blogs/enchancedVCIsinIULs",
+                      "NavTitle": "March 31, 2025 - Unlock Greater Potential Using Enhanced VCIs in IULs",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632772711069,
+                      "link": "/public/professionals/productsandinsights/blogs/sharetheloveofVULs",
+                      "NavTitle": "February 6, 2025 - Why I Love Lincoln's VULs",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632772537346,
+                      "link": "/public/professionals/productsandinsights/blogs/firstcomesbaby",
+                      "NavTitle": "January 7, 2025 - First comes baby, then comes life (insurance)",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632772433910,
+                      "link": "/public/professionals/productsandinsights/blogs/electionyearchanges",
+                      "NavTitle": "December 11, 2024 - Déjà vu?: A Commentary on the 2024 Election Cycle",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632772307572,
+                      "link": "/public/professionals/productsandinsights/blogs/talkcaregivingwithclients",
+                      "NavTitle": "November 11, 2024 - Prepare clients for moments that matter",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632772099532,
+                      "link": "/public/professionals/productsandinsights/blogs/addempathytoclientconversations",
+                      "NavTitle": "October 22, 2024 - Empathy: the most important skill to master",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632772084725,
+                      "link": "/public/professionals/productsandinsights/blogs/empowerLatinofamiliesforaprosperousfuture",
+                      "NavTitle": "October 9, 2024 - Empower Latino Families for a Prosperous Future — and a Secure Retirement",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632772038470,
+                      "link": "/public/professionals/productsandinsights/blogs/sharelifespossibilitieswithHispanicAmericans",
+                      "NavTitle": "October 1, 2024 - Share Life's Possibilities with Hispanic Americans",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632771865861,
+                      "link": "/public/professionals/productsandinsights/blogs/lifeanddeath",
+                      "NavTitle": "September 4, 2024 - What I learned about life … and death",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632771836608,
+                      "link": "/public/professionals/productsandinsights/blogs/emotionalinvesting",
+                      "NavTitle": "August 27, 2024 - Don't let the \"Invisible Hand\" hit the invisible  panic button",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632771742459,
+                      "link": "/public/professionals/productsandinsights/blogs/beyondthepension",
+                      "NavTitle": "August 20, 2024 - Beyond the pension: Helping employers offer lifetime income options",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632771730730,
+                      "link": "/public/professionals/productsandinsights/blogs/globalinterestinuslife",
+                      "NavTitle": "August 8, 2024 - Why U.S. life insurance is so attractive to global clients",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632771334180,
+                      "link": "/public/professionals/productsandinsights/blogs/connellycaseupdate",
+                      "NavTitle": "July 9, 2024 - Connelly Case Update: Buy-sells may increase estate tax exposure",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632771063915,
+                      "link": "/public/professionals/productsandinsights/blogs/annuity-awareness-month",
+                      "NavTitle": "June 6, 2024 - Peak 65 Retirees Have a Big Problem. But You Can Help!",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632771114692,
+                      "link": "/public/professionals/productsandinsights/blogs/lifetimevsperformance",
+                      "NavTitle": "June 5, 2024 - Lifetime Guaranteed protection vs. Performance-driven products",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632770862274,
+                      "link": "/public/professionals/productsandinsights/blogs/client-retention",
+                      "NavTitle": "May 7, 2024 - Build relationships that span generations",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632770755452,
+                      "link": "/public/professionals/productsandinsights/blogs/build-more-efficient-portfolios",
+                      "NavTitle": "April 25, 2024 - Build more efficient portfolios with growth in up, down and flat markets",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632764167393,
+                      "link": "/public/professionals/productsandinsights/blogs/discoverhowcashvaluehasvalue",
+                      "NavTitle": "January 19, 2022 - Discover how cash value has value",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632770710509,
+                      "link": "/public/professionals/productsandinsights/blogs/plantingseedsforopportunity",
+                      "NavTitle": "April 9, 2024 - Planting seeds for opportunity",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632770619072,
+                      "link": "/public/professionals/productsandinsights/blogs/OpportunityKnocks",
+                      "NavTitle": "March 25, 2024 - Opportunity knocks for group 403(b) plans",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632770530604,
+                      "link": "/public/professionals/productsandinsights/blogs/LifeUnexpected",
+                      "NavTitle": "March 6, 2024 - Life (Un) Expected",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632770503751,
+                      "link": "/public/professionals/productsandinsights/blogs/taxesandportfolios",
+                      "NavTitle": "February 27, 2024 - Taxes are a powerful force — but you can take control",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632770327380,
+                      "link": "/public/professionals/productsandinsights/blogs/BlackHistoryMonth",
+                      "NavTitle": "February 6, 2024 - Empowering generations: Talk life insurance this Black History Month",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632770237116,
+                      "link": "/public/professionals/productsandinsights/blogs/IRS-grab-bag",
+                      "NavTitle": "January 24, 2024 - SECURE 2.0: IRS grab bag",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632770162327,
+                      "link": "/public/professionals/productsandinsights/blogs/topsyturvymarkets",
+                      "NavTitle": "January 17, 2024 - Topsy-turvy markets? Steady, consistent protection may be your missing asset class",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632770134366,
+                      "link": "/public/professionals/productsandinsights/blogs/changedrivesopportunity",
+                      "NavTitle": "January 16, 2024 - Change drives opportunity for clients",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632769895350,
+                      "link": "/public/professionals/productsandinsights/blogs/2024compliance",
+                      "NavTitle": "December 15, 2023 - SECURE 2.0: Operational compliance in 2024",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632769808448,
+                      "link": "/public/professionals/productsandinsights/blogs/doesamericahaveamathproblem",
+                      "NavTitle": "December 14, 2023 - Does America have a math problem?",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632768938017,
+                      "link": "/public/professionals/productsandinsights/blogs/meps",
+                      "NavTitle": "November 17, 2023 - SECURE 2.0: The SECURE Act and Multiple Employer Plans: The future of retirement savings?",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632768980524,
+                      "link": "/public/professionals/productsandinsights/blogs/celebrateltcawarenessmonth",
+                      "NavTitle": "November 8, 2023 - Celebrate LTC Awareness Month",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632768567357,
+                      "link": "/public/professionals/productsandinsights/blogs/celebratehispanicheritagemonth",
+                      "NavTitle": "October 12, 2023 - Celebrate Hispanic Heritage Month",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632768514731,
+                      "link": "/public/professionals/productsandinsights/blogs/stuckonthesidelines",
+                      "NavTitle": "September 27, 2023 - Clients stuck on the sidelines? Give them three reasons to put cash to work with confidence",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632768434382,
+                      "link": "/public/professionals/productsandinsights/blogs/helpprotectamerica",
+                      "NavTitle": "September 11, 2023 - Help protect America",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632768251092,
+                      "link": "/public/professionals/productsandinsights/blogs/deminimisincentives",
+                      "NavTitle": "August 18, 2023 - SECURE 2.0: Too much of a good thing: De minimis incentives",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632768320603,
+                      "link": "/public/professionals/productsandinsights/blogs/bringsomelifetothefamilyfarm",
+                      "NavTitle": "August 14, 2023 - Bring some life to the family farm",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632768200609,
+                      "link": "/public/professionals/productsandinsights/blogs/cashconundrum",
+                      "NavTitle": "July 27, 2023 - The cash conundrum",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632768090686,
+                      "link": "/public/professionals/productsandinsights/blogs/beingconnected",
+                      "NavTitle": "July 14, 2023 - The importance of being connected",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632767996655,
+                      "link": "/public/professionals/productsandinsights/blogs/whywehaveannuitiesawarenessmonth",
+                      "NavTitle": "June 23, 2023 - When I'm 65, or Why we have Annuity Awareness Month",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632767947988,
+                      "link": "/public/professionals/productsandinsights/blogs/strategizingforsocialsecurity",
+                      "NavTitle": "June 16, 2023 - Strategizing for Social Security",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632767872414,
+                      "link": "/public/professionals/productsandinsights/blogs/secure2plansponsors",
+                      "NavTitle": "June 16, 2023 - SECURE 2.0: Easy does it … Or does it? Plan sponsors have decisions to make",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632767778239,
+                      "link": "/public/professionals/productsandinsights/blogs/guidingfemaleclients",
+                      "NavTitle": "May 30, 2023 - Here’s 3 things you should know as you guide your female clients",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632767693735,
+                      "link": "/public/professionals/productsandinsights/blogs/secure2dcplans",
+                      "NavTitle": "May 22, 2023 - SECURE 2.0: Should DC plans consider these optional provisions?",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632767711263,
+                      "link": "/public/professionals/productsandinsights/blogs/fundingcollege",
+                      "NavTitle": "May 18, 2023 - Funding college with life insurance",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632767474548,
+                      "link": "/public/professionals/productsandinsights/blogs/giftingstrategies",
+                      "NavTitle": "April 20, 2023 - April showers bring... gifting strategies",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632767565771,
+                      "link": "/public/professionals/productsandinsights/blogs/makingadifferenceforamericanfamilies",
+                      "NavTitle": "April 18, 2023 - <em>i4LIFE</em><sup>®</sup> Advantage: Product guru Dan Herr on our history of making a difference for American families",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632767133019,
+                      "link": "/public/professionals/productsandinsights/blogs/reimbursementvsindemnitylongtermcarepolicies",
+                      "NavTitle": "March 27, 2023 - Reimbursement vs. indemnity long-term care policies: Avoiding a tax-season surprise",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632767140690,
+                      "link": "/public/professionals/productsandinsights/blogs/asuccessionplanningstory",
+                      "NavTitle": "March 15, 2023 - Mr. Connelly and the brewery: A succession planning story",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632766945705,
+                      "link": "/public/professionals/productsandinsights/blogs/buildyourbusinesswithforeignnationals",
+                      "NavTitle": "February 16, 2023 - Build your business with foreign nationals",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632767076118,
+                      "link": "/public/professionals/productsandinsights/blogs/ourtop5conversationstotakeclientsfrommicroscopetotelescope",
+                      "NavTitle": "March 7, 2023 - Our top 5 conversations to take clients from microscope to telescope",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632766724554,
+                      "link": "/public/professionals/productsandinsights/blogs/Takeadvantageoftaxseasontotackleestateplanning",
+                      "NavTitle": "January 25, 2023 - Take advantage of tax season to tackle estate planning",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632766690860,
+                      "link": "/public/professionals/productsandinsights/blogs/revisedsecureact",
+                      "NavTitle": "January 23, 2023 - SECURE Act 2.0: A robust upgrade to individual retirement planning",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632766545056,
+                      "link": "/public/professionals/productsandinsights/blogs/thepowerfulbenefitsofbeneficiaryreviews2022",
+                      "NavTitle": "December 22, 2022 - The powerful benefits of beneficiary review (2022 edition)",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632766392127,
+                      "link": "/public/professionals/productsandinsights/blogs/celebrityestateblunders",
+                      "NavTitle": "December 16, 2022 - Celebrity estate blunders",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632766329462,
+                      "link": "/public/professionals/productsandinsights/blogs/pensionlikeincomewithoutapension",
+                      "NavTitle": "November 21, 2022 - Create pension-like income...without a pension",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632766304225,
+                      "link": "/public/professionals/productsandinsights/blogs/ltcplanningbenefitsclientsandtheirfamilies",
+                      "NavTitle": "November 17, 2022 - LTC planning benefits clients and their families",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632766201046,
+                      "link": "/public/professionals/productsandinsights/blogs/dontletclientsrelyonluckforlongtermcare",
+                      "NavTitle": "November 10, 2022 - Don’t let clients rely on luck for long-term care",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632765947562,
+                      "link": "/public/professionals/productsandinsights/blogs/doingbusinessbetter",
+                      "NavTitle": "October 20, 2022 - Doing business better: Innovation meets simplicity",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632765837580,
+                      "link": "/public/professionals/productsandinsights/blogs/itpaystoprotectwithannuities",
+                      "NavTitle": "September 28, 2022 - It pays to protect (with annuities)",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632765828743,
+                      "link": "/public/professionals/productsandinsights/blogs/taxadvantedsolutions",
+                      "NavTitle": "September 27, 2022 - Consider tax-advantaged solutions",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632765636001,
+                      "link": "/public/professionals/productsandinsights/blogs/costofcare",
+                      "NavTitle": "August 25, 2022 - Prepare and plan for the rising cost of care",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632765465254,
+                      "link": "/public/professionals/productsandinsights/blogs/protectagainstsequenceofreturnrisk",
+                      "NavTitle": "July 28, 2022 - Protect against the sequence of return risk",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632765403477,
+                      "link": "/public/professionals/productsandinsights/blogs/therevisedsecureactaffectseveryone",
+                      "NavTitle": "July 18, 2022 - Clients. Spouses. Beneficiaries. The revised SECURE Act affects everyone.",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632765289105,
+                      "link": "/public/professionals/productsandinsights/blogs/doubledownforboomers",
+                      "NavTitle": "June 21, 2022 - Double down for boomers",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632765239418,
+                      "link": "/public/professionals/productsandinsights/blogs/whoneedsandwantsannuities",
+                      "NavTitle": "June 9, 2022 - Who really <em>needs</em> annuities — and who really <em>wants</em> annuities",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632765159002,
+                      "link": "/public/professionals/productsandinsights/blogs/womenandcaregivinggohandinhand",
+                      "NavTitle": "May 24, 2022 - Women and caregiving go hand in hand",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632765137713,
+                      "link": "/public/professionals/productsandinsights/blogs/mentalhealthtouchesusallhowareyourclientsdoing",
+                      "NavTitle": "May 19, 2022 - Mental health touches us all. How are your clients doing?",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632765018167,
+                      "link": "/public/professionals/productsandinsights/blogs/Financialliteracyevenforsavvyinvestorsmaymeanbetterresultsforincome",
+                      "NavTitle": "April 29, 2022 - Financial literacy — even for savvy investors — may mean better results for income",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632764947650,
+                      "link": "/public/professionals/productsandinsights/blogs/decipheringasecureactpuzzlewithinheritediras",
+                      "NavTitle": "April 19, 2022 - Deciphering a SECURE Act puzzle with inherited IRAs",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632764910851,
+                      "link": "/public/professionals/productsandinsights/blogs/bringlifetoyoungerwealthyclients",
+                      "NavTitle": "April 18, 2022 - Bring life to younger wealthy clients",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632764866676,
+                      "link": "/public/professionals/productsandinsights/blogs/beyondtheheadlines",
+                      "NavTitle": "March 31, 2022 - Look beyond the headlines",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632764802191,
+                      "link": "/public/professionals/productsandinsights/blogs/theblendedfamilyestate",
+                      "NavTitle": "March 16, 2022 - The blended family estate",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632764522026,
+                      "link": "/public/professionals/productsandinsights/blogs/newtaxguidancebringsgoodnewsforirainvestors",
+                      "NavTitle": "February 25, 2022 - New tax guidance brings good news for IRA investors",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632764429430,
+                      "link": "/public/professionals/productsandinsights/blogs/creattaxefficientincomestrategies",
+                      "NavTitle": "February 16, 2022 - Create tax-efficient income strategies",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1632764338353,
+                      "link": "/public/professionals/productsandinsights/blogs/threestrategiestoencouragelongtermconfidence",
+                      "NavTitle": "February 2, 2022 - Three (simple) strategies to encourage long-term confidence",
+                      "level": 4,
+                      "showInNav": "No",
+                      "subNav": "null"
+                    }
+                  ]
+                },
+                {
+                  "id": 1632768356118,
+                  "link": "/public/professionals/productsandinsights/marketinsights",
+                  "NavTitle": "Market Insights",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": [
+                    {
+                      "id": 1632768405406,
+                      "link": "/public/professionals/productsandinsights/marketinsights/subscribe",
+                      "NavTitle": "Subscribe to the Market Intel Exchange",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    }
+                  ]
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1632767010112,
+                  "link": "public/general/secureact",
+                  "NavTitle": "SECURE 2.0 Resources",
+                  "ShowRedirectDisclaimer": "No",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                }
+              ]
+            },
+            {
+              "id": 1599564465329,
+              "NavTitle": "Service and support",
+              "level": 2,
+              "showInNav": "Yes",
+              "subNav": [
+                {
+                  "id": 1599564984052,
+                  "link": "/public/professionals/professionalresources",
+                  "NavTitle": "Support for you",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": [
+                    {
+                      "id": 1599564984550,
+                      "link": "/public/professionals/professionalresources/lincolnaffiliates",
+                      "NavTitle": "Lincoln affiliates",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599564984583,
+                      "link": "/public/professionals/professionalresources/retirementplan",
+                      "NavTitle": "Retirement plans",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    },
+                    {
+                      "id": 1599564984600,
+                      "link": "/public/professionals/professionalresources/employeebenefits",
+                      "NavTitle": "Employee benefits",
+                      "level": 4,
+                      "showInNav": "Yes",
+                      "subNav": "null"
+                    }
+                  ]
+                },
+                {
+                  "id": 1599564984014,
+                  "link": "/public/professionals/clientresources",
+                  "NavTitle": "Support for your clients",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1599565133968,
+                  "NavTitle": "TOOLS",
+                  "ShowLineSeparator": "Yes",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1599565015915,
+                  "link": "https://provider.mylincolnportal.com/dental/login?utm_source=lfg&utm_medium=web&utm_campaign=DentistPortal",
+                  "NavTitle": "Dental provider portal",
+                  "ShowRedirectDisclaimer": "No",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1599565015329,
+                  "NavTitle": "GENERAL INQUIRIES",
+                  "ShowLineSeparator": "Yes",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "id": 1599564984095,
+                  "link": "/public/general/contactformsclaims/antimoneylaundering",
+                  "NavTitle": "Anti-Money Laundering",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1599564984236,
+                  "link": "public/general/companydirectory",
+                  "NavTitle": "Company directory",
+                  "ShowRedirectDisclaimer": "No",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1632764254649,
+                  "link": "public/general/cybersecurity",
+                  "NavTitle": "Cybersecurity",
+                  "ShowRedirectDisclaimer": "No",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1599564985877,
+                  "link": "public/general/support/lostpolicyinquiry",
+                  "NavTitle": "Lost policy inquiry",
+                  "ShowRedirectDisclaimer": "No",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1599564984487,
+                  "link": "public/individuals/support/customerservice/loginregistrationhelp",
+                  "NavTitle": "Login/registration help",
+                  "ShowRedirectDisclaimer": "No",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1599565016350,
+                  "link": "public/general/support/reportfraud",
+                  "NavTitle": "Report fraud",
+                  "ShowRedirectDisclaimer": "No",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                },
+                {
+                  "isPlaceHolder": "Yes",
+                  "id": 1599565016451,
+                  "link": "public/general/contactformsclaims/unclaimedproperty",
+                  "NavTitle": "Unclaimed property",
+                  "ShowRedirectDisclaimer": "No",
+                  "level": 3,
+                  "showInNav": "Yes",
+                  "subNav": "null"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "HeaderUtilityLinks": [
+      {
+        "id": 1599564382555,
+        "NavTitle": "Careers",
+        "showInNav": "Yes",
+        "target": "_self",
+        "link": "public/aboutus/careers",
+        "isPlaceHolder": "Yes"
+      },
+      {
+        "id": 1599564383407,
+        "NavTitle": "Register",
+        "showInNav": "Yes",
+        "link": "public/general/registration"
+      },
+      {
+        "id": 1599564642619,
+        "NavTitle": "Log in",
+        "showInNav": "Yes",
+        "target": "_blank",
+        "link": "https://www.lincolnfinancial.com/secure/logout",
+        "ShowRedirectDisclaimer": "No",
+        "isPlaceHolder": "Yes"
+      }
+    ],
+    "FooterNavLinks": [
+      {
+        "id": 1599564383174,
+        "NavTitle": "My account",
+        "level": 1,
+        "showInNav": "Yes",
+        "footerLinks": [
+          {
+            "id": 1599564382968,
+            "NavTitle": "Log in",
+            "target": "_blank",
+            "link": "https://www.lincolnfinancial.com/secure/logout",
+            "ShowRedirectDisclaimer": "No",
+            "isPlaceHolder": "Yes",
+            "level": 2,
+            "showInNav": "Yes"
+          },
+          {
+            "id": 1599564383442,
+            "NavTitle": "Register",
+            "target": "_self",
+            "link": "public/general/registration",
+            "isPlaceHolder": "Yes",
+            "level": 2,
+            "showInNav": "Yes"
+          }
+        ]
+      },
+      {
+        "id": 1599564383204,
+        "NavTitle": "Company overview",
+        "level": 1,
+        "showInNav": "Yes",
+        "footerLinks": [
+          {
+            "id": 1632773566564,
+            "link": "public/aboutus/companyoverview",
+            "NavTitle": "About us",
+            "level": 2,
+            "showInNav": "Yes"
+          },
+          {
+            "id": 1599564383770,
+            "NavTitle": "Careers",
+            "target": "_self",
+            "link": "public/aboutus/careers",
+            "isPlaceHolder": "Yes",
+            "level": 2,
+            "showInNav": "No"
+          },
+          {
+            "id": 1632764377704,
+            "NavTitle": "Corporate governance",
+            "target": "_self",
+            "link": "public/aboutus/companyoverview/corporategovernance",
+            "isPlaceHolder": "Yes",
+            "level": 2,
+            "showInNav": "No"
+          },
+          {
+            "id": 1599566136128,
+            "NavTitle": "Corporate responsibility",
+            "target": "_self",
+            "link": "public/aboutus/companyoverview/ourvalues/corporateresponsibility",
+            "isPlaceHolder": "Yes",
+            "level": 2,
+            "showInNav": "No"
+          },
+          {
+            "id": 1599564859743,
+            "NavTitle": "Inclusion and belonging",
+            "target": "_self",
+            "link": "public/aboutus/companyoverview/ourvalues/inclusionandbelonging",
+            "isPlaceHolder": "Yes",
+            "level": 2,
+            "showInNav": "Yes"
+          },
+          {
+            "id": 1599565047367,
+            "NavTitle": "Lincoln Financial Foundation",
+            "target": "_self",
+            "link": "public/aboutus/companyoverview/ourimpact/lincolnfinancialfoundation",
+            "isPlaceHolder": "Yes",
+            "level": 2,
+            "showInNav": "Yes"
+          },
+          {
+            "id": 1599565550253,
+            "NavTitle": "Investor relations",
+            "target": "_self",
+            "link": "public/aboutus/investorrelations",
+            "isPlaceHolder": "Yes",
+            "level": 2,
+            "showInNav": "Yes"
+          },
+          {
+            "id": 1599564859863,
+            "NavTitle": "Newsroom",
+            "target": "_self",
+            "link": "public/aboutus/newsroom",
+            "isPlaceHolder": "Yes",
+            "level": 2,
+            "showInNav": "Yes"
+          }
+        ]
+      },
+      {
+        "id": 1599564383263,
+        "NavTitle": "Support",
+        "level": 1,
+        "showInNav": "Yes",
+        "footerLinks": [
+          {
+            "id": 1599564860101,
+            "NavTitle": "Customer service",
+            "target": "_self",
+            "link": "public/individuals/support/customerservice",
+            "isPlaceHolder": "Yes",
+            "level": 2,
+            "showInNav": "Yes"
+          },
+          {
+            "id": 1632764437860,
+            "NavTitle": "File a claim",
+            "target": "_self",
+            "link": "public/general/fileaclaimtool",
+            "isPlaceHolder": "Yes",
+            "level": 2,
+            "showInNav": "Yes"
+          },
+          {
+            "id": 1599564384707,
+            "NavTitle": "Find a dentist",
+            "target": "_blank",
+            "link": "https://clients.go2dental.com/lfg/FindADentist",
+            "ShowRedirectDisclaimer": "No",
+            "isPlaceHolder": "Yes",
+            "level": 2,
+            "showInNav": "Yes"
+          },
+          {
+            "id": 1599564384551,
+            "NavTitle": "Find a financial professional",
+            "target": "_self",
+            "link": "public/individuals/support/findafinancialprofessional",
+            "isPlaceHolder": "Yes",
+            "level": 2,
+            "showInNav": "Yes"
+          },
+          {
+            "id": 1632764438792,
+            "NavTitle": "Find a form",
+            "target": "_self",
+            "link": "public/individuals/support/customerservice",
+            "isPlaceHolder": "Yes",
+            "level": 2,
+            "showInNav": "Yes"
+          },
+          {
+            "id": 1599564384303,
+            "NavTitle": "Find a vision care provider",
+            "target": "_blank",
+            "link": "https://lincolnfinancial.yourvisionplan.com/MWP/Landing",
+            "ShowRedirectDisclaimer": "No",
+            "isPlaceHolder": "Yes",
+            "level": 2,
+            "showInNav": "Yes"
+          },
+          {
+            "id": 1632764365012,
+            "NavTitle": "Report fraud",
+            "target": "_self",
+            "link": "public/general/support/reportfraud",
+            "isPlaceHolder": "Yes",
+            "level": 2,
+            "showInNav": "Yes"
+          }
+        ]
+      },
+      {
+        "id": 1599564383303,
+        "NavTitle": "Solutions for",
+        "level": 1,
+        "showInNav": "Yes",
+        "footerLinks": [
+          {
+            "id": 1599564860341,
+            "NavTitle": "Dental providers",
+            "target": "_blank",
+            "link": "https://provider.mylincolnportal.com/dental/login",
+            "ShowRedirectDisclaimer": "No",
+            "isPlaceHolder": "Yes",
+            "level": 2,
+            "showInNav": "Yes"
+          },
+          {
+            "id": 1599564385342,
+            "NavTitle": "Employers",
+            "target": "_self",
+            "link": "public/employers",
+            "isPlaceHolder": "Yes",
+            "level": 2,
+            "showInNav": "Yes"
+          },
+          {
+            "id": 1599564385284,
+            "NavTitle": "Professionals",
+            "target": "_self",
+            "link": "public/professionals",
+            "isPlaceHolder": "Yes",
+            "level": 2,
+            "showInNav": "Yes"
+          }
+        ]
+      }
+    ],
+    "FooterNavExtnArray": [
+      {
+        "NavTitle": "Questions?",
+        "link": "#",
+        "footerLinks": [
+          {
+            "NavTitle": "1-877-275-5462",
+            "link": "tel:1-877-275-5462"
+          }
+        ],
+        "id": "footerExt0",
+        "level": "1",
+        "showInNav": "Yes"
+      }
+    ],
+    "GlobalFooter": {
+      "SocialIcons": [
+        {
+          "SocialMedia": "Facebook",
+          "SocialMediaUrl": "https://www.facebook.com/lincolnfinancial/"
+        },
+        {
+          "SocialMedia": "LinkedIn",
+          "SocialMediaUrl": "https://www.linkedin.com/company/lincolnfinancial/"
+        },
+        {
+          "SocialMedia": "X",
+          "SocialMediaUrl": "https://x.com/LincolnFncl"
+        },
+        {
+          "SocialMedia": "Youtube",
+          "SocialMediaUrl": "https://www.youtube.com/@Lincoln_Financial"
+        },
+        {
+          "SocialMedia": "Instagram",
+          "SocialMediaUrl": "https://www.instagram.com/lincolnfinancial"
+        }
+      ],
+      "FooterLogo": {
+        "name": "New Brand - tagline white - image",
+        "id": 1599568556089,
+        "subtype": "LFGImage",
+        "template": "Image",
+        "createddate": "Mon Aug 19 20:00:05 UTC 2024",
+        "updateddate": "Thu Feb 05 18:36:55 UTC 2026",
+        "assetType": "LFGMedia",
+        "ImageFile": "pbl-static/image/tablet/New-Brand---tagline-white---image.svg",
+        "BigImageFile": "pbl-static/image/desktop/New-Brand---tagline-white---image.svg",
+        "ThumbnailFile": "pbl-static/image/mobile/New-Brand---tagline-white---image.svg",
+        "AltText": "Your tomorrow. Our priority.",
+        "ImageCategory": "None(default)"
+      },
+      "FooterUtilityLinks": [
+        {
+          "id": 1599565024676,
+          "NavTitle": "Accessibility",
+          "showInNav": "Yes",
+          "link": "public/general/accessibility"
+        },
+        {
+          "id": 1599565024639,
+          "NavTitle": "Cybersecurity",
+          "showInNav": "Yes",
+          "link": "public/general/cybersecurity"
+        },
+        {
+          "id": 1599564382716,
+          "NavTitle": "Glossary",
+          "showInNav": "Yes",
+          "link": "public/general/glossary"
+        },
+        {
+          "id": 1599566639309,
+          "NavTitle": "Legal",
+          "showInNav": "Yes",
+          "link": "public/general/legal"
+        },
+        {
+          "id": 1599566639954,
+          "NavTitle": "Privacy",
+          "showInNav": "Yes",
+          "link": "public/general/privacy"
+        }
+      ],
+      "GlobalFooterContent": "<p>&copy; 2026 Lincoln National Corporation. All rights reserved.</p>\r\n\r\n<p>Lincoln Financial is the marketing name for Lincoln National Corporation and insurance company affiliates, including The Lincoln National Life Insurance Company, Fort Wayne, IN, and in New York, Lincoln Life &amp; Annuity Company of New York, Syracuse, NY. Variable products distributed by broker-dealer/affiliate Lincoln Financial Distributors, Inc., Radnor, PA. Securities and investment advisory services may be offered through non-affiliated entities.</p>\r\n\r\n<p>Lincoln products are not a deposit nor FDIC-insured, may go down in value, and are not insured by any federal government agency or guaranteed by any bank or savings association. All guarantees and benefits of the insurance policy are subject to the claims-paying ability of the issuing insurance company. They are not backed by the broker-dealer and/or insurance agency selling the policy, or any affiliates of those entities other than the issuing company affiliates, and none makes any representation or guarantees regarding the claims-paying ability of the issuer.</p>\r\n\r\n<p>Lincoln <em>MoneyGuard</em><sup>&reg;</sup> solutions are universal and variable universal life insurance policies with a long-term care rider. The policies and riders have exclusions, limitations, and/or reductions. Please contact your Lincoln representative or the insurance company for costs and complete details.</p>\r\n\r\n<p>Life insurance policies: It is possible coverage will expire when either no premiums are paid following the initial premium, or subsequent premiums are insufficient to continue coverage.</p>\r\n\r\n<p>&ldquo;Lincoln Financial Group,&rdquo; &ldquo;Lincoln Financial,&rdquo; &ldquo;Your tomorrow. Our priority,&rdquo; &ldquo;Plan Protect Retire,&rdquo; &ldquo;This is financial security,&rdquo; and the Lincoln Financial Logo and Artisan Mark are service marks of the Lincoln National Corporation.</p>\r\n"
+    }
+  },
+  "SiteConfig": {
+    "Audience": "global",
+    "GlobalUtilityJSON": {
+      "MetaTitleSuffix": " | Lincoln Financial",
+      "PrimaryNavExtn": [
+        {
+          "ShowLineSeparator": "Yes",
+          "NavTitle": "Questions?",
+          "TelNum": "1-877-275-5462",
+          "link": "tel:1-877-275-5462"
+        }
+      ],
+      "FooterNavExtn": [
+        {
+          "NavTitle": "Questions?",
+          "link": "#",
+          "footerLinks": [
+            {
+              "NavTitle": "1-877-275-5462",
+              "link": "tel:1-877-275-5462"
+            }
+          ]
+        }
+      ],
+      "ProductConfig": {
+        "SERVICE_ID": "INT_AFP_QUERY_GET_AFP_QUERY_NAVIGATION_ITEMS",
+        "SERVICE_URL": "https://lfg.com/pbl-gateway-service-app/rest/pbl-gateway/gatewayData",
+        "productCode": "productCode"
+      },
+      "RedirectDisclaimer": {
+        "Title": "<h2 class=\"copy-publico\">You are now leaving Lincoln Financial<sup>®</sup>’s website</h2>",
+        "LinkText": "Click to continue "
+      }
+    },
+    "SearchUrl": "public/general/searchresults"
+  },
+  "SiteConfig_individuals": {
+    "Audience": "individuals"
+  }
+}

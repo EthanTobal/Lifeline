@@ -1,0 +1,32 @@
+{
+  "status": "success",
+  "title": "Permanent Life Insurance",
+  "source_url": "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance/permanentlife",
+  "canonical_url": "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance/permanentlife",
+  "vanity_url": "public/individuals/products/lifeinsurance/permanentlife",
+  "retrieved_at": "2026-10-03T20:11:13.126107+00:00",
+  "resource_category": "product-education",
+  "headings": [
+    "Do more with life insurance",
+    "Medical and long-term care expenses",
+    "Live outside the U.S.?"
+  ],
+  "reason": "",
+  "http_status": null,
+  "content_type": "",
+  "raw_bytes": 143208,
+  "body_characters": 3460,
+  "word_count": 572,
+  "warnings": [
+    "dropped sentence left incomplete by an asset reference whose label is absent from the source: 'Permanent Life insurance includes*  and  .'"
+  ],
+  "output_files": [
+    "knowledge/lincoln-documents/raw/permanent-life-insurance.json",
+    "knowledge/lincoln-documents/cleaned/permanent-life-insurance.md"
+  ],
+  "excluded_from_rag": false,
+  "exclusion_reason": "",
+  "audience": "individuals",
+  "page_asset_name": "Life - Permanent Life",
+  "page_asset_id": "1599565019859"
+}

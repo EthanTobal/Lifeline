@@ -1,0 +1,37 @@
+{
+  "status": "success",
+  "title": "What are your goals?",
+  "source_url": "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance/whatareyourgoals",
+  "canonical_url": "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance/whatareyourgoals",
+  "vanity_url": "public/individuals/products/lifeinsurance/whatareyourgoals",
+  "retrieved_at": "2026-10-03T20:11:03.040699+00:00",
+  "resource_category": "needs-and-goals",
+  "headings": [
+    "The Protector",
+    "Opportunities to explore",
+    "How life insurance can help",
+    "The Planners",
+    "The Professional",
+    "The Business Owner",
+    "How much life insurance do you need?",
+    "Are you from another country but spend most of your time in the U.S.?"
+  ],
+  "reason": "",
+  "http_status": null,
+  "content_type": "",
+  "raw_bytes": 171031,
+  "body_characters": 5959,
+  "word_count": 944,
+  "warnings": [
+    "removed duplicate heading identical to the page title: 'What are your goals?'"
+  ],
+  "output_files": [
+    "knowledge/lincoln-documents/raw/what-are-your-goals.json",
+    "knowledge/lincoln-documents/cleaned/what-are-your-goals.md"
+  ],
+  "excluded_from_rag": false,
+  "exclusion_reason": "",
+  "audience": "individuals",
+  "page_asset_name": "Life - What are your goals ",
+  "page_asset_id": "1632771498230"
+}

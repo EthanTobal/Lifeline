@@ -1,0 +1,150 @@
+{
+  "_note": "Links discovered inside the approved seed pages. Recorded for human review only -- the crawler does not follow them.",
+  "generated_at": "2026-10-03T20:11:33.245164+00:00",
+  "allowed_domains": [
+    "lincolnfinancial.com",
+    "www.lincolnfinancial.com"
+  ],
+  "already_collected": [
+    "https://www.lincolnfinancial.com/public/individuals",
+    "https://www.lincolnfinancial.com/public/individuals/planning/calculatorsandtools",
+    "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance",
+    "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance/permanentlife",
+    "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance/readytogetstarted",
+    "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance/whatareyourgoals"
+  ],
+  "candidates": [
+    {
+      "url": "https://www.lincolnfinancial.com/public/aboutus/companyoverview",
+      "title": "Learn about our values and goals",
+      "context": "https://www.lincolnfinancial.com/pbl-api/getcontent",
+      "found_on_pages": [
+        "https://www.lincolnfinancial.com/public/individuals"
+      ]
+    },
+    {
+      "url": "https://www.lincolnfinancial.com/public/aboutus/companyoverview/historyandtimeline",
+      "title": "See the Lincoln difference",
+      "context": "https://www.lincolnfinancial.com/pbl-api/getcontent",
+      "found_on_pages": [
+        "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance/readytogetstarted"
+      ]
+    },
+    {
+      "url": "https://www.lincolnfinancial.com/public/general/actionplan",
+      "title": "Take action today",
+      "context": "https://www.lincolnfinancial.com/pbl-api/getcontent",
+      "found_on_pages": [
+        "https://www.lincolnfinancial.com/public/individuals"
+      ]
+    },
+    {
+      "url": "https://www.lincolnfinancial.com/public/general/fileaclaimtool",
+      "title": "File a claim",
+      "context": "https://www.lincolnfinancial.com/pbl-api/getcontent",
+      "found_on_pages": [
+        "https://www.lincolnfinancial.com/public/individuals"
+      ]
+    },
+    {
+      "url": "https://www.lincolnfinancial.com/public/general/privacy",
+      "title": "How Lincoln handles your data",
+      "context": "https://www.lincolnfinancial.com/pbl-api/getcontent",
+      "found_on_pages": [
+        "https://www.lincolnfinancial.com/public/individuals"
+      ]
+    },
+    {
+      "url": "https://www.lincolnfinancial.com/public/general/registration",
+      "title": "Registration",
+      "context": "https://www.lincolnfinancial.com/pbl-api/getcontent",
+      "found_on_pages": [
+        "https://www.lincolnfinancial.com/public/individuals"
+      ]
+    },
+    {
+      "url": "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance/beyondprotection",
+      "title": "Explore the benefits",
+      "context": "https://www.lincolnfinancial.com/pbl-api/getcontent",
+      "found_on_pages": [
+        "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance",
+        "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance/permanentlife"
+      ]
+    },
+    {
+      "url": "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance/billpayment",
+      "title": "Life Payment Center",
+      "context": "https://www.lincolnfinancial.com/pbl-api/getcontent",
+      "found_on_pages": [
+        "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance"
+      ]
+    },
+    {
+      "url": "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance/permanentlife/indexeduniversallife",
+      "title": "Learn more about indexed universal life insurance",
+      "context": "https://www.lincolnfinancial.com/pbl-api/getcontent",
+      "found_on_pages": [
+        "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance"
+      ]
+    },
+    {
+      "url": "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance/permanentlife/variableuniversallife",
+      "title": "Learn more about variable universal life insurance",
+      "context": "https://www.lincolnfinancial.com/pbl-api/getcontent",
+      "found_on_pages": [
+        "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance"
+      ]
+    },
+    {
+      "url": "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance/permanentlifeinsurancemythsandrealities",
+      "title": "Read more about the myths and realities here",
+      "context": "https://www.lincolnfinancial.com/pbl-api/getcontent",
+      "found_on_pages": [
+        "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance"
+      ]
+    },
+    {
+      "url": "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance/termlife",
+      "title": "Learn more about term life insurance",
+      "context": "https://www.lincolnfinancial.com/pbl-api/getcontent",
+      "found_on_pages": [
+        "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance"
+      ]
+    },
+    {
+      "url": "https://www.lincolnfinancial.com/public/individuals/products/lincolnfinancialinvestments",
+      "title": "Private Market Funds",
+      "context": "https://www.lincolnfinancial.com/pbl-api/getcontent",
+      "found_on_pages": [
+        "https://www.lincolnfinancial.com/public/individuals"
+      ]
+    },
+    {
+      "url": "https://www.lincolnfinancial.com/public/individuals/support/customerservice",
+      "title": "Customer service",
+      "context": "https://www.lincolnfinancial.com/pbl-api/getcontent",
+      "found_on_pages": [
+        "https://www.lincolnfinancial.com/public/individuals"
+      ]
+    },
+    {
+      "url": "https://www.lincolnfinancial.com/public/individuals/support/customerservice/claimsportal",
+      "title": "File a claim",
+      "context": "https://www.lincolnfinancial.com/pbl-api/getcontent",
+      "found_on_pages": [
+        "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance"
+      ]
+    },
+    {
+      "url": "https://www.lincolnfinancial.com/public/individuals/support/findafinancialprofessional",
+      "title": "Find a financial professional",
+      "context": "https://www.lincolnfinancial.com/pbl-api/getcontent",
+      "found_on_pages": [
+        "https://www.lincolnfinancial.com/public/individuals",
+        "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance",
+        "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance/readytogetstarted",
+        "https://www.lincolnfinancial.com/public/individuals/planning/calculatorsandtools"
+      ]
+    }
+  ]
+}

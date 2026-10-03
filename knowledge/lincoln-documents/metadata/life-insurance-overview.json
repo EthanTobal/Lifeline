@@ -1,0 +1,36 @@
+{
+  "status": "success",
+  "title": "Life insurance",
+  "source_url": "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance",
+  "canonical_url": "https://www.lincolnfinancial.com/public/individuals/products/lifeinsurance",
+  "vanity_url": "public/individuals/products/lifeinsurance",
+  "retrieved_at": "2026-10-03T20:10:52.905737+00:00",
+  "resource_category": "product-overview",
+  "headings": [
+    "What are your goals?",
+    "Explore the benefits",
+    "See how to get started",
+    "Pay bill and access policy",
+    "File a claim",
+    "Find a financial professional",
+    "Demystifying permanent life insurance: myths & realities"
+  ],
+  "reason": "",
+  "http_status": null,
+  "content_type": "",
+  "raw_bytes": 161963,
+  "body_characters": 1292,
+  "word_count": 182,
+  "warnings": [
+    "removed duplicate heading identical to the page title: 'Life insurance'"
+  ],
+  "output_files": [
+    "knowledge/lincoln-documents/raw/life-insurance-overview.json",
+    "knowledge/lincoln-documents/cleaned/life-insurance-overview.md"
+  ],
+  "excluded_from_rag": false,
+  "exclusion_reason": "",
+  "audience": "individuals",
+  "page_asset_name": "Life insurance Ind - Landing Page",
+  "page_asset_id": "1632772039631"
+}
