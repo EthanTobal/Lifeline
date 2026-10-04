@@ -51,11 +51,7 @@ backend remembers the rest by `session_id`.
     "mortgage_balance": 200000,
     "non_mortgage_debt": 30000,
     "existing_coverage": 100000,
-    "liquid_savings": 50000,
-    "age": 40,
-    "sex": "female",
-    "smoker": false,
-    "health": "good"
+    "liquid_savings": 50000
   },
   "assumption_updates": {
     "income_replacement_years": 12
@@ -65,8 +61,10 @@ backend remembers the rest by `session_id`.
 
 - **`session_id`** — omit on the first call; use the one returned to you on every call after.
 - **`message`** — the user's words. Drives the KB retrieval and the explanation.
-- **`profile_updates`** — any calculator inputs you've collected. Partial is fine; send them as you get them. Unknown keys are ignored.
+- **`profile_updates`** — the six needs-assessment inputs you've collected (see above). Partial is fine; send them as you get them. Unknown keys are ignored.
 - **`assumption_updates`** — lets the user change an assumption and recalculate (e.g. years of income to replace). Optional.
+
+The guided assessment collects exactly six profile fields. Do **not** collect underwriting or pricing inputs (`age`, `sex`, `smoker`, `health`, `term_years`) — LifeLine does not quote, underwrite, or assess eligibility, and none of them affect the published `gross_need` or `illustrative_gap`.
 
 **Response body** (the contract — safe to code against):
 
@@ -86,21 +84,18 @@ backend remembers the rest by `session_id`.
     "illustrative_gap": 1095000,
     "breakdown": {
       "components": [
-        { "key": "debt", "label": "Debt + final expenses", "detail": "...", "amount": 45000 },
-        { "key": "income", "label": "Income replacement", "detail": "$80,000/yr x 10 years", "amount": 800000 },
-        { "key": "mortgage", "label": "Mortgage payoff", "detail": "...", "amount": 200000 },
-        { "key": "education", "label": "Children's education", "detail": "2 child(ren) x $100,000", "amount": 200000 }
+        { "key": "debt", "label": "Other debt", "detail": "Credit cards, car and student loans: $30,000", "amount": 30000 },
+        { "key": "final_expenses", "label": "Final expenses", "detail": "Funeral and final medical costs, added for you as an editable assumption", "amount": 15000 },
+        { "key": "income", "label": "Income replacement", "detail": "$80,000 per year x 10 years (editable assumption)", "amount": 800000 },
+        { "key": "mortgage", "label": "Mortgage", "detail": "Remaining mortgage balance to pay off", "amount": 200000 },
+        { "key": "education", "label": "Children's education", "detail": "2 child(ren) x $100,000 per child (editable assumption)", "amount": 200000 }
       ],
       "offsets": [
         { "key": "existing_coverage", "label": "Existing life insurance", "amount": 100000 },
         { "key": "liquid_savings", "label": "Savings & liquid assets", "amount": 50000 }
       ],
       "gross_need": 1245000,
-      "total_offsets": 150000,
-      "sanity_check": { "low": 800000, "high": 1200000, "low_multiple": 10, "high_multiple": 15 },
-      "human_life_value": { "value": 1297000, "years_to_retirement": 27 },
-      "premium_estimate": { "coverage": 1095000, "term_years": 10, "monthly": 91, "annual": 1092, "is_estimate": true },
-      "flags": []
+      "total_offsets": 150000
     },
     "assumptions": { "income_replacement_years": 10, "...": "..." },
     "disclaimer": "This is an illustrative needs assessment..."
@@ -116,13 +111,18 @@ backend remembers the rest by `session_id`.
 
 - **`assistant_message`** — show this as the assistant's chat bubble (or feed to text-to-speech for voice). Already plain-language and caring.
 - **`assessment.status`**:
-  - `collecting` → keep asking questions; `missing_fields` tells you what's still required (right now only `annual_income` is required).
+  - `collecting` → keep asking questions; `missing_fields` tells you what's still required. The guided assessment collects six fields in this order: `annual_income`, `num_children`, `mortgage_balance`, `non_mortgage_debt`, `existing_coverage`, `liquid_savings`. Age is **not** required — it does not affect `gross_need` or `illustrative_gap`.
   - `ready` → a full `needs_assessment` is included; render the result card.
 - **`needs_assessment.illustrative_gap`** — the headline number. `null` until status is `ready`.
 - **`needs_assessment.breakdown`** — render the itemized rows + offsets so the user sees *how* the number was reached (transparency = trust).
-- **`assessment.assumptions`** + **`field_help`** — show these as editable; send changes back via `assumption_updates` to recalculate live.
+- **`assessment.assumptions`** — send changes back via `assumption_updates` to recalculate through the backend. The response carries the full set for transparency, but display only the three that drive the published result: `income_replacement_years`, `education_per_child`, `final_expenses`. The HLV parameters (`hlv_discount_rate`, `hlv_income_growth`, `hlv_personal_consumption`, `retirement_age`) and `income_multiple_low`/`high`/`max_coverage` belong to internal calculations that are not part of the customer-facing experience, so they are not displayed. Use `field_help` for the one-line "why it matters" text on the three you do show.
 - **`sources`** — optional "where this came from" citations. Empty when the KB isn't configured.
 - **`disclaimer`** — show it near any dollar figure. Always "illustrative", never a quote.
+
+### What this API will never send you
+
+- **No premium, rate, or monthly price.** LifeLine is not a quoting service, so `premium_estimate` is deliberately absent from the response contract and is never passed to the model. If a customer asks what something costs, `assistant_message` declines and the assessment continues. Do not synthesise a price in the UI.
+- The internal HLV, 10–15x sanity band, and validation `flags` are also not published. Render `components`, `offsets`, `gross_need`, and `assumptions`.
 
 ---
 
@@ -141,7 +141,8 @@ backend remembers the rest by `session_id`.
 
 ## Guardrails (enforced in the backend)
 
-- The model never produces or changes a dollar figure — only the calculator does.
+- The model never independently calculates financial figures. All needs-assessment amounts originate from the deterministic calculator; the model may explain those calculator-generated results.
+- No premium, rate, or monthly price is calculated, returned, or shown. Pricing questions are declined and the assessment continues.
 - Affordability is stored as context and never changes the calculated need.
 - Assumptions are explicit, returned, and editable — nothing is silently invented.
 - Fictional "LifeLine" demo policies are never presented as real Lincoln products.

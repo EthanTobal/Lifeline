@@ -137,18 +137,28 @@ def calculate_dime(profile: dict, assumptions: dict[str, float]) -> dict:
     offsets = existing_coverage + liquid_savings
     net_need = _clamp_money(gross_need - offsets, assumptions["max_coverage"])
 
+    # Line items are split so every contribution to gross_need is visible on its
+    # own, rather than burying final_expenses inside a combined debt line. This
+    # is presentation only: gross_need above is unchanged, and non_mortgage_debt
+    # + final_expenses still sum to exactly debt_component.
     breakdown = [
-        BreakdownLine("debt", "Debt + final expenses",
-                      f"Non-mortgage debt ${non_mortgage_debt:,.0f} + final expenses ${final_expenses:,.0f}",
-                      _round(debt_component)),
+        BreakdownLine("debt", "Other debt",
+                      f"Credit cards, car and student loans: ${non_mortgage_debt:,.0f}",
+                      _round(non_mortgage_debt)),
+        BreakdownLine("final_expenses", "Final expenses",
+                      "Funeral and final medical costs, added for you as an "
+                      "editable assumption",
+                      _round(final_expenses)),
         BreakdownLine("income", "Income replacement",
-                      f"${annual_income:,.0f}/yr x {years:g} years",
+                      f"${annual_income:,.0f} per year x {years:g} years "
+                      f"(editable assumption)",
                       _round(income_component)),
-        BreakdownLine("mortgage", "Mortgage payoff",
-                      "Remaining mortgage balance",
+        BreakdownLine("mortgage", "Mortgage",
+                      "Remaining mortgage balance to pay off",
                       _round(mortgage_component)),
         BreakdownLine("education", "Children's education",
-                      (f"{num_children} child(ren) x ${per_child:,.0f}" if num_children
+                      (f"{num_children} child(ren) x ${per_child:,.0f} per child "
+                       f"(editable assumption)" if num_children
                        else "No children indicated"),
                       _round(education_component)),
     ]

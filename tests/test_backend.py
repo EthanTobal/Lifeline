@@ -7,6 +7,7 @@ the assessment model, and the orchestration response contract.
 or from repo root:
     python -m pytest tests -q
 """
+import json
 import os
 import sys
 
@@ -40,9 +41,34 @@ def test_dime_gross_and_gap():
 def test_breakdown_components_present():
     r = run_needs_assessment(MARGARET)
     keys = {b["key"] for b in r.breakdown}
-    assert keys == {"debt", "income", "mortgage", "education"}
+    # final_expenses is its own visible line, not folded into debt.
+    assert keys == {"debt", "final_expenses", "income", "mortgage", "education"}
     income_line = next(b for b in r.breakdown if b["key"] == "income")
     assert income_line["amount"] == 800_000
+
+
+def test_breakdown_lines_sum_to_gross_need():
+    """Every visible line item must add up to the published gross need."""
+    r = run_needs_assessment(MARGARET)
+    assert sum(b["amount"] for b in r.breakdown) == r.gross_need
+
+
+def test_final_expenses_visible_separately():
+    """The $15k final-expense assumption must be shown, not hidden in debt."""
+    r = run_needs_assessment(MARGARET)
+    final = next(b for b in r.breakdown if b["key"] == "final_expenses")
+    assert final["amount"] == 15_000
+    debt = next(b for b in r.breakdown if b["key"] == "debt")
+    assert debt["amount"] == 30_000  # non-mortgage debt only
+    assert final["amount"] + debt["amount"] == 45_000
+
+
+def test_breakdown_detail_shows_the_arithmetic():
+    """Each line explains its own derivation for the customer."""
+    r = run_needs_assessment(MARGARET)
+    detail = {b["key"]: b["detail"] for b in r.breakdown}
+    assert "10 years" in detail["income"]        # 80,000 x 10
+    assert "2 child" in detail["education"]      # 2 x 100,000
 
 
 def test_sanity_band_and_within_flag():
@@ -110,12 +136,56 @@ def test_resolve_assumptions_merges_not_resets():
 # ---------------- assessment model ----------------
 
 def test_status_collecting_then_ready():
+    """Readiness requires every field the calculator actually consumes.
+
+    The guided assessment needs a real profile before it can produce a
+    defensible number, so all seven DIME/HLV inputs gate `ready`.
+    """
     a = Assessment()
     assert a.status() == "collecting"
-    assert "annual_income" in a.missing_fields()
+    assert set(a.missing_fields()) == {
+        "annual_income", "num_children", "mortgage_balance",
+        "non_mortgage_debt", "existing_coverage", "liquid_savings",
+    }
     a.update({"annual_income": 60000})
+    assert a.status() == "collecting"  # still short
+    a.update({
+        "num_children": 0, "mortgage_balance": 0, "non_mortgage_debt": 0,
+        "existing_coverage": 0, "liquid_savings": 0,
+    })
     assert a.status() == "ready"
     assert a.missing_fields() == []
+
+
+def test_age_does_not_block_the_primary_assessment():
+    """Age affects only the internal HLV and the unpublished premium, so it
+    must not gate the customer-facing DIME result."""
+    a = Assessment()
+    a.update({
+        "annual_income": 80000, "num_children": 2, "mortgage_balance": 180000,
+        "non_mortgage_debt": 12000, "existing_coverage": 100000,
+        "liquid_savings": 0,
+    })
+    assert a.status() == "ready"
+    assert "age" not in a.missing_fields()
+    assert a.next_field() is None
+
+
+def test_next_field_follows_fixed_order():
+    """The APPLICATION picks the next field, in a fixed order -- not the model."""
+    a = Assessment()
+    asked = []
+    while a.status() == "collecting":
+        field = a.next_field()
+        assert field is not None
+        asked.append(field["key"])
+        assert field["question"]  # every field carries a plain-language question
+        a.update({field["key"]: 0 if field["allows_zero"] else 1})
+    assert asked == [
+        "annual_income", "num_children", "mortgage_balance",
+        "non_mortgage_debt", "existing_coverage", "liquid_savings",
+    ]
+    assert a.next_field() is None
 
 
 def test_affordability_is_context_not_need():
@@ -190,3 +260,325 @@ def test_assistant_message_never_empty():
     orch = Orchestrator(store=SessionStore())
     resp = orch.handle_turn(message="hi")
     assert isinstance(resp["assistant_message"], str) and resp["assistant_message"]
+
+# ================================================================
+# Guided assessment: natural-language extraction + one-question turns
+# ================================================================
+
+from app.extractor import extract_profile_updates, classify_intent
+
+
+# A completely uninformed customer: opens with no idea what to do, then
+# answers in ordinary language the way a real person would.
+UNINFORMED = [
+    "Hi, I am totally new to this and have no idea where to start.",
+    "I make about $80,000 a year.",
+    "I have two kids.",
+    "About $180,000 is left on the mortgage.",
+    "I have around $12,000 in credit card debt.",
+    "I have $100,000 of life insurance already.",
+    "Nothing saved really.",
+]
+
+
+def _conversation(messages, orch=None):
+    orch = orch or Orchestrator(store=SessionStore())
+    sid = None
+    turns = []
+    for message in messages:
+        resp = orch.handle_turn(session_id=sid, message=message)
+        sid = resp["session_id"]
+        turns.append(resp)
+    return orch, sid, turns
+
+
+# ---------------- extraction ----------------
+
+def test_extraction_converts_plain_english_to_numbers():
+    assert extract_profile_updates("I make about $80,000 a year.") == {
+        "annual_income": 80000.0}
+    assert extract_profile_updates("About $180,000 is left on the mortgage.") == {
+        "mortgage_balance": 180000.0}
+    assert extract_profile_updates("I have around $12,000 in credit card debt.") == {
+        "non_mortgage_debt": 12000.0}
+    assert extract_profile_updates("I have two kids.") == {"num_children": 2}
+    assert extract_profile_updates("I am 34 years old.") == {"age": 34}
+
+
+def test_extraction_handles_k_and_million_shorthand():
+    assert extract_profile_updates("I make 85k a year")["annual_income"] == 85_000
+    assert extract_profile_updates(
+        "I make 1.2 million a year")["annual_income"] == 1_200_000
+
+
+def test_extraction_never_infers_an_unstated_amount():
+    """"I have a mortgage" does NOT establish a balance. Nothing is guessed."""
+    assert extract_profile_updates("I have a mortgage") == {}
+    assert extract_profile_updates("I have insurance through work") == {}
+    assert extract_profile_updates("I get insurance through my employer") == {}
+    assert extract_profile_updates("I have no idea how much my mortgage is") == {}
+    assert extract_profile_updates("hello, good morning") == {}
+
+
+def test_extraction_records_explicit_zero_but_not_absence():
+    # An explicitly stated zero is a real answer.
+    assert extract_profile_updates("I have no debts") == {"non_mortgage_debt": 0.0}
+    assert extract_profile_updates("Nothing saved") == {"liquid_savings": 0.0}
+    assert extract_profile_updates("I have no life insurance") == {
+        "existing_coverage": 0.0}
+    # Merely not mentioning something is never zero.
+    assert "liquid_savings" not in extract_profile_updates("I am 34")
+
+
+def test_extraction_ignores_plausible_but_implausible_figures():
+    # "$7 a year" is a parsing artefact, not an income -- leave it and re-ask.
+    assert "annual_income" not in extract_profile_updates("I make $7 a year")
+
+
+# ---------------- guided flow ----------------
+
+def test_uninformed_customer_completes_assessment_in_one_question_per_turn():
+    """The headline bug: a fully uninformed customer gets a guided, one-question
+    assessment that actually reaches a number -- not generic articles."""
+    _, _, turns = _conversation(UNINFORMED)
+
+    assert turns[0]["assessment"]["status"] == "collecting"
+    assert turns[-1]["assessment"]["status"] == "ready"
+
+    # Missing fields shrink monotonically: never ask for something already known.
+    counts = [len(t["assessment"]["missing_fields"]) for t in turns]
+    assert counts == sorted(counts, reverse=True)
+
+    # Every turn declares exactly one next field, chosen by the orchestrator
+    # rather than by the model.
+    expected_order = ["annual_income", "num_children", "mortgage_balance",
+                      "non_mortgage_debt", "existing_coverage",
+                      "liquid_savings"]
+    got = [t["assessment"]["next_field"] for t in turns[:-1]]
+    assert got == expected_order
+    for turn in turns[:-1]:
+        assert turn["assessment"]["next_field_question"]
+
+    # The calculator ran, deterministically, on the collected profile.
+    final = turns[-1]
+    assert final["needs_assessment"]["illustrative_gap"] > 0
+    assert final["needs_assessment"]["breakdown"]["components"]
+
+
+def test_no_question_is_ever_asked_twice():
+    _, _, turns = _conversation(UNINFORMED)
+    asked = [t["assessment"]["next_field_question"] for t in turns
+             if t["assessment"]["next_field_question"]]
+    assert len(asked) == len(set(asked)), "a question was repeated"
+
+
+def test_workplace_insurance_without_amount_stays_missing():
+    """"Insurance through work" states no amount, so the question comes back
+    rather than the app inventing a number."""
+    orch, sid, _ = _conversation(UNINFORMED[:5])
+    resp = orch.handle_turn(
+        session_id=sid,
+        message="I get some insurance through work but I have no idea how much.")
+    assert resp["extracted"] == {}
+    assert "existing_coverage" in resp["assessment"]["missing_fields"]
+    assert resp["assessment"]["next_field"] == "existing_coverage"
+    assert resp["assessment"]["status"] == "collecting"
+    assert resp["needs_assessment"]["illustrative_gap"] is None
+
+
+def test_collecting_turn_never_returns_an_article():
+    """While collecting, the reply is a question -- not educational prose."""
+    _, _, turns = _conversation(UNINFORMED)
+    for turn in turns[:-1]:
+        assert turn["mode"] == "collecting"
+        assert turn["sources"] == []  # KB retrieval is suppressed while collecting
+        assert turn["assessment"]["next_field_question"] in turn["assistant_message"]
+
+
+# ---------------- guardrails ----------------
+
+def test_educational_question_is_answered_then_resumes():
+    orch, sid, _ = _conversation(UNINFORMED[:3])
+    before = orch.store.get_or_create(sid)[1].missing_fields()
+    resp = orch.handle_turn(session_id=sid, message="What is term life insurance?")
+    assert resp["mode"] == "answering_then_resuming"
+    assert resp["intent"] == "educational"
+    # still collecting, unchanged, and the pending question is still asked
+    assert resp["assessment"]["missing_fields"] == before
+    assert resp["assessment"]["next_field_question"] in resp["assistant_message"]
+
+
+def test_pricing_question_is_refused_without_a_price():
+    orch, sid, _ = _conversation(UNINFORMED[:3])
+    resp = orch.handle_turn(session_id=sid,
+                            message="How much would this cost per month?")
+    assert resp["intent"] == "pricing"
+    reply = resp["assistant_message"].lower()
+    assert "$" not in reply  # no invented premium or rate
+    assert "not a quote" in reply or "cannot give you a price" in reply
+    # and the assessment continues rather than stopping
+    assert resp["assessment"]["next_field_question"] in resp["assistant_message"]
+
+
+def test_recommendation_question_gets_no_product_pitch():
+    orch, sid, _ = _conversation(UNINFORMED[:3])
+    resp = orch.handle_turn(session_id=sid, message="Which policy should I buy?")
+    assert resp["intent"] == "recommendation"
+    reply = resp["assistant_message"].lower()
+    assert "can't recommend" in reply
+    assert "best" not in reply.replace("better", "")
+    assert resp["assessment"]["next_field"] is not None
+
+
+def test_eligibility_question_is_refused():
+    orch, sid, _ = _conversation(UNINFORMED[:3])
+    resp = orch.handle_turn(session_id=sid, message="Am I eligible?")
+    assert resp["intent"] == "approval"
+    reply = resp["assistant_message"].lower()
+    assert "can't approve" in reply
+    assert "underwrit" in reply
+
+
+def test_intent_classification():
+    assert classify_intent("What is term life insurance?") == "educational"
+    assert classify_intent("How much would this cost per month?") == "pricing"
+    assert classify_intent("Which policy should I buy?") == "recommendation"
+    assert classify_intent("Am I eligible?") == "approval"
+    assert classify_intent("") == "none"
+
+
+def test_backend_remains_source_of_truth():
+    """Frontend-supplied profile_updates and the model's output never set
+    status, missing fields, or the calculator result."""
+    orch, sid, _ = _conversation(UNINFORMED)
+    resp = orch.handle_turn(session_id=sid, profile_updates={
+        "annual_income": 999_999, "favorite_color": "blue"})
+    # an unknown key is dropped, and status is recomputed server-side
+    assert "favorite_color" not in resp["assessment"]["profile"]
+    assert resp["assessment"]["status"] == "ready"
+    # the figure came from the calculator, not from the model
+    assert resp["needs_assessment"]["breakdown"]["components"]
+    assert resp["disclaimer"]
+
+# ================================================================
+# Pre-deployment gate: no premium anywhere in the public contract
+# ================================================================
+
+def test_premium_estimate_absent_from_api_response():
+    """LifeLine is not a quoting service. /api/turn must never return a price."""
+    orch, sid, turns = _conversation(UNINFORMED)
+    final = turns[-1]
+    assert final["assessment"]["status"] == "ready"
+    breakdown = final["needs_assessment"]["breakdown"]
+    assert "premium_estimate" not in breakdown
+    assert "premium_estimate" not in final["needs_assessment"]
+    # and nowhere in the whole serialised response
+    assert "premium_estimate" not in json.dumps(final)
+    # the internal calculator still has one -- it is simply not published
+    assert run_needs_assessment(orch.store.get_or_create(sid)[1].profile
+                                ).premium_estimate is not None
+
+
+def test_api_response_publishes_only_the_dime_result():
+    orch, _, turns = _conversation(UNINFORMED)
+    breakdown = turns[-1]["needs_assessment"]["breakdown"]
+    assert set(breakdown) == {"components", "offsets", "gross_need", "total_offsets"}
+    # HLV / sanity band / flags stay internal for now
+    for hidden in ("human_life_value", "sanity_check", "flags"):
+        assert hidden not in breakdown
+
+
+def test_no_premium_reaches_the_model():
+    """The Bedrock context is the calculator's explanation only. It must never
+    contain the premium figure the orchestrator declines to publish."""
+    orch, sid, _ = _conversation(UNINFORMED)
+    assessment = orch.store.get_or_create(sid)[1]
+    result = run_needs_assessment(assessment.profile, assessment.assumptions)
+    assert result.premium_estimate is not None  # still computed internally
+    explanation = result.explanation
+    # ...but the text handed to the model mentions none of it.
+    assert "premium" not in explanation.lower()
+    assert str(result.premium_estimate["monthly"]) not in explanation
+    assert str(result.premium_estimate["annual"]) not in explanation
+
+
+def test_all_pricing_phrasings_are_refused():
+    orch, sid, _ = _conversation(UNINFORMED)
+    for question in ("How much would this cost me per month?",
+                     "What would my premium be?",
+                     "How much is a $1 million policy?"):
+        resp = orch.handle_turn(session_id=sid, message=question)
+        reply = resp["assistant_message"]
+        assert resp["intent"] == "pricing", question
+        assert "$" not in reply, question  # no invented price of any kind
+        assert resp["assessment"]["next_field"] is None  # already ready
+
+
+def test_policy_selection_stays_educational_not_a_recommendation():
+    orch, sid, _ = _conversation(UNINFORMED)
+    resp = orch.handle_turn(session_id=sid,
+                            message="Which policy should I buy, term or permanent?")
+    assert resp["intent"] == "recommendation"
+    reply = resp["assistant_message"].lower()
+    assert "can't recommend" in reply
+    assert "$" not in resp["assistant_message"]
+
+
+def test_editing_an_assumption_recalculates_through_the_backend():
+    """Changing income_replacement_years must re-run the calculator, not be
+    recomputed in the client."""
+    orch, sid, turns = _conversation(UNINFORMED)
+    before = turns[-1]["needs_assessment"]
+    assert before["illustrative_gap"] == 1_107_000
+
+    resp = orch.handle_turn(session_id=sid,
+                            assumption_updates={"income_replacement_years": 5})
+    after = resp["needs_assessment"]
+    assert resp["session_id"] == sid
+    assert resp["assessment"]["status"] == "ready"
+    # 80,000 x 5 = 400,000 instead of 800,000 -> 400,000 less need
+    assert after["breakdown"]["gross_need"] == 807_000
+    assert after["illustrative_gap"] == 707_000
+    # the visible line item reflects the new assumption
+    income = next(c for c in after["breakdown"]["components"]
+                  if c["key"] == "income")
+    assert income["amount"] == 400_000
+    assert "5 years" in income["detail"]
+    assert after["assumptions"]["income_replacement_years"] == 5
+
+
+def test_expected_end_to_end_figures():
+    """The figures the deployment checklist is written against."""
+    orch, _, turns = _conversation(UNINFORMED)
+    na = turns[-1]["needs_assessment"]
+    amounts = {c["key"]: c["amount"] for c in na["breakdown"]["components"]}
+    assert amounts == {
+        "debt": 12_000,
+        "final_expenses": 15_000,
+        "income": 800_000,
+        "mortgage": 180_000,
+        "education": 200_000,
+    }
+    assert na["breakdown"]["gross_need"] == 1_207_000
+    assert na["breakdown"]["total_offsets"] == 100_000
+    assert na["illustrative_gap"] == 1_107_000
+
+
+def test_missing_fields_decrease_one_at_a_time():
+    _, _, turns = _conversation(UNINFORMED)
+    counts = [len(t["assessment"]["missing_fields"]) for t in turns]
+    assert counts == [6, 5, 4, 3, 2, 1, 0]
+
+
+def test_session_survives_an_assumption_change():
+    orch, sid, turns = _conversation(UNINFORMED)
+    resp = orch.handle_turn(session_id=sid,
+                            assumption_updates={"final_expenses": 25_000})
+    assert resp["session_id"] == sid
+    # profile collected in the conversation is untouched by an assumption edit
+    assert resp["assessment"]["profile"]["annual_income"] == 80_000
+    assert resp["assessment"]["profile"]["num_children"] == 2
+    assert resp["assessment"]["profile"]["mortgage_balance"] == 180_000
+    assert resp["assessment"]["missing_fields"] == []
+    # and the backend recalculated: +10,000 of final expenses
+    assert resp["needs_assessment"]["illustrative_gap"] == 1_117_000

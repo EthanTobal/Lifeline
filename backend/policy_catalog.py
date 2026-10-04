@@ -1,112 +1,70 @@
-"""LifeLine demo policy catalog.
+"""Backwards-compatible shim for the LifeLine demo policy catalog.
 
-Loads the fictional hackathon demo policies from ``backend/data/demo_policies.json``
-and provides simple lookups by ID, insurance type, and matching tag.
+The canonical implementation now lives in ``backend/services/policy_service.py``.
+This module is retained so earlier imports keep working, and simply delegates.
 
-Scope
------
-This module does retrieval only. It deliberately contains **no** matching,
-scoring, ranking, or recommendation logic. Which demo policies to surface is a
-separate concern that belongs to the needs-assessment layer, per
-``knowledge/demo-policies/policy-matching-rules.md``, which requires an
-illustrative financial need to be calculated *before* any product comparison.
+New code should import the service directly::
 
-Every policy in this catalog is a fictional hackathon product. Nothing here is an
-actual Lincoln Financial product, quote, premium, guarantee, or recommendation,
-and this catalog must never be merged into the Lincoln RAG corpus or uploaded to
-the Bedrock Knowledge Base.
+    from backend.services import policy_service
+
+    policy_service.get_policy("lifeline-term-20")
+    policy_service.filter_policies(insurance_type="term")
+
+Every policy is a fictional hackathon demo product. Nothing here is an actual
+Lincoln Financial product, quote, offer, premium, guarantee, or recommendation.
 """
 
 from __future__ import annotations
 
-import json
 import os
-from functools import lru_cache
+import sys
 from typing import Any, Iterable
 
-DATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                         "data", "demo_policies.json")
+# Make ``backend.services`` importable regardless of the caller's working directory.
+_BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+if _BACKEND_DIR not in sys.path:
+    sys.path.insert(0, _BACKEND_DIR)
 
-# Label that must be rendered on every demo policy card.
-DEMO_UI_LABEL = "Hackathon Demo - Not an actual Lincoln Financial product or quote"
+from services.policy_service import (  # noqa: E402
+    PolicyServiceError,
+    REQUIRED_DISCLAIMER,
+    get_all_policies,
+    get_all_tags,
+    get_document_location,
+    get_policy,
+    get_policy_document,
+    load_catalog,
+)
 
+# Retained for backwards compatibility with the previous public name.
+PolicyCatalogError = PolicyServiceError
 
-class PolicyCatalogError(RuntimeError):
-    """Raised when the catalog cannot be loaded or is malformed."""
-
-
-@lru_cache(maxsize=1)
-def load_catalog() -> dict[str, Any]:
-    """Load and cache the demo policy catalog."""
-    if not os.path.exists(DATA_PATH):
-        raise PolicyCatalogError(f"demo policy catalog not found at {DATA_PATH}")
-    try:
-        with open(DATA_PATH, encoding="utf-8") as handle:
-            catalog = json.load(handle)
-    except json.JSONDecodeError as exc:
-        raise PolicyCatalogError(f"demo policy catalog is not valid JSON: {exc}") from exc
-
-    policies = catalog.get("policies")
-    if not isinstance(policies, list):
-        raise PolicyCatalogError("demo policy catalog has no 'policies' list")
-
-    for policy in policies:
-        # These flags are the safety contract; a wrong value is a bug worth failing on.
-        if policy.get("is_demo_product") is not True:
-            raise PolicyCatalogError(
-                f"policy {policy.get('id')!r} must set is_demo_product=true")
-        if policy.get("actual_lincoln_product") is not False:
-            raise PolicyCatalogError(
-                f"policy {policy.get('id')!r} must set actual_lincoln_product=false")
-    return catalog
+# Retained for backwards compatibility with the previous public name.
+DEMO_UI_LABEL = REQUIRED_DISCLAIMER
 
 
 def list_policies() -> list[dict[str, Any]]:
-    """Return every demo policy, in catalog order."""
-    return list(load_catalog().get("policies", []))
-
-
-def get_policy(policy_id: str) -> dict[str, Any] | None:
-    """Return one demo policy by ID, or None if no such policy exists."""
-    for policy in list_policies():
-        if policy.get("id") == policy_id:
-            return policy
-    return None
+    """Deprecated alias for :func:`get_all_policies`."""
+    return get_all_policies()
 
 
 def get_policies_by_type(insurance_type: str) -> list[dict[str, Any]]:
-    """Return demo policies whose insurance type matches, case-insensitively.
+    """Deprecated alias for ``filter_policies(insurance_type=...)``.
 
-    Matching is substring-based so callers can pass a family such as
-    ``"term"`` or ``"universal"`` without knowing the exact label wording.
+    Note this previously matched on a substring; the service now matches the
+    ``insurance_type`` field exactly.
     """
-    needle = (insurance_type or "").strip().lower()
-    if not needle:
-        return []
-    return [p for p in list_policies()
-            if needle in (p.get("insurance_type") or "").lower()]
+    return get_all_policies() if not insurance_type else [
+        p for p in get_all_policies()
+        if insurance_type.strip().lower() == (p.get("insurance_type") or "").lower()
+    ]
 
 
 def get_policies_by_tags(tags: Iterable[str]) -> list[dict[str, Any]]:
-    """Return demo policies carrying **all** of the supplied tags.
+    """Deprecated alias for ``filter_policies(matching_tags=...)``."""
+    from services import policy_service
 
-    Comparison is case-insensitive. An empty tag list returns an empty list
-    rather than every policy, so a missing signal cannot silently look like a
-    broad match.
-    """
-    wanted = {t.strip().lower() for t in (tags or []) if t and t.strip()}
-    if not wanted:
-        return []
-    return [p for p in list_policies()
-            if wanted.issubset({t.lower() for t in p.get("matching_tags", [])})]
-
-
-def get_all_tags() -> list[str]:
-    """Return every distinct matching tag across the catalog, sorted."""
-    tags: set[str] = set()
-    for policy in list_policies():
-        tags.update(policy.get("matching_tags", []))
-    return sorted(tags)
+    return policy_service.filter_policies(matching_tags=tags)
 
 
 def is_demo_product(policy: dict[str, Any]) -> bool:
@@ -114,7 +72,19 @@ def is_demo_product(policy: dict[str, Any]) -> bool:
     return policy.get("is_demo_product") is True
 
 
-if __name__ == "__main__":  # quick manual inspection
-    for policy in list_policies():
-        print(f"{policy['id']:<30} {policy['insurance_type']}")
-    print(f"\ntags: {', '.join(get_all_tags())}")
+__all__ = [
+    "DEMO_UI_LABEL",
+    "PolicyCatalogError",
+    "PolicyServiceError",
+    "REQUIRED_DISCLAIMER",
+    "get_all_policies",
+    "get_all_tags",
+    "get_document_location",
+    "get_policies_by_tags",
+    "get_policies_by_type",
+    "get_policy",
+    "get_policy_document",
+    "is_demo_product",
+    "list_policies",
+    "load_catalog",
+]

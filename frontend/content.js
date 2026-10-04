@@ -107,11 +107,18 @@ const LifelineContent = (() => {
       actions.append(open);
     }
     actions.append(print);
-    header.append(heading, actions);
+    header.append(documentThumbnail(), heading, actions);
     const details = element("details", "artifact-details");
     details.append(element("summary", "", "View document"), renderMarkdown(element("div", "artifact-content"), result.artifact.markdown));
     card.append(header, details);
     return card;
+  }
+
+  function documentThumbnail() {
+    const thumbnail = element("span", "document-thumbnail");
+    thumbnail.setAttribute("aria-hidden", "true");
+    for (let i = 0; i < 3; i++) thumbnail.append(element("span", "document-thumbnail-line"));
+    return thumbnail;
   }
 
   // Only recognised video providers receive an iframe, and only after a click.
@@ -163,5 +170,5 @@ const LifelineContent = (() => {
     return card;
   }
 
-  return { renderMarkdown, validateArtifact, validateEmbed, validateFollowUp, artifactCard, embedCard, printArtifact, videoUrl };
+  return { renderMarkdown, validateArtifact, validateEmbed, validateFollowUp, artifactCard, documentThumbnail, embedCard, printArtifact, videoUrl };
 })();

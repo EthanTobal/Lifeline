@@ -3,6 +3,8 @@
 
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+  <meta name="theme-color" content="#FFFFFF" />
   <meta name="viewport"
     content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
   <meta name="theme-color" content="#650030" />
@@ -21,11 +23,8 @@
       <img src="./logo.png" alt="Lincon Lifeline" style="height: 50px" />
     </a>
 
-    <button type="button" class="btn btn-outline documents-toggle" id="documents-btn" aria-controls="documents-panel"
-      aria-expanded="false">
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5" />
-      </svg>
+    <button type="button" class="btn btn-outline documents-toggle" id="documents-btn" aria-controls="documents-panel" aria-expanded="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5" /></svg>
       <span class="documents-label">Documents</span>
       <span class="documents-count" id="documents-count" aria-hidden="true">0</span>
     </button>
@@ -47,11 +46,11 @@
 
   <!-- ============ MAIN ============ -->
   <div class="session-layout" id="session-layout">
-    <div class="conversation-pane" id="conversation-pane">
-      <main class="app">
-        <!-- Home -->
-        <section class="home" id="home" aria-labelledby="home-title">
-          <div class="orb orb-hero" data-state="idle" aria-hidden="true"><span class="orb-core"></span></div>
+  <div class="conversation-pane" id="conversation-pane">
+  <main class="app">
+    <!-- Home -->
+    <section class="home" id="home" aria-labelledby="home-title">
+      <div class="orb orb-hero" data-state="idle" aria-hidden="true"><span class="orb-core"></span></div>
 
           <h1 id="home-title"><span id="greeting">Hello</span>.<br />How can I help you today?</h1>
           <p class="lead">Ask me anything about life insurance, in your own words.</p>
@@ -66,33 +65,25 @@
           <button type="button" class="btn btn-outline continue-chat" id="continue-chat-btn" hidden>Continue
             conversation</button>
 
-          <div class="topics" role="list">
-            <button class="topic" role="listitem" data-prompt="I'd like to get a quote for life insurance.">
-              <span>Get a quote</span>
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M9 6l6 6-6 6" />
-              </svg>
-            </button>
-            <button class="topic" role="listitem" data-prompt="Can you help me understand my current policy?">
-              <span>Understand my policy</span>
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M9 6l6 6-6 6" />
-              </svg>
-            </button>
-            <button class="topic" role="listitem" data-prompt="How do I make a claim?">
-              <span>Make a claim</span>
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M9 6l6 6-6 6" />
-              </svg>
-            </button>
-            <button class="topic" role="listitem" data-prompt="Can I speak to a real person?">
-              <span>Speak to a person</span>
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M9 6l6 6-6 6" />
-              </svg>
-            </button>
-          </div>
-        </section>
+      <div class="topics" role="list">
+        <button class="topic" role="listitem" data-prompt="I'd like to get a quote for life insurance.">
+          <span>Get a quote</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+        </button>
+        <button class="topic" role="listitem" data-prompt="Can you help me understand my current policy?">
+          <span>Understand my policy</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+        </button>
+        <button class="topic" role="listitem" data-prompt="How do I make a claim?">
+          <span>Make a claim</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+        </button>
+        <button class="topic" role="listitem" data-prompt="Can I speak to a real person?">
+          <span>Speak to a person</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+        </button>
+      </div>
+    </section>
 
         <!-- Chat -->
         <section class="chat" id="chat" aria-label="Conversation" hidden>
@@ -154,13 +145,21 @@
     </aside>
   </div>
   <div class="documents-backdrop" id="documents-backdrop" hidden></div>
+  <button type="button" class="icon-btn documents-toggle" id="documents-btn" aria-label="Open documents" title="Documents" aria-controls="documents-panel" aria-expanded="false">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5" /></svg>
+    <span class="documents-count" id="documents-count" aria-hidden="true" hidden>0</span>
+  </button>
 
   <!-- ============ VOICE MODE ============ -->
   <div class="voice" id="voice" role="dialog" aria-modal="true" aria-labelledby="voice-status" hidden>
+    <button type="button" class="icon-btn voice-documents-toggle" id="voice-documents-btn" aria-label="Open documents and resources" title="Documents and resources" aria-controls="voice-workspace" aria-expanded="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5" /></svg>
+      <span class="documents-count" id="voice-documents-count" aria-hidden="true" hidden>0</span>
+    </button>
+    <div class="voice-workspace-backdrop" id="voice-workspace-backdrop" aria-hidden="true" hidden></div>
     <div class="voice-layout">
-      <div class="voice-inner">
-        <div class="orb orb-voice" id="voice-orb" data-state="listening" aria-hidden="true"><span
-            class="orb-core"></span></div>
+    <div class="voice-inner">
+      <div class="orb orb-voice" id="voice-orb" data-state="listening" aria-hidden="true"><span class="orb-core"></span></div>
 
         <h2 class="voice-status" id="voice-status" aria-live="assertive">Listening</h2>
         <p class="voice-transcript" id="voice-transcript" aria-live="polite">Go ahead, I'm listening.</p>
@@ -168,47 +167,39 @@
         <p class="dlg-note" id="voice-output-status" role="status"></p>
         <p class="voice-error" id="voice-error" role="alert" hidden></p>
 
-        <div class="voice-controls">
-          <button type="button" class="btn btn-outline btn-lg" id="retry-voice-btn" hidden>Retry voice</button>
-          <button class="btn btn-outline btn-lg" id="mute-btn" aria-pressed="false">
-            <svg viewBox="0 0 24 24" aria-hidden="true" class="ic-mic">
-              <rect x="9" y="3" width="6" height="11" rx="3" />
-              <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
-            </svg>
-            <svg viewBox="0 0 24 24" aria-hidden="true" class="ic-mic-off">
-              <path d="M3 3l18 18M9 9v2a3 3 0 0 0 5 2.2M15 10V6a3 3 0 0 0-5.7-1.3M5 11a7 7 0 0 0 11.5 5.3M12 18v3" />
-            </svg>
-            <span>Mute</span>
-          </button>
-          <button class="btn btn-primary btn-lg" id="end-voice-btn">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M6 6l12 12M18 6L6 18" />
-            </svg>
-            <span>End</span>
-          </button>
-        </div>
-        <form id="voice-reply-form" class="voice-reply-form">
-          <label for="voice-reply-input" class="sr-only">Type a reply during voice mode</label>
-          <input id="voice-reply-input" placeholder="Or type your reply…" autocomplete="off" />
-          <button class="btn btn-outline" type="submit" id="voice-reply-send">Send</button>
-        </form>
-        <div id="voice-follow-up" class="voice-follow-up" hidden></div>
+      <div class="voice-controls">
+        <button type="button" class="btn btn-outline btn-lg" id="retry-voice-btn" hidden>Retry voice</button>
+        <button class="btn btn-outline btn-lg" id="mute-btn" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true" class="ic-mic"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true" class="ic-mic-off"><path d="M3 3l18 18M9 9v2a3 3 0 0 0 5 2.2M15 10V6a3 3 0 0 0-5.7-1.3M5 11a7 7 0 0 0 11.5 5.3M12 18v3" /></svg>
+          <span>Mute</span>
+        </button>
+        <button class="btn btn-primary btn-lg" id="end-voice-btn">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+          <span>End</span>
+        </button>
       </div>
-      <aside class="voice-canvas" aria-labelledby="voice-canvas-title">
-        <div class="voice-canvas-heading">
-          <span class="content-label">Your workspace</span>
-          <h2 id="voice-canvas-title">Documents &amp; resources</h2>
-          <p>View and print documents while we talk.</p>
-        </div>
-        <p id="voice-canvas-empty" class="voice-canvas-empty">Ask for a summary, checklist, or plan. Lifeline will put
-          it here.</p>
-        <div id="voice-canvas-content"></div>
-      </aside>
+      <form id="voice-reply-form" class="voice-reply-form">
+        <label for="voice-reply-input" class="sr-only">Type a reply during voice mode</label>
+        <input id="voice-reply-input" placeholder="Or type your reply…" autocomplete="off" />
+        <button class="btn btn-outline" type="submit" id="voice-reply-send">Send</button>
+      </form>
+      <div id="voice-follow-up" class="voice-follow-up" hidden></div>
+    </div>
+    <aside class="voice-canvas" aria-labelledby="voice-canvas-title">
+      <div class="voice-canvas-heading">
+        <span class="content-label">Your workspace</span>
+        <h2 id="voice-canvas-title">Documents &amp; resources</h2>
+        <p>View and print documents while we talk.</p>
+      </div>
+      <p id="voice-canvas-empty" class="voice-canvas-empty">Ask for a summary, checklist, or plan. Lifeline will put it here.</p>
+      <div id="voice-canvas-content"></div>
+    </aside>
     </div>
   </div>
 
   <!-- ============ TEST PANEL (dev only) ============ -->
-  <aside class="devpanel" aria-label="Testing controls">
+  <aside class="devpanel" aria-label="Testing controls" hidden>
     <button class="devpanel-toggle" id="devpanel-toggle" aria-expanded="false">Test</button>
     <div class="devpanel-body" id="devpanel-body" hidden>
       <p>Mock only — nothing is connected.</p>
