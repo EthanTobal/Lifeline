@@ -45,9 +45,17 @@ class Orchestrator:
         message: str = "",
         profile_updates: dict | None = None,
         assumption_updates: dict | None = None,
+        memories: list[str] | None = None,
     ) -> dict:
         """One conversational turn. Returns the response contract dict."""
         session_id, assessment = self.store.get_or_create(session_id)
+        # Browser memories are customer-provided context, never calculator inputs.
+        memory_context = []
+        if isinstance(memories, list):
+            memory_context = [
+                note.strip() for note in memories[:50]
+                if isinstance(note, str) and 0 < len(note.strip()) <= 500
+            ]
 
         # Context for this turn: which field we asked about last, and whether an
         # assessment has actually been entered. Both persist in the Assessment.
@@ -125,6 +133,7 @@ class Orchestrator:
             query=message, context=calc_context, sources=sources, mode=mode,
             next_field=next_field, known_summary=assessment.known_summary(),
             guardrail=guardrail,
+            memories=memory_context,
         )
 
         # 5. Deterministic fallbacks. These must produce a usable turn even when

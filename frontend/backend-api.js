@@ -55,6 +55,7 @@ const LifelineBackend = (() => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             ...(sessionId ? { session_id: sessionId } : {}), message,
+            memories: typeof LifelineMemories !== "undefined" ? LifelineMemories.list().map((item) => item.text) : [],
             ...(profileUpdates !== undefined ? { profile_updates: profileUpdates } : {}),
             ...(assumptionUpdates !== undefined ? { assumption_updates: assumptionUpdates } : {}),
           }),

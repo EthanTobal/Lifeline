@@ -33,6 +33,25 @@ Config comes from `backend/.env` (never committed):
 
 ## Endpoint
 
+### Saved memories
+
+The Saved memories button lets the customer explicitly add, edit, delete, or
+clear personal notes. Up to 50 notes of 500 characters each are retained in
+this browser under `lifeline-memories`, including notes from the old Gemini
+demo. They survive new chats and reloads; they are visible to anyone using
+the same browser. Nothing is automatically saved from a conversation.
+
+Every text or voice turn can include an optional `memories` array of strings
+in the `/api/turn` request. The backend bounds and validates the notes before
+passing them to Bedrock as unconfirmed personal context. They are not copied
+into the server assessment or used as calculator inputs. Deleting a note
+excludes it from subsequent requests; it does not undo information previously
+shared in a conversation. The deterministic offline fallback does not use
+these notes to personalize replies.
+
+Deploy the updated backend along with the frontend to enable memory context
+in live replies. Existing backend deployments ignore this optional field.
+
 ### `POST /api/turn`
 
 Call this once per user turn (a typed message, a spoken utterance turned to

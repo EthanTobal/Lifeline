@@ -25,12 +25,37 @@
         <button class="ts ts-lg" data-size="large" aria-pressed="false" aria-label="Large text">A</button>
         <button class="ts ts-xl" data-size="xlarge" aria-pressed="false" aria-label="Extra large text">A</button>
       </div>
+      <button type="button" class="icon-btn" id="memories-btn" aria-label="View saved memories" title="Saved memories" aria-controls="memories-dlg" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
+      </button>
       <button class="btn btn-outline" id="new-chat-btn" aria-label="New chat" title="New chat" hidden>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
         <span>New chat</span>
       </button>
     </div>
   </header>
+
+  <div class="dlg" id="memories-dlg" role="dialog" aria-modal="true" aria-labelledby="memories-title" hidden>
+    <div class="dlg-card">
+      <h2 id="memories-title">What Lifeline remembers</h2>
+      <p class="dlg-note">Save details you want Lifeline to use in future text and voice chats. Memories stay in this browser and are sent to Lifeline when you chat. Anyone using this browser can view them.</p>
+      <ul class="mem-list" id="mem-list"></ul>
+      <p class="mem-empty" id="mem-empty">Nothing saved yet.</p>
+      <form id="memory-form">
+        <label for="memory-input">Something to remember</label>
+        <input id="memory-input" maxlength="500" required autocomplete="off" placeholder="For example, I prefer short explanations." />
+        <div class="dlg-actions">
+          <button type="button" class="btn btn-outline" id="memory-cancel" hidden>Cancel edit</button>
+          <button type="submit" class="btn btn-primary" id="memory-save">Save memory</button>
+        </div>
+      </form>
+      <p class="memory-feedback" id="memory-feedback" role="status" aria-live="polite"></p>
+      <div class="dlg-actions">
+        <button type="button" class="btn btn-outline" id="mem-clear">Clear all</button>
+        <button type="button" class="btn btn-primary" id="mem-close">Close</button>
+      </div>
+    </div>
+  </div>
 
   <!-- ============ MAIN ============ -->
   <div class="session-layout" id="session-layout">
@@ -222,6 +247,7 @@
   <script src="vendor/marked.umd.js"></script>
   <script src="vendor/purify.min.js"></script>
   <script src="content.js"></script>
+  <script src="memories.js"></script>
   <script src="speech.js"></script>
   <script src="backend-api.js"></script>
   <script src="app.js"></script>

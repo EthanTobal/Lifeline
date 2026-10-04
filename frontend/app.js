@@ -307,6 +307,122 @@
     setTimeout(() => t.remove(), 2700);
   }
 
+  /* ---------- Saved memories ---------- */
+  const memoryDialog = $("#memories-dlg");
+  const memoryInput = $("#memory-input");
+  const memoryFeedback = $("#memory-feedback");
+  let editingMemory = null;
+  let memoryFocus = null;
+  let memoryOverflow = "";
+  let memoryInert = [];
+  let clearingMemories = false;
+  function cancelMemoryEdit() {
+    editingMemory = null;
+    memoryInput.value = "";
+    $("#memory-save").textContent = "Save memory";
+    $("#memory-cancel").hidden = true;
+  }
+  function renderMemories() {
+    const memories = LifelineMemories.list();
+    const list = $("#mem-list");
+    list.replaceChildren();
+    $("#mem-empty").hidden = memories.length > 0;
+    $("#mem-clear").disabled = memories.length === 0;
+    $("#mem-clear").textContent = "Clear all";
+    clearingMemories = false;
+    if (editingMemory && !memories.some((item) => item.id === editingMemory)) cancelMemoryEdit();
+    for (const memory of memories) {
+      const row = document.createElement("li");
+      const text = document.createElement("span");
+      text.textContent = memory.text;
+      const edit = document.createElement("button");
+      edit.type = "button";
+      edit.className = "chip";
+      edit.textContent = "Edit";
+      edit.setAttribute("aria-label", `Edit memory: ${memory.text}`);
+      edit.addEventListener("click", () => {
+        editingMemory = memory.id;
+        memoryInput.value = memory.text;
+        $("#memory-save").textContent = "Save changes";
+        $("#memory-cancel").hidden = false;
+        memoryFeedback.textContent = "";
+        memoryInput.focus();
+      });
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "chip";
+      remove.textContent = "Delete";
+      remove.setAttribute("aria-label", `Delete memory: ${memory.text}`);
+      remove.addEventListener("click", () => {
+        try {
+          LifelineMemories.remove(memory.id);
+          memoryFeedback.textContent = "Memory deleted. Future messages will no longer include it.";
+          memoryInput.focus();
+        } catch (error) { memoryFeedback.textContent = error.message; }
+      });
+      row.append(text, edit, remove);
+      list.appendChild(row);
+    }
+  }
+  function closeMemories() {
+    if (memoryDialog.hidden) return;
+    memoryDialog.hidden = true;
+    document.body.style.overflow = memoryOverflow;
+    for (const [node, inert] of memoryInert) node.inert = inert;
+    memoryInert = [];
+    memoryFocus?.focus();
+  }
+  $("#memories-btn").addEventListener("click", () => {
+    if (!memoryDialog.hidden) return;
+    memoryFocus = document.activeElement;
+    memoryOverflow = document.body.style.overflow;
+    cancelMemoryEdit();
+    memoryFeedback.textContent = "";
+    renderMemories();
+    memoryDialog.hidden = false;
+    memoryInert = [...document.body.children].filter((node) => node !== memoryDialog)
+      .map((node) => [node, node.inert]);
+    for (const [node] of memoryInert) node.inert = true;
+    document.body.style.overflow = "hidden";
+    memoryInput.focus();
+  });
+  $("#mem-close").addEventListener("click", closeMemories);
+  $("#memory-cancel").addEventListener("click", () => { cancelMemoryEdit(); memoryInput.focus(); });
+  memoryDialog.addEventListener("click", (event) => { if (event.target === memoryDialog) closeMemories(); });
+  $("#memory-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    try {
+      LifelineMemories.save(memoryInput.value, editingMemory);
+      cancelMemoryEdit();
+      memoryFeedback.textContent = "Memory saved. Lifeline will use it in future messages.";
+      memoryInput.focus();
+    } catch (error) { memoryFeedback.textContent = error.message; }
+  });
+  $("#mem-clear").addEventListener("click", () => {
+    if (!clearingMemories) {
+      clearingMemories = true;
+      $("#mem-clear").textContent = "Confirm clear all";
+      memoryFeedback.textContent = "Select Confirm clear all to delete every saved memory.";
+      return;
+    }
+    try {
+      LifelineMemories.clear();
+      cancelMemoryEdit();
+      memoryFeedback.textContent = "All memories deleted. Future messages will no longer include them.";
+      memoryInput.focus();
+    } catch (error) { memoryFeedback.textContent = error.message; }
+  });
+  document.addEventListener("memories-changed", renderMemories);
+  document.addEventListener("keydown", (event) => {
+    if (memoryDialog.hidden) return;
+    if (event.key === "Escape") { event.preventDefault(); closeMemories(); }
+    if (event.key !== "Tab") return;
+    const focusable = $$("button, input", memoryDialog).filter((node) => !node.disabled && !node.hidden);
+    const first = focusable[0], last = focusable.at(-1);
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  });
+
   function smallOrb(state = "idle") {
     const o = document.createElement("div");
     o.className = "orb orb-sm";
