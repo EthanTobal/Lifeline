@@ -57,6 +57,10 @@ body {
   color: var(--ink); background: var(--bg);
   -webkit-font-smoothing: antialiased;
   overflow-wrap: anywhere;
+  -webkit-user-select: none; user-select: none;
+}
+input, textarea, .msg-ai, .msg-ai * {
+  -webkit-user-select: text; user-select: text;
 }
 svg { width: 1.15em; height: 1.15em; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 button { font: inherit; color: inherit; cursor: pointer; }
@@ -106,6 +110,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   border-bottom: 1px solid var(--line);
 }
 .brand { display: flex; align-items: center; gap: .65rem; flex-shrink: 0; text-decoration: none; color: var(--ink); border-radius: 8px; }
+.brand img { -webkit-user-drag: none; user-drag: none; -webkit-touch-callout: none; user-select: none; }
 .brand-name { font-weight: 700; font-size: 1.35rem; letter-spacing: -.01em; }
 .topbar-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .6rem; min-width: 0; }
 
