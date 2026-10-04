@@ -80,6 +80,82 @@
   setTextSize(localStorage.getItem("lifeline-size") || "normal");
   $$(".ts").forEach((b) => b.addEventListener("click", () => setTextSize(b.dataset.size)));
 
+  /* ---------- Accessibility: type replies out ----------
+     The full reply is in the page immediately, so screen readers are not fed
+     one character at a time. Sighted readers can turn the effect off, change
+     its speed, or skip it with a click or Escape. */
+  const TEXT_SCROLL_KEY = "lifeline-text-scroll";
+  const TEXT_SPEED_KEY = "lifeline-text-speed";
+  let textScrollOn = false;
+  let textSpeed = 7;
+  const reveals = new Set();
+  const readingBtn = $("#reading-btn");
+  const readingPanel = $("#reading-panel");
+  const textScrollToggle = $("#text-scroll-toggle");
+  const textSpeedInput = $("#text-scroll-speed");
+  const textSpeedValue = $("#text-scroll-speed-value");
+
+  function speedName(speed) {
+    if (speed <= 3) return "Slow";
+    if (speed <= 7) return "Medium";
+    return "Fast";
+  }
+  function applyTextSpeed(speed, persist) {
+    const parsed = Number(speed);
+    textSpeed = Number.isInteger(parsed) ? Math.min(10, Math.max(1, parsed)) : 6;
+    textSpeedInput.value = String(textSpeed);
+    const name = speedName(textSpeed);
+    textSpeedValue.textContent = name;
+    textSpeedInput.setAttribute("aria-valuetext", name);
+    if (persist) localStorage.setItem(TEXT_SPEED_KEY, String(textSpeed));
+  }
+  function applyTextScroll(on, persist) {
+    textScrollOn = on;
+    textScrollToggle.setAttribute("aria-checked", String(on));
+    textSpeedInput.disabled = !on;
+    if (persist) localStorage.setItem(TEXT_SCROLL_KEY, on ? "on" : "off");
+    if (!on) finishReveals();
+  }
+  function placeReadingPanel() {
+    const bounds = readingBtn.getBoundingClientRect();
+    const margin = 12;
+    const width = readingPanel.offsetWidth;
+    const left = Math.max(margin, Math.min(bounds.right - width, window.innerWidth - width - margin));
+    readingPanel.style.top = `${Math.round(bounds.bottom + 8)}px`;
+    readingPanel.style.left = `${Math.round(left)}px`;
+  }
+  function openReading(open) {
+    readingPanel.hidden = !open;
+    readingBtn.setAttribute("aria-expanded", String(open));
+    if (!open) return;
+    placeReadingPanel();
+    textScrollToggle.focus();
+  }
+  window.addEventListener("resize", () => { if (!readingPanel.hidden) placeReadingPanel(); });
+  const storedScroll = localStorage.getItem(TEXT_SCROLL_KEY);
+  applyTextSpeed(localStorage.getItem(TEXT_SPEED_KEY) || 7, false);
+  applyTextScroll(storedScroll === null ? !reduceMotion : storedScroll === "on", false);
+  if (reduceMotion) $("#reading-motion-note").hidden = false;
+  readingBtn.addEventListener("click", () => {
+    const open = readingPanel.hidden;
+    if (open) closeMemories();
+    openReading(open);
+  });
+  textScrollToggle.addEventListener("click", () => {
+    applyTextScroll(textScrollToggle.getAttribute("aria-checked") !== "true", true);
+  });
+  textSpeedInput.addEventListener("input", () => applyTextSpeed(textSpeedInput.value, true));
+  document.addEventListener("click", (event) => {
+    if (readingPanel.hidden || event.target.closest("#reading-panel, #reading-btn")) return;
+    openReading(false);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || readingPanel.hidden) return;
+    event.preventDefault();
+    openReading(false);
+    readingBtn.focus();
+  });
+
   // Smoothly follow the pointer so the highlight feels like light inside a body.
   $$(".orb").forEach((orb) => {
     let frame = 0;
@@ -258,6 +334,7 @@
     el.continueChat.hidden ? el.input.focus() : el.continueChat.focus();
   }
   function newChat() {
+    finishReveals();
     closeDocumentViewer(false, true);
     if (!el.voice.hidden) closeVoice(true);
     activeResponse?.abort();
@@ -382,6 +459,7 @@
     memoryFocus?.focus();
   }
   $("#memories-btn").addEventListener("click", () => {
+    openReading(false);
     if (!memoryDialog.hidden) return;
     memoryFocus = document.activeElement;
     memoryOverflow = document.body.style.overflow;
@@ -516,9 +594,132 @@
     thinking = null;
   }
 
-  /* ---------- Streaming reply ---------- */
+  /* ---------- Artificial streaming ---------- */
+  function charDelay(speed, chars, index) {
+    const parsed = Number(speed);
+    const rate = Number.isInteger(parsed) ? Math.min(10, Math.max(1, parsed)) : 6;
+    const base = Math.round(80 - (rate - 1) * 7);
+    const character = chars[index]?.textContent || "";
+    const next = chars[index + 1]?.textContent || "";
+    const boundary = !next || /\s/.test(next);
+    if (boundary && /[.!?]/.test(character)) return base * 7;
+    if (boundary && /[,;:]/.test(character)) return base * 3;
+    return base;
+  }
+  function wrapCharacters(root) {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        const value = node.textContent;
+        if (!value) return NodeFilter.FILTER_REJECT;
+        if (!value.trim() && !node.parentElement?.closest("pre")) return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      },
+    });
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    const chars = [];
+    for (const node of nodes) {
+      const frag = document.createDocumentFragment();
+      for (const character of node.textContent) {
+        const span = document.createElement("span");
+        span.className = "type-ch type-pending";
+        span.textContent = character;
+        frag.appendChild(span);
+        chars.push(span);
+      }
+      node.parentNode.replaceChild(frag, node);
+    }
+    return chars;
+  }
+  function finishReveals(root) {
+    for (const finish of [...reveals]) {
+      if (!root || finish.root === root) finish();
+    }
+  }
+  function followTyping(textEl) {
+    if (textEl === el.vText) {
+      textEl.scrollTop = textEl.scrollHeight;
+      return;
+    }
+    scrollDown();
+  }
+  function playTypewriter(textEl) {
+    const chars = wrapCharacters(textEl);
+    if (!chars.length) return Promise.resolve();
+    const orb = $(".orb", textEl.closest(".msg") || textEl);
+    if (orb) orb.dataset.state = "speaking";
+    textEl.classList.add("is-typing");
+    const caret = document.createElement("span");
+    caret.className = "type-caret";
+    caret.setAttribute("aria-hidden", "true");
+    let index = 0;
+    let timer = 0;
+    let settled = false;
+    return new Promise((resolve) => {
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        reveals.delete(finish);
+        textEl.removeEventListener("click", onClick);
+        document.removeEventListener("keydown", onKey);
+        for (const ch of chars) ch.classList.remove("type-pending");
+        caret.remove();
+        textEl.classList.remove("is-typing");
+        if (orb && orb.dataset.state === "speaking") orb.dataset.state = "idle";
+        updateSend();
+        resolve();
+      };
+      finish.root = textEl;
+      const onClick = (event) => {
+        if (event.target.closest("a, button")) return;
+        finish();
+      };
+      const onKey = (event) => {
+        if (event.key !== "Escape" || event.defaultPrevented) return;
+        event.preventDefault();
+        finishReveals();
+      };
+      reveals.add(finish);
+      textEl.addEventListener("click", onClick);
+      document.addEventListener("keydown", onKey);
+      updateSend();
+      const step = () => {
+        if (settled) return;
+        // Faster settings reveal a few characters at a time so a long reply
+        // still feels like Undertale's quicker text speeds.
+        const batch = textSpeed >= 9 ? 4 : textSpeed >= 7 ? 2 : 1;
+        let last = index;
+        const count = Math.min(batch, chars.length - index);
+        for (let n = 0; n < count; n += 1) {
+          chars[index].classList.remove("type-pending");
+          last = index;
+          index += 1;
+        }
+        chars[last].after(caret);
+        if (last < 3 || index % 3 === 0) followTyping(textEl);
+        if (index >= chars.length) {
+          followTyping(textEl);
+          finish();
+          return;
+        }
+        timer = setTimeout(step, charDelay(textSpeed, chars, last));
+      };
+      step();
+    });
+  }
+  async function revealAssistantText(textEl) {
+    if (!textEl.isConnected) return;
+    if (!textScrollOn) {
+      revealResponse(textEl);
+      return;
+    }
+    await playTypewriter(textEl);
+  }
+
   const backend = LifelineBackend.getSharedClient();
   let busy = false;
+  let awaitingReply = false;
   let activeResponse = null;
   let activeTurn = null;
   // The latest coverage estimate shown in the chat. Save/Print act on this.
@@ -539,6 +740,10 @@
   }
 
   function stopResponse() {
+    if (!awaitingReply && reveals.size) {
+      finishReveals();
+      return;
+    }
     if (!activeResponse) return;
     const turn = activeTurn;
     activeResponse.abort();
@@ -563,15 +768,18 @@
 
     if (!override) {
       startThinking();
+      awaitingReply = true;
       try {
         const data = await backend.turn({ message: userText, path: conversationPath || undefined, ...updates, signal });
+        awaitingReply = false;
         if (signal.aborted) return;
         stopThinking();
         const message = makeMsg("ai");
         activeTurn.message = message;
         LifelineContent.renderMarkdown(message.text, data.assistant_message);
+        await revealAssistantText(message.text);
+        if (!message.li.isConnected) return;
         highlightCurrentQuestion(message.text, data);
-        revealResponse(message.text);
         renderAssessment(message.body, data);
         addActions(message.body, message.text);
         renderComposerSuggestions(suggestionsForTurn(data));
@@ -582,6 +790,7 @@
           addError(error.message, () => respond(userText, override, updates));
         }
       } finally {
+        awaitingReply = false;
         if (activeResponse === controller) {
           busy = false; updateSend();
           activeResponse = null;
@@ -592,9 +801,11 @@
     }
 
     /* ---- explicitly selected Test panel examples ---- */
+    awaitingReply = true;
     try {
       startThinking();
       await sleep(1500 + Math.random() * 1300);
+      awaitingReply = false;
       if (signal.aborted) return;
       stopThinking();
       await streamReply(override, signal);
@@ -604,6 +815,7 @@
         addError(err.message, () => respond(userText, override));
       }
     } finally {
+      awaitingReply = false;
       if (activeResponse === controller) {
         busy = false; updateSend();
         activeResponse = null;
@@ -1330,31 +1542,17 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
 
   async function streamReply(reply, signal) {
     showChat();
-    const { li, body, text } = makeMsg("ai");
-    if (activeResponse?.signal === signal) activeTurn.message = { li, body, text };
-    const orb = $(".orb", li);
-    orb.dataset.state = "speaking";
-
+    const message = makeMsg("ai");
+    if (activeResponse?.signal === signal) activeTurn.message = message;
     const markdown = reply.markdown ?? reply.blocks.map((block) => block.p || block.ul?.map((item) => "- " + item).join("\n") || "").join("\n\n");
-    if (reduceMotion) LifelineContent.renderMarkdown(text, markdown);
-    else {
-      const chunks = markdown.match(/\S+\s*|\s+/g) || [];
-      let full = "";
-      for (let i = 0; i < chunks.length; i++) {
-        if (signal?.aborted) return;
-        full += chunks[i];
-        LifelineContent.renderMarkdown(text, full);
-        if (i % 5 === 0) scrollDown();
-        await sleep(30 + Math.random() * 35);
-      }
-    }
-    if (signal?.aborted) return;
-    for (const artifact of reply.artifacts || []) appendContent(body, { artifact });
-    for (const embed of reply.embeds || []) appendContent(body, { embed });
-    orb.dataset.state = "idle";
-
-    addActions(body, text);
-    if (reply.suggestions) addSuggestions(body, reply.suggestions);
+    if (signal?.aborted || !message.li.isConnected) return;
+    LifelineContent.renderMarkdown(message.text, markdown);
+    await revealAssistantText(message.text);
+    if (signal?.aborted || !message.li.isConnected) return;
+    for (const artifact of reply.artifacts || []) appendContent(message.body, { artifact });
+    for (const embed of reply.embeds || []) appendContent(message.body, { embed });
+    addActions(message.body, message.text);
+    if (reply.suggestions) addSuggestions(message.body, reply.suggestions);
     scrollDown();
   }
 
@@ -1549,6 +1747,7 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     el.send.disabled = busy || !el.input.value.trim();
     el.send.hidden = busy;
     el.stop.hidden = !busy;
+    el.stop.textContent = !awaitingReply && reveals.size ? "Show all" : "Stop response";
     $$(".retry-response").forEach((button) => { button.disabled = busy; });
     $$(".assessment-submit").forEach((button) => { button.disabled = busy; });
   }
@@ -1641,10 +1840,16 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
       if (voiceMeterController === controller) stopVoiceMeter();
     });
   }
-  function setVoiceState(state, text) {
+  function setVoiceState(state, text, options = {}) {
     el.vOrb.dataset.state = state;
     el.vStatus.textContent = { listening: "Listening", thinking: "Thinking", speaking: "Speaking", muted: "Microphone off", error: "Voice unavailable" }[state];
-    el.vText.textContent = text || "";
+    finishReveals(el.vText);
+    if (options.type && textScrollOn && text) {
+      el.vText.textContent = text;
+      void playTypewriter(el.vText);
+    } else {
+      el.vText.textContent = text || "";
+    }
     if (state !== "listening") el.vOrb.style.setProperty("--level", "0");
   }
   function finishVoiceClose() {
@@ -1713,13 +1918,15 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
       if (run !== voiceRun || el.voice.hidden) return;
       const message = makeMsg("ai");
       LifelineContent.renderMarkdown(message.text, data.assistant_message);
-      highlightCurrentQuestion(message.text, data);
-      revealResponse(message.text);
-      renderAssessment(message.body, data);
-      addActions(message.body, message.text);
-      renderComposerSuggestions(suggestionsForTurn(data));
-      renderVoiceCanvas();
-      setVoiceState("speaking", data.assistant_message);
+      void revealAssistantText(message.text).then(() => {
+        if (!message.li.isConnected) return;
+        highlightCurrentQuestion(message.text, data);
+        renderAssessment(message.body, data);
+        addActions(message.body, message.text);
+        renderComposerSuggestions(suggestionsForTurn(data));
+        renderVoiceCanvas();
+      });
+      setVoiceState("speaking", data.assistant_message, { type: true });
       await LifelineSpeech.play(data.assistant_message);
     } catch (error) {
       if (error.name !== "AbortError" && run === voiceRun) {

@@ -399,3 +399,64 @@ test('side document icon opens the viewer and restores focus when dismissed', (t
   assert.equal(button.getAttribute('aria-expanded'), 'false');
   assert.equal(doc.activeElement, button);
 });
+
+test('accessibility setting types replies and can show the rest immediately', async (t) => {
+  const reduced = boot(t);
+  assert.equal(reduced.doc.querySelector('#text-scroll-toggle').getAttribute('aria-checked'), 'false');
+  assert.equal(reduced.doc.querySelector('#text-scroll-speed').disabled, true);
+  assert.equal(reduced.doc.querySelector('#reading-motion-note').hidden, false);
+
+  const { w, doc } = boot(t, { reduceMotion: false });
+  const toggle = doc.querySelector('#text-scroll-toggle');
+  const speed = doc.querySelector('#text-scroll-speed');
+  const panel = doc.querySelector('#reading-panel');
+  assert.equal(toggle.getAttribute('aria-checked'), 'true');
+  assert.equal(speed.disabled, false);
+  assert.equal(doc.querySelector('#reading-motion-note').hidden, true);
+  doc.querySelector('#reading-btn').click();
+  assert.equal(panel.hidden, false);
+  assert.equal(doc.activeElement, toggle);
+  speed.value = '1';
+  speed.dispatchEvent(new w.Event('input', { bubbles: true }));
+  assert.equal(w.localStorage.getItem('lifeline-text-speed'), '1');
+  assert.equal(doc.querySelector('#text-scroll-speed-value').textContent, 'Slow');
+  doc.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+  assert.equal(panel.hidden, true);
+  assert.equal(doc.activeElement, doc.querySelector('#reading-btn'));
+
+  const send = (message) => {
+    doc.querySelector('#message-input').value = message;
+    doc.querySelector('#composer').dispatchEvent(new w.Event('submit', { bubbles: true, cancelable: true }));
+  };
+  send('Hello');
+  await until(() => doc.querySelector('.type-pending'));
+  const chars = [...doc.querySelectorAll('.msg-ai .type-ch')];
+  assert.equal(chars[0].classList.contains('type-pending'), false);
+  assert.equal(chars[1].classList.contains('type-pending'), true);
+  assert.ok(doc.querySelector('.type-caret'));
+  assert.equal(doc.querySelector('#stop-response-btn').hidden, false);
+  assert.equal(doc.querySelector('#stop-response-btn').textContent, 'Show all');
+  assert.equal(doc.querySelector('#composer-suggestions').hidden, true);
+  assert.ok(doc.querySelector('.msg-ai .text').textContent.includes('Backend answer 1'));
+  doc.querySelector('.msg-ai .text').click();
+  await until(() => !doc.querySelector('.type-pending') && doc.querySelector('#stop-response-btn').hidden);
+  assert.equal(doc.querySelector('.type-caret'), null);
+  assert.equal(doc.querySelector('#composer-suggestions').hidden, false);
+
+  toggle.click();
+  assert.equal(toggle.getAttribute('aria-checked'), 'false');
+  assert.equal(w.localStorage.getItem('lifeline-text-scroll'), 'off');
+  assert.equal(speed.disabled, true);
+  send('Again');
+  await until(() => doc.querySelector('#messages').textContent.includes('Backend answer 2'));
+  const replies = [...doc.querySelectorAll('.msg-ai .text')];
+  assert.equal(replies.at(-1).querySelector('.type-ch'), null);
+
+  toggle.click();
+  assert.equal(toggle.getAttribute('aria-checked'), 'true');
+  send('Third');
+  await until(() => doc.querySelector('.type-pending'));
+  doc.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+  await until(() => !doc.querySelector('.type-pending') && doc.querySelector('#stop-response-btn').hidden);
+  assert.ok(doc.querySelector('#messages').textContent.includes('Backend answer 3'));
+});

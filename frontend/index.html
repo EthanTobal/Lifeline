@@ -25,6 +25,11 @@
         <button class="ts ts-lg" data-size="large" aria-pressed="false" aria-label="Large text">A</button>
         <button class="ts ts-xl" data-size="xlarge" aria-pressed="false" aria-label="Extra large text">A</button>
       </div>
+      <div class="reading-settings">
+        <button type="button" class="icon-btn" id="reading-btn" aria-expanded="false" aria-controls="reading-panel" aria-label="Accessibility settings" title="Accessibility settings">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M4 12h7M4 17h5" /><path d="M16 5v14" /></svg>
+        </button>
+      </div>
       <button type="button" class="icon-btn" id="memories-btn" aria-label="View saved memories" title="Saved memories" aria-controls="memories-dlg" aria-haspopup="dialog">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
       </button>
@@ -34,6 +39,25 @@
       </button>
     </div>
   </header>
+
+  <!-- Outside the header so it is not trapped under the header's backdrop layer. -->
+  <div class="reading-panel" id="reading-panel" role="region" aria-label="Accessibility settings" hidden>
+    <h2 id="reading-title">Accessibility</h2>
+    <p>Replies can appear one character at a time. Screen readers still get the full reply right away.</p>
+    <div class="reading-row">
+      <label id="text-scroll-label" for="text-scroll-toggle">Type out replies</label>
+      <button type="button" class="switch" id="text-scroll-toggle" role="switch" aria-checked="true" aria-labelledby="text-scroll-label">
+        <span aria-hidden="true"></span>
+      </button>
+    </div>
+    <div class="reading-speed">
+      <label for="text-scroll-speed">Text speed <span id="text-scroll-speed-value">Medium</span></label>
+      <input id="text-scroll-speed" type="range" min="1" max="10" step="1" value="7" aria-describedby="text-scroll-hint" />
+      <div class="reading-speed-ends" aria-hidden="true"><span>Slow</span><span>Fast</span></div>
+    </div>
+    <p id="text-scroll-hint">Click a reply, or press Escape, to show the rest immediately.</p>
+    <p id="reading-motion-note" hidden>Motion is reduced on this device, so typing stays off until you turn it on.</p>
+  </div>
 
   <div class="dlg" id="memories-dlg" role="dialog" aria-modal="true" aria-labelledby="memories-title" hidden>
     <div class="dlg-card">
