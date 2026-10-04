@@ -14,6 +14,7 @@ at the bottom. The rest of the flow is storage-agnostic.
 """
 from __future__ import annotations
 
+import re
 import uuid
 from dataclasses import dataclass, field
 
@@ -111,7 +112,7 @@ class Orchestrator:
         # 3. Retrieve Lincoln educational content (empty if KB not configured).
         #    Skipped while collecting an assessment: retrieval is what pulled
         #    the model toward writing an article instead of asking a question.
-        collecting = status == "collecting"
+        collecting = status == "collecting" and assessment.started
         sources: list[Source] = []
         if message and (not collecting or intent == "educational"):
             sources = self.bedrock.retrieve_knowledge(message)
@@ -120,7 +121,9 @@ class Orchestrator:
 
         # 4. Decide the mode. The APPLICATION decides this, not the model.
         guardrail = intent if intent in ("pricing", "recommendation", "approval") else None
-        if collecting and intent == "educational":
+        if intent == "out_of_scope":
+            mode = "out_of_scope"
+        elif collecting and intent == "educational":
             # A genuine educational question mid-assessment: answer briefly,
             # then return to the pending question.
             mode = "answering_then_resuming"
@@ -139,7 +142,9 @@ class Orchestrator:
         # 5. Deterministic fallbacks. These must produce a usable turn even when
         #    Bedrock is unconfigured or returns nothing.
         if not assistant_message:
-            if guardrail:
+            if mode == "out_of_scope":
+                assistant_message = _out_of_scope_fallback(message)
+            elif guardrail:
                 assistant_message = _guardrail_fallback(guardrail)
                 if collecting and next_field:
                     assistant_message += "\n\n" + _ask(next_field)
@@ -149,7 +154,7 @@ class Orchestrator:
                 assistant_message = (_educational_fallback(assessment)
                                      + "\n\n" + _ask(next_field))
             elif status == "ready":
-                assistant_message = calc_context or _ready_prompt()
+                assistant_message = calc_context or _ready_prompt(needs_block)
             else:
                 # Idle / general question with no estimate yet.
                 assistant_message = _general_fallback()
@@ -168,16 +173,22 @@ class Orchestrator:
 
         # 7. Assemble the response contract.
         assessment_block = assessment.to_dict()
+        if not assessment.started:
+            assessment_block["next_field"] = None
+            assessment_block["next_field_question"] = None
+            assessment_block["next_field_why"] = None
         return {
             "session_id": session_id,
             "assistant_message": assistant_message,
             "mode": mode,
             "intent": intent,
             "extracted": extracted,
+            "assessment_started": assessment.started,
             "assessment": {
                 # Report "idle" until an assessment has actually been entered,
                 # so a general question never shows a collection UI.
                 "status": status if status == "idle" else assessment_block["status"],
+                "assessment_started": assessment.started,
                 "missing_fields": assessment_block["missing_fields"],
                 "next_field": assessment_block["next_field"],
                 "next_field_question": assessment_block["next_field_question"],
@@ -288,9 +299,25 @@ def _collecting_prompt(assessment: Assessment, next_field: dict) -> str:
     return f"Thanks — got it. So far I have: {known}.\n\n{_ask(next_field)}"
 
 
-def _ready_prompt() -> str:
-    return ("Thanks — I have everything I need. Your coverage estimate is "
-            "shown below, and you can change any answer and I will recalculate.")
+def _ready_prompt(needs: dict | None = None) -> str:
+    gap = (needs or {}).get("illustrative_gap")
+    if gap is None:
+        return ("Thanks — I have everything I need. Your illustrative coverage estimate "
+                "is shown below, and you can change any answer to recalculate.")
+    breakdown = needs.get("breakdown", {})
+    components = sorted(
+        (row for row in breakdown.get("components", []) if row.get("amount", 0) > 0),
+        key=lambda row: row["amount"], reverse=True)
+    message = ("Thanks — I have what I need. Based on what you've shared, your "
+               f"illustrative additional coverage estimate is about ${gap:,}.")
+    if components:
+        largest = components[0]
+        message += (f" The largest component is {largest['label'].lower()} at "
+                    f"${largest['amount']:,}.")
+    message += (" Your existing resources reduce the gap; the breakdown below shows "
+                "each part. This is an illustration based on the assumptions shown, "
+                "not a quote or recommendation.")
+    return message
 
 
 def _general_fallback() -> str:
@@ -323,6 +350,18 @@ _GUARDRAILS = {
 
 def _guardrail_fallback(kind: str) -> str:
     return _GUARDRAILS.get(kind, "")
+
+
+def _out_of_scope_fallback(message: str) -> str:
+    match = re.search(
+        r"\b(health insurance|medical insurance|dental|vision insurance|car insurance|"
+        r"auto insurance|vehicle insurance|home insurance|renters insurance|travel insurance|"
+        r"disability insurance|long[- ]term care insurance|pet insurance)\b",
+        message or "", re.IGNORECASE)
+    topic = f" rather than {match.group(0).lower()}" if match else ""
+    return (f"LifeLine focuses on life insurance{topic}. I can help explain life-insurance "
+            "options or work through an illustrative estimate of your family's protection needs. "
+            "Would either be useful?")
 
 
 # ---------------------------------------------------------------------------

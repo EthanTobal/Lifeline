@@ -453,28 +453,55 @@ def _extract_age(text: str) -> float | None:
 # Intent classification (deterministic, used only to route the turn)
 # --------------------------------------------------------------------------
 
+# Only route to an assessment when the person is actually talking about life
+# insurance / protecting dependants. A bare "I am trying" is far too broad --
+# it matched "I am trying to set up my health insurance".
+_LIFE_OR_PROTECTION = (r"(life[-\s]?insurance|life[-\s]?cover|life[-\s]?policy|"
+                       r"term insurance|permanent insurance|universal life|"
+                       r"coverage for (?:my|our|the) (?:family|kids|children|spouse)|"
+                       r"protect (?:my|our) (?:family|kids|children|spouse|dependents)|"
+                       r"if (?:something|i) (?:happened|die|died|passed|passed away)|"
+                       r"if i (?:died|die|passed away)|"
+                       r"support my family|replace my income|family couldn'?t afford)")
+
 _ASSESSMENT_INTENT = re.compile(
-    r"\b(i (?:need|want|am looking|am trying|would like|'m trying|'m looking)\b"
-    r"|help me (?:get|with|find)|where (?:do (?:i|we)|to) start|how do i start|"
-    r"get (?:a )?quote|get started|getting started|set up cover\w*|apply for|"
-    r"new to this|no idea where|not sure where (?:to|do i) start|"
-    r"how much (?:life )?insurance (?:do i|should i|would i)|"
-    r"assess|needs assessment|coverage estimate|estimate my)",
+    r"\b(i (?:need|want|would like|'?d like|am looking|'m looking|am trying|'m trying)"
+    r"[^.?!]{0,40}" + _LIFE_OR_PROTECTION + r")"
+    r"|\b(help me (?:get|with|find|figure out|work out|calculate)"
+    r"[^.?!]{0,30}(?:" + _LIFE_OR_PROTECTION + r"|coverage|cover|how much i need)\b)"
+    r"|\b(how much life insurance|how much cover|how much coverage)"
+    r"|\b(protect my family|protect our family|what if i died|if i died|"
+    r"if something happened to me|would my family be (?:ok|okay|covered))\b"
+    r"|\b(needs? analysis|needs? assessment|coverage calculation)\b",
     re.IGNORECASE)
 
+# Educational questions often arrive with a preamble ("Before I answer, what
+# exactly is term life insurance?"), so this is no longer anchored to the
+# start of the message. "What if I died" is deliberately excluded -- that is a
+# needs statement, not an education question.
 _EDUCATIONAL_INTENT = re.compile(
-    r"^\s*(what is|what are|what's|whats|what does|explain|how does|why does|"
-    r"why do|why is|why would|can you explain|tell me about|difference between|"
-    r"how is .* different|how much does .* cost|what happens)\b",
+    r"\b(what (?!if\b)(?:\w+\s+){0,2}(?:is|are|'s|does|do)\b"
+    r"|what (?:kind|type) of\b|about what\b"
+    r"|how (?!if\b)(?:\w+\s+){0,2}(?:does|do|would|is)\b"
+    r"|why (?:does|do|is|would)\b"
+    r"|difference between\b|can you explain\b|could you explain\b"
+    r"|tell me about\b|explain\b|walk me through\b)",
     re.IGNORECASE)
 
+# "afford" on its own used to fire on "if my family couldn't afford our
+# mortgage", which is a needs statement, not a request for a price. It now
+# only counts next to an explicit cost/premium word.
 _PRICING_INTENT = re.compile(
-    r"\b(how much (?:will|would|does|should|is)\b|per month|monthly|premium|"
-    r"price of|cost of|rates?|afford)", re.IGNORECASE)
+    r"\b(how much (?:will|would|does|should|is|would it)|per month|monthly|premiums?|"
+    r"price of|cost of|insurance rates?|afford(?:able)? (?:a|the|this|that)? ?"
+    r"(?:premium|policy|cover|coverage)|can i afford)\b",
+    re.IGNORECASE)
 
 _RECOMMENDATION_INTENT = re.compile(
     r"\b(which|what)\b.{0,40}\b(policy|plan|product|option)\b.{0,25}"
-    r"\b(should i|do i|buy|purchase|best|recommend)\b|\brecommend\b|\bbest (?:policy|plan|product)\b",
+    r"\b(should i|do i|buy|purchase|best|recommend|makes sense|make sense|"
+    r"would suit|is right for me|fit my needs)\b|\brecommend\b|\bbest (?:policy|plan|product)\b"
+    r"|\b(what|which) (?:kind|type) of (?:insurance|coverage|policy|plan)\b",
     re.IGNORECASE)
 
 _APPROVAL_INTENT = re.compile(
@@ -482,11 +509,57 @@ _APPROVAL_INTENT = re.compile(
     r"underwrit\w*|am i eligible)\b", re.IGNORECASE)
 
 
+# Topics LifeLine does not cover. These are recognised so the assistant can
+# state its scope plainly instead of starting a life-insurance assessment.
+_OUT_OF_SCOPE_INTENT = re.compile(
+    r"\b(health insurance|medical insurance|dental|vision insurance|"
+    r"car insurance|auto insurance|vehicle insurance|home insurance|"
+    r"renters insurance|renters'|homeowners|travel insurance|"
+    r"disability insurance|long[- ]term care insurance|pet insurance|"
+    r"umbrella policy|workers'? comp|life insurance for my (car|house|pet)|"
+    r"insure (?:my|our) (?:car|house|home|vehicle|car|pet|health))\b",
+    re.IGNORECASE)
+
+# Ordinary chit-chat / unrelated requests that are clearly not about insurance.
+_OFF_TOPIC_INTENT = re.compile(
+    r"^\s*(what'?s|whats|what is|how'?s|hows|how is)\s+the\s+(weather|forecast|time|news)\b"
+    r"|\b(make me|write me|translate|recipe|horoscope|joke)\b",
+    re.IGNORECASE)
+
+
+# A reply that is essentially just a figure, e.g. "About 85k." in answer to
+# "roughly what do you earn?". People rarely repeat the question back.
+_BARE_ANSWER_MAX_WORDS = 7
+
+
+def extract_bare_amount(message: str) -> float | None:
+    """A single amount said on its own, with no keyword to attach it to.
+
+    The orchestrator decides WHICH field this belongs to (the one it just
+    asked about), so this stays safe: it never guesses a field by itself.
+    """
+    text = (message or "").strip()
+    if not text or len(text.split()) > _BARE_ANSWER_MAX_WORDS:
+        return None
+    amounts = find_amounts(text)
+    return amounts[0] if len(amounts) == 1 else None
+
+
 def classify_intent(message: str) -> str:
-    """Route a turn: assessment | educational | pricing | recommendation | approval | none."""
+    """Route a turn.
+
+    assessment | educational | out_of_scope | pricing | recommendation
+    | approval | none
+    """
     text = (message or "").strip()
     if not text:
         return "none"
+    # Out of scope wins outright: asking about health or car insurance must
+    # never fall through to "start an assessment".
+    if _OUT_OF_SCOPE_INTENT.search(text):
+        return "out_of_scope"
+    if _OFF_TOPIC_INTENT.search(text):
+        return "out_of_scope"
     if _PRICING_INTENT.search(text):
         return "pricing"
     if _APPROVAL_INTENT.search(text):

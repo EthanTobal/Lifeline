@@ -125,6 +125,10 @@ class Assessment:
     context: dict = field(default_factory=dict)        # affordability, name, etc.
     assumptions: dict = field(default_factory=lambda: dict(DEFAULT_ASSUMPTIONS))
 
+    @property
+    def assessment_started(self) -> bool:
+        return self.started
+
     # ---- updating ----
     def update(self, data: dict) -> None:
         """Apply partial updates. Values are routed to profile vs context by
@@ -225,6 +229,7 @@ class Assessment:
             "next_field_why": next_field["why"] if next_field else None,
             "known_summary": self.known_summary(),
             "profile": dict(self.profile),
+            "assessment_started": self.started,
             # Hide internal conversation-state keys (prefixed with "_") from the
             # customer-facing contract.
             "context": {k: v for k, v in self.context.items() if not k.startswith("_")},

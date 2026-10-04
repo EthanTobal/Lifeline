@@ -127,6 +127,7 @@ Keep spoken responses conversational and concise.`;
   const INPUT_RATE = 16000;
   const OUTPUT_RATE = 24000;
   const SDK_URL = "https://cdn.jsdelivr.net/npm/@google/genai@latest/dist/index.umd.js";
+  const SPEECH_ONSET_RMS = 0.02;
 
   let session = null;    // { socket, stream, audioCtx, ... }
   let sdkPromise = null;
@@ -257,7 +258,10 @@ Keep spoken responses conversational and concise.`;
       if (inputText) onEvent?.({ type: "user-speech", text: inputText });
       const outputText = msg.outputTranscription?.text;
       if (outputText) onEvent?.({ type: "assistant-speech", text: outputText });
-      if (serverContent?.interrupted) onEvent?.({ type: "interrupted" });
+      if (serverContent?.interrupted) {
+        interruptPlayback();
+        onEvent?.({ type: "interrupted" });
+      }
     };
 
     socket = await ai.live.connect({
@@ -287,11 +291,23 @@ Keep spoken responses conversational and concise.`;
     const source = audioCtx.createMediaStreamSource(stream);
     const processor = audioCtx.createScriptProcessor(4096, 1, 1);
     processor.onaudioprocess = (event) => {
-      if (!session || !socket || session.muted) return;
+      if (!session || !socket) return;
+      const samples = event.inputBuffer.getChannelData(0);
+      if (session.sources.size > 0) {
+        let sum = 0;
+        for (let i = 0; i < samples.length; i += 1) sum += samples[i] * samples[i];
+        session.voiceFrames = Math.sqrt(sum / samples.length) > SPEECH_ONSET_RMS
+          ? session.voiceFrames + 1 : 0;
+        if (session.voiceFrames >= 2) {
+          interruptPlayback();
+          session.voiceFrames = 0;
+        }
+      }
+      if (session.muted) return;
       socket.sendRealtimeInput({
         audio: {
           // The Live API takes audio as base64, not raw bytes.
-          data: pcm16ToBase64(event.inputBuffer.getChannelData(0)),
+          data: pcm16ToBase64(samples),
           mimeType: `audio/pcm;rate=${INPUT_RATE}`,
         },
       });
@@ -304,7 +320,8 @@ Keep spoken responses conversational and concise.`;
     processor.connect(silent);
     silent.connect(audioCtx.destination);
 
-    session = { socket, stream, audioCtx, source, processor, silent, output: null, muted: false };
+    session = { socket, stream, audioCtx, source, processor, silent, output: null,
+      sources: new Set(), muted: false, voiceFrames: 0 };
     onState?.("listening");
     return session;
   }
@@ -328,6 +345,8 @@ Keep spoken responses conversational and concise.`;
     const source = session.output.createBufferSource();
     source.buffer = buffer;
     source.connect(session.output.destination);
+    session.sources.add(source);
+    source.onended = () => session?.sources.delete(source);
     source.start();
   }
 
@@ -335,7 +354,9 @@ Keep spoken responses conversational and concise.`;
     if (!session) return;
     const current = session;
     session = null;
+    interruptPlayback(current);
     const quiet = (fn) => { try { fn(); } catch (_) { /* already torn down */ } };
+    quiet(() => current.processor.onaudioprocess = null);
     quiet(() => current.socket.close?.());
     quiet(() => current.processor.disconnect());
     quiet(() => current.source.disconnect());
@@ -343,6 +364,7 @@ Keep spoken responses conversational and concise.`;
     quiet(() => current.output?.close?.());
     try { await current.audioCtx.close(); } catch (_) { /* noop */ }
     current.stream.getTracks().forEach((track) => track.stop());
+    current.sources.clear();
     onState?.("idle");
   }
 
@@ -352,5 +374,16 @@ Keep spoken responses conversational and concise.`;
     session.stream.getAudioTracks().forEach((track) => { track.enabled = !session.muted; });
   }
 
-  return { start, stop, isActive, setMuted, playChunk, SYSTEM_INSTRUCTION, ASK_TOOL, INPUT_RATE };
+  function isMuted() { return Boolean(session && session.muted); }
+  function isSpeaking() { return Boolean(session?.sources?.size); }
+  function interruptPlayback(target = session) {
+    if (!target?.sources) return;
+    for (const source of target.sources) {
+      try { source.onended = null; source.stop(); } catch (_) { /* already ended */ }
+    }
+    target.sources.clear();
+  }
+
+  return { start, stop, isActive, setMuted, isMuted, isSpeaking, interruptPlayback,
+    playChunk, SYSTEM_INSTRUCTION, ASK_TOOL, INPUT_RATE };
 })();
