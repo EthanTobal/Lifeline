@@ -43,6 +43,7 @@
   const workspaceContent = [];
   let currentFollowUp = null;
   let selectedDocument = 0;
+  let lastDocumentCount = 0;
   let previewedDocument = null;
   let documentViewerFocus = null;
   let documentViewerDismissed = false;
@@ -66,10 +67,43 @@
     size === "normal" ? document.documentElement.removeAttribute("data-size")
                       : document.documentElement.setAttribute("data-size", size);
     $$(".ts").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.size === size)));
+    $(".text-size").style.setProperty("--size-index", Math.max(0, ["normal", "large", "xlarge"].indexOf(size)));
     localStorage.setItem("lifeline-size", size);
   }
   setTextSize(localStorage.getItem("lifeline-size") || "normal");
   $$(".ts").forEach((b) => b.addEventListener("click", () => setTextSize(b.dataset.size)));
+
+  // Smoothly follow the pointer so the highlight feels like light inside a body.
+  $$(".orb").forEach((orb) => {
+    let frame = 0;
+    let targetX = -10, targetY = -15;
+    let lightX = targetX, lightY = targetY;
+    const moveLight = () => {
+      lightX += (targetX - lightX) * .14;
+      lightY += (targetY - lightY) * .14;
+      orb.style.setProperty("--light-x", `${lightX}%`);
+      orb.style.setProperty("--light-y", `${lightY}%`);
+      if (Math.abs(targetX - lightX) + Math.abs(targetY - lightY) > .08) {
+        frame = requestAnimationFrame(moveLight);
+      } else {
+        frame = 0;
+      }
+    };
+    orb.addEventListener("pointermove", (event) => {
+      if (event.pointerType === "touch") return;
+      const bounds = orb.getBoundingClientRect();
+      const x = ((event.clientX - bounds.left) / bounds.width) * 100;
+      const y = ((event.clientY - bounds.top) / bounds.height) * 100;
+      targetX = Math.max(-20, Math.min(40, x - 47.5));
+      targetY = Math.max(-35, Math.min(40, y - 47.5));
+      if (!frame) frame = requestAnimationFrame(moveLight);
+    });
+    orb.addEventListener("pointerleave", () => {
+      targetX = -10;
+      targetY = -15;
+      if (!frame) frame = requestAnimationFrame(moveLight);
+    });
+  });
 
   /* ---------- Mock replies ---------- */
   const REPLIES = [
@@ -204,7 +238,7 @@
   function showHome() {
     closeDocumentViewer(false, true);
     LifelineSpeech.cancel();
-    if (!el.voice.hidden) closeVoice();
+    if (!el.voice.hidden) closeVoice(true);
     if (busy) stopResponse();
     el.chat.hidden = true;
     el.home.hidden = false;
@@ -216,7 +250,7 @@
   }
   function newChat() {
     closeDocumentViewer(false, true);
-    if (!el.voice.hidden) closeVoice();
+    if (!el.voice.hidden) closeVoice(true);
     activeResponse?.abort();
     activeResponse = null;
     activeTurn = null;
@@ -293,6 +327,14 @@
     li.appendChild(body);
     el.messages.appendChild(li);
     return { li, body, text };
+  }
+
+  function revealResponse(text) {
+    if (reduceMotion) return;
+    [...text.children].forEach((block, index) => {
+      block.classList.add("response-reveal");
+      block.style.setProperty("--reveal-delay", `${Math.min(index * 55, 330)}ms`);
+    });
   }
 
   function addUserMessage(str) {
@@ -385,6 +427,7 @@
         const message = makeMsg("ai");
         activeTurn.message = message;
         LifelineContent.renderMarkdown(message.text, data.assistant_message);
+        revealResponse(message.text);
         renderAssessment(message.body, data);
         addActions(message.body, message.text);
         scrollDown();
@@ -483,7 +526,51 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
         appendContent(body, result);
         const card = body.lastElementChild;
         card.classList.add("needs-assessment-card");
-        $(".artifact-details", card).open = true;
+        const overview = document.createElement("section");
+        overview.className = "estimate-overview";
+        const label = document.createElement("p");
+        label.className = "content-label";
+        label.textContent = "Illustrative coverage gap";
+        const amount = document.createElement("p");
+        amount.className = "estimate-amount";
+        amount.textContent = currency(needs.illustrative_gap);
+        const disclaimer = document.createElement("p");
+        disclaimer.className = "estimate-disclaimer";
+        disclaimer.textContent = needs.disclaimer || data.disclaimer;
+        overview.append(label, amount, disclaimer);
+        const comparison = document.createElement("div");
+        comparison.className = "estimate-comparison";
+        comparison.setAttribute("aria-label", "Illustrative need compared with existing resources");
+        const max = Math.max(breakdown.gross_need, breakdown.total_offsets, 1);
+        for (const [title, value, kind] of [["Total illustrative need", breakdown.gross_need, "need"], ["Existing resources", breakdown.total_offsets, "resources"]]) {
+          const row = document.createElement("div");
+          row.className = `estimate-row estimate-${kind}`;
+          const caption = document.createElement("p");
+          const name = document.createElement("span"), total = document.createElement("strong");
+          name.textContent = title;
+          total.textContent = currency(value);
+          caption.append(name, total);
+          const track = document.createElement("div"), bar = document.createElement("span");
+          track.className = "estimate-track";
+          track.setAttribute("aria-hidden", "true");
+          bar.style.width = `${value / max * 100}%`;
+          track.append(bar);
+          row.append(caption, track);
+          comparison.append(row);
+        }
+        overview.append(comparison);
+        const components = document.createElement("dl");
+        components.className = "estimate-components";
+        for (const row of breakdown.components) {
+          const item = document.createElement("div"), title = document.createElement("dt"), value = document.createElement("dd");
+          title.textContent = row.label;
+          value.textContent = currency(row.amount);
+          item.append(title, value);
+          components.append(item);
+        }
+        overview.append(components);
+        card.insertBefore(overview, $(".artifact-details", card));
+        $(".artifact-details", card).open = false;
       }
     }
 
@@ -510,6 +597,8 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
       ["final_expenses", "Final expenses ($)", "assumptions", 0.01],
     ];
     for (const [key, title, group, step] of fields) {
+      const field = document.createElement("div");
+      field.className = "assessment-field";
       const label = document.createElement("label");
       label.className = "model-label";
       label.textContent = title;
@@ -521,13 +610,14 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
       input.required = key === "annual_income";
       input.value = data.assessment[group][key] ?? "";
       label.appendChild(input);
-      form.appendChild(label);
+      field.appendChild(label);
       if (data.assessment.field_help?.[key]) {
         const help = document.createElement("p");
         help.className = "dlg-note";
         help.textContent = data.assessment.field_help[key];
-        form.appendChild(help);
+        field.appendChild(help);
       }
+      form.appendChild(field);
     }
     const note = document.createElement("p");
     note.className = "dlg-note";
@@ -616,7 +706,14 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
 
   function renderDocuments() {
     const documents = sessionDocuments();
-    $("#documents-count").textContent = documents.length;
+    const badge = $("#documents-count");
+    badge.textContent = documents.length;
+    if (documents.length > lastDocumentCount) {
+      badge.classList.remove("badge-pop");
+      void badge.offsetWidth;
+      badge.classList.add("badge-pop");
+    }
+    lastDocumentCount = documents.length;
     el.documentsToggle.setAttribute("aria-label", `View documents (${documents.length})`);
     $("#documents-summary").textContent = documents.length
       ? `${documents.length} document${documents.length === 1 ? "" : "s"} in this chat`
@@ -631,7 +728,10 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
       button.type = "button";
       button.dataset.documentIndex = index;
       button.className = "document-choice";
-      button.textContent = doc.title;
+      const title = document.createElement("span");
+      title.className = "document-choice-title";
+      title.textContent = doc.title;
+      button.append(LifelineContent.documentThumbnail(), title);
       button.setAttribute("aria-current", String(index === selectedDocument));
       li.appendChild(button);
       el.documentsList.appendChild(li);
@@ -750,6 +850,7 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
   renderDocuments();
 
   function renderVoiceCanvas() {
+    $(".voice-canvas").hidden = !workspaceContent.length;
     el.vCanvasEmpty.hidden = workspaceContent.length > 0;
     if (el.voice.hidden || !workspaceContent.length) { el.vCanvas.replaceChildren(); return; }
     // Append new content without disturbing an open document, player or keyboard focus.
@@ -863,6 +964,7 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
 
   /* ---------- Composer ---------- */
   function updateSend() {
+    el.form.classList.toggle("is-ready", !busy && !!el.input.value.trim());
     el.send.disabled = busy || !el.input.value.trim();
     el.send.hidden = busy;
     el.stop.hidden = !busy;
@@ -905,32 +1007,79 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
   let voicePending = false;
   let voiceRun = 0;
   let lastFocus = null;
+  let voiceClosing = false;
+  let voiceCloseTimer = null;
+  let voiceMeterController = null;
+  let voiceInputFailed = false;
+  let voiceReturnTarget = null;
+  function stopVoiceMeter() {
+    voiceMeterController?.abort();
+    voiceMeterController = null;
+    el.vOrb.style.setProperty("--level", "0");
+  }
+  function startVoiceMeter() {
+    stopVoiceMeter();
+    if (reduceMotion || voiceClosing || el.voice.hidden || voiceInputFailed || el.mute.getAttribute("aria-pressed") === "true") return;
+    const controller = new AbortController();
+    voiceMeterController = controller;
+    LifelineSpeech.startMeter((level) => {
+      if (voiceMeterController !== controller) return;
+      el.vOrb.style.setProperty("--level", el.vOrb.dataset.state === "listening" ? String(level) : "0");
+    }, controller.signal).catch(() => {
+      // Speech recognition remains usable if separate volume monitoring fails.
+      if (voiceMeterController === controller) stopVoiceMeter();
+    });
+  }
   function setVoiceState(state, text) {
     el.vOrb.dataset.state = state;
     el.vStatus.textContent = { listening: "Listening", thinking: "Thinking", speaking: "Speaking", muted: "Microphone off", error: "Voice unavailable" }[state];
     el.vText.textContent = text || "";
+    if (state !== "listening") el.vOrb.style.setProperty("--level", "0");
   }
-  function closeVoice() {
+  function finishVoiceClose() {
+    clearTimeout(voiceCloseTimer);
+    el.voice.hidden = true;
+    el.voice.classList.remove("is-opening", "is-closing");
+    el.vCanvas.replaceChildren();
+    document.body.style.overflow = "";
+    voiceClosing = false;
+    const focus = lastFocus?.isConnected && !lastFocus.closest("[hidden]") ? lastFocus : $("#voice-btn");
+    focus?.focus({ preventScroll: true });
+  }
+  function closeVoice(immediate = false) {
+    // Click events are not requests for an immediate close.
+    immediate = immediate === true;
+    if (el.voice.hidden) return;
+    if (voiceClosing) { if (immediate) finishVoiceClose(); return; }
+    voiceClosing = true;
     voiceRun++;
+    stopVoiceMeter();
     voiceController?.abort();
     voiceController = null;
     recognition?.abort();
     recognition = null;
     LifelineSpeech.cancel();
     voicePending = false;
-    el.voice.hidden = true;
-    el.vCanvas.replaceChildren();
-    document.body.style.overflow = "";
-    lastFocus?.focus?.();
+    el.voice.classList.remove("is-opening");
+    if (immediate || reduceMotion) { finishVoiceClose(); return; }
+    const target = voiceReturnTarget?.isConnected && !voiceReturnTarget.closest("[hidden]") ? voiceReturnTarget : $("#voice-btn");
+    animateVoiceOpening(target.getBoundingClientRect(), true);
+    voiceCloseTimer = setTimeout(finishVoiceClose, 800);
   }
   function listen() {
-    if (el.voice.hidden || voicePending || el.mute.getAttribute("aria-pressed") === "true") return;
+    if (el.voice.hidden || voiceClosing || voiceInputFailed || voicePending || el.mute.getAttribute("aria-pressed") === "true") return;
     try { recognition?.start(); setVoiceState("listening", "Go ahead, I'm listening."); }
-    catch (error) { $("#voice-input-status").textContent = error.message; }
+    catch (error) {
+      voiceInputFailed = true;
+      stopVoiceMeter();
+      $("#retry-voice-btn").hidden = false;
+      setVoiceState("error", "Microphone unavailable. Type your reply below.");
+      $("#voice-input-status").textContent = error.message;
+    }
   }
   async function voiceTurn(text) {
     text = text.trim();
-    if (!text || voicePending || el.voice.hidden) return;
+    if (!text || voicePending || voiceClosing || el.voice.hidden) return;
     const run = voiceRun;
     voicePending = true;
     el.vReplySend.disabled = true;
@@ -944,6 +1093,7 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
       if (run !== voiceRun || el.voice.hidden) return;
       const message = makeMsg("ai");
       LifelineContent.renderMarkdown(message.text, data.assistant_message);
+      revealResponse(message.text);
       renderAssessment(message.body, data);
       addActions(message.body, message.text);
       renderVoiceCanvas();
@@ -958,52 +1108,107 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
       if (run === voiceRun) { voicePending = false; el.vReplySend.disabled = false; listen(); }
     }
   }
-  function openVoice() {
+  function animateVoiceOpening(source, closing = false) {
+    if (reduceMotion) return;
+    const target = el.vOrb.getBoundingClientRect();
+    const x = source.left + source.width / 2;
+    const y = source.top + source.height / 2;
+    const reach = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+    el.voice.style.setProperty("--voice-origin-x", `${x}px`);
+    el.voice.style.setProperty("--voice-origin-y", `${y}px`);
+    el.voice.style.setProperty("--voice-start-radius", `${source.width / 2}px`);
+    el.voice.style.setProperty("--voice-reveal-radius", `${reach + 24}px`);
+    el.voice.style.setProperty("--orb-enter-x", `${x - target.left - target.width / 2}px`);
+    el.voice.style.setProperty("--orb-enter-y", `${y - target.top - target.height / 2}px`);
+    el.voice.style.setProperty("--orb-enter-scale", String(source.width / target.width));
+    // Measure the final layout before moving its orb back to the clicked position.
+    void el.voice.offsetWidth;
+    el.voice.classList.add(closing ? "is-closing" : "is-opening");
+  }
+  function openVoice(event) {
     if (!el.voice.hidden) return;
+    const trigger = event?.currentTarget;
+    const sourceOrb = trigger?.querySelector(".orb") || (!el.home.hidden ? el.heroOrb : trigger) || el.vOrb;
+    const source = sourceOrb.getBoundingClientRect();
+    voiceReturnTarget = sourceOrb;
+    voiceInputFailed = false;
+    $("#retry-voice-btn").hidden = true;
+    $("#voice-input-status").textContent = "";
+    el.vReplySend.disabled = false;
     lastFocus = document.activeElement;
     el.voice.hidden = false;
+    el.voice.scrollTop = 0;
+    el.voice.classList.remove("is-opening");
     renderVoiceCanvas();
     document.body.style.overflow = "hidden";
     el.mute.setAttribute("aria-pressed", "false");
     $("span", el.mute).textContent = "Mute";
-    el.endVoice.focus();
+    el.endVoice.focus({ preventScroll: true });
     const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!Recognition) {
       setVoiceState("error", "Speech recognition is unavailable here. Type your reply below.");
+      animateVoiceOpening(source);
       return;
     }
-    recognition = new Recognition();
+    try { recognition = new Recognition(); }
+    catch (error) {
+      setVoiceState("error", "Speech recognition is unavailable here. Type your reply below.");
+      animateVoiceOpening(source);
+      return;
+    }
+    const run = voiceRun;
     recognition.lang = document.documentElement.lang || "en-US";
     recognition.continuous = false;
     recognition.interimResults = true;
     recognition.onresult = (event) => {
+      if (run !== voiceRun || voiceClosing || el.voice.hidden || voiceInputFailed || el.mute.getAttribute("aria-pressed") === "true") return;
       const results = Array.from(event.results);
       const transcript = results.map((result) => result[0]?.transcript || "").join(" ").trim();
       el.vText.textContent = transcript;
       if (transcript && results.every((result) => result.isFinal)) voiceTurn(transcript);
     };
     recognition.onerror = (event) => {
+      if (run !== voiceRun || voiceClosing || el.voice.hidden) return;
       if (event.error !== "aborted" && event.error !== "no-speech") {
+        voiceInputFailed = true;
+        stopVoiceMeter();
+        $("#retry-voice-btn").hidden = false;
         setVoiceState("error", "Microphone unavailable. Type your reply below.");
         $("#voice-input-status").textContent = event.error || "Speech recognition failed.";
       }
     };
     recognition.onend = () => {
-      if (!voicePending && !el.voice.hidden && el.mute.getAttribute("aria-pressed") === "false")
-        setTimeout(listen, 250);
+      if (run === voiceRun && !voiceInputFailed && !voiceClosing && !voicePending && !el.voice.hidden && el.mute.getAttribute("aria-pressed") === "false")
+        setTimeout(() => { if (run === voiceRun) listen(); }, 250);
     };
     listen();
+    startVoiceMeter();
+    animateVoiceOpening(source);
   }
+  el.voice.addEventListener("animationend", (event) => {
+    if (event.target === el.voice && event.animationName === "voice-expand")
+      el.voice.classList.remove("is-opening");
+    if (event.target === el.voice && event.animationName === "voice-contract") finishVoiceClose();
+  });
   $("#voice-btn").addEventListener("click", openVoice);
+  $("#hero-voice-btn").addEventListener("click", openVoice);
   $("#voice-cta").addEventListener("click", openVoice);
+  window.addEventListener("pagehide", () => closeVoice(true));
   el.endVoice.addEventListener("click", closeVoice);
   $("#voice-reply-form").addEventListener("submit", (event) => { event.preventDefault(); voiceTurn(el.vReply.value); });
   el.mute.addEventListener("click", () => {
     const muted = el.mute.getAttribute("aria-pressed") !== "true";
     el.mute.setAttribute("aria-pressed", String(muted));
     $("span", el.mute).textContent = muted ? "Unmute" : "Mute";
-    if (muted) { recognition?.abort(); setVoiceState("muted", "Press Unmute when you're ready."); }
-    else listen();
+    if (muted) { stopVoiceMeter(); recognition?.abort(); setVoiceState("muted", "Press Unmute when you're ready."); }
+    else { listen(); startVoiceMeter(); }
+  });
+  $("#retry-voice-btn").addEventListener("click", () => {
+    voiceInputFailed = false;
+    $("#retry-voice-btn").hidden = true;
+    $("#voice-input-status").textContent = "";
+    listen();
+    startVoiceMeter();
   });
   document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !el.voice.hidden) closeVoice(); });
   el.voice.addEventListener("keydown", (event) => {
@@ -1016,6 +1221,7 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
   });
 
   /* ---------- Test panel ---------- */
+  $(".devpanel").hidden = new URLSearchParams(location.search).get("dev") !== "1";
   const devToggle = $("#devpanel-toggle"), devBody = $("#devpanel-body");
   devToggle.addEventListener("click", () => {
     devBody.hidden = !devBody.hidden;
