@@ -99,11 +99,13 @@ button { font: inherit; color: inherit; cursor: pointer; }
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem;
   min-height: 76px;
   padding: calc(.5rem + var(--safe-top)) max(var(--page-gutter), var(--safe-right)) .5rem max(var(--page-gutter), var(--safe-left));
-  background: rgba(255, 255, 255, .92);
+  background: linear-gradient(110deg, var(--sh), #4f0028);
+  color: #fff;
+  box-shadow: 0 4px 18px rgba(55, 0, 29, .18);
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid rgba(255, 255, 255, .18);
 }
-.brand { display: flex; align-items: center; gap: .65rem; flex-shrink: 0; text-decoration: none; color: var(--sh); border-radius: 8px; }
+.brand { display: flex; align-items: center; gap: .65rem; flex-shrink: 0; text-decoration: none; color: #fff; border-radius: 8px; }
 .brand-name { font-weight: 700; font-size: 1.35rem; letter-spacing: -.01em; }
 .topbar-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .6rem; min-width: 0; }
 
