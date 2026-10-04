@@ -399,6 +399,19 @@ h1 #greeting { font-weight: 700; color: var(--hl); }
 .estimate-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1rem; }
 .estimate-actions .btn { min-height: 48px; }
 
+/* Recommendation conclusion card: the product match leads, the worked math is
+   tucked into an expandable section. Give the markdown headline room to breathe
+   and set the product name apart. */
+.recommendation-card > .markdown-content { padding: 1.25rem 1.25rem 0; }
+.recommendation-card .markdown-content h2 { margin-top: 0; color: var(--sh); }
+.recommendation-card .markdown-content h3 { color: var(--hl); font-size: 1.25rem; margin-bottom: .25rem; }
+.recommendation-card .markdown-content h2 + p em,
+.recommendation-card .markdown-content h3 + p em { color: var(--ink-soft); }
+.recommendation-math { margin: 1rem 1.25rem 0; border: 1px solid var(--line); border-radius: var(--radius); }
+.recommendation-math > div { padding: 0 1.25rem 1rem; }
+.recommendation-card > div:last-of-type .markdown-content { padding: 0 1.25rem; }
+.recommendation-card .markdown-content blockquote { color: var(--ink-soft); }
+
 /* thinking row: small orb + shimmering text */
 .thinking { align-items: center; }
 .shimmer {

@@ -520,6 +520,55 @@ _UNCERTAIN_RE = re.compile(
     re.IGNORECASE)
 
 
+# Follow-up comparison intent. Fires on "what are my other options", "what
+# else is there", "compare", "why not <X>", "what about <X>". Deliberately
+# narrow so it doesn't swallow the first-time recommendation turn: it is only
+# consulted by the orchestrator once an estimate already exists.
+_COMPARE_INTENT = re.compile(
+    r"\bother option\w*"
+    r"|\banother option\w*"
+    r"|\bmore option\w*"
+    r"|\bwhat else\b"
+    r"|\banything else\b"
+    r"|\balternativ\w*"
+    r"|\bcompar\w*"                       # compare / comparison / comparing
+    r"|\bdifferent (?:option|product|polic|plan)\w*"
+    r"|\bother (?:option|product|polic|plan|type|kind)\w*"
+    r"|\bwhat are my option\w*"
+    r"|\bmy other\b"
+    r"|\bshow me (?:all|other|more|the other)\b"
+    r"|\bsee (?:all|other|more)\b",
+    re.IGNORECASE)
+
+# "Why not <X>" / "what about <X>" — the customer is pushing back on, or
+# asking after, a specific option. Kept separate so the orchestrator can look
+# up exactly which product they named.
+_WHY_NOT_INTENT = re.compile(
+    r"\b(why not|what about|how about|why isn'?t|why wasn'?t|"
+    r"instead of|rather than|what'?s wrong with|not (?:go|choose|pick) with)\b",
+    re.IGNORECASE)
+
+
+def wants_comparison(message: str) -> bool:
+    """True when the reply asks to compare, see other options, or pushes back
+    on a specific product ("why not whole life?"). The orchestrator only acts
+    on this once a recommendation already exists, so it never derails intake."""
+    text = (message or "").strip()
+    if not text:
+        return False
+    return bool(_COMPARE_INTENT.search(text) or _WHY_NOT_INTENT.search(text))
+
+
+def wants_all_options(message: str) -> bool:
+    """True when the reply asks to see EVERY option, not just the top few
+    ("show me all my options", "what are all the products")."""
+    text = (message or "").strip()
+    if not text:
+        return False
+    return bool(re.search(r"\b(all|every|each|full list|everything)\b", text, re.IGNORECASE)
+                and _COMPARE_INTENT.search(text))
+
+
 def wants_to_skip(message: str) -> bool:
     """True when the reply EXPLICITLY asks to skip the question (not merely
     expresses uncertainty). Used by the orchestrator to advance past a field,

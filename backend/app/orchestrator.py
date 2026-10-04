@@ -22,7 +22,10 @@ from .calculator import run_needs_assessment, DISCLAIMER
 from .models import Assessment
 from .bedrock_service import BedrockService, Source
 from .extractor import (extract_profile_updates, classify_intent,
-                        wants_to_skip, is_uncertain)
+                        wants_to_skip, is_uncertain, wants_comparison,
+                        wants_all_options)
+from . import policy_records
+from . import product_matcher
 from .config import load_config
 from .store import build_store
 
@@ -141,6 +144,7 @@ class Orchestrator:
 
         # 2. Deterministic calculation (only when we have the required inputs).
         needs_block = _empty_needs_block()
+        recommendation_block = None
         calc_context = ""
         status = assessment.status() if assessment.started else "idle"
         if status == "ready":
@@ -162,6 +166,21 @@ class Orchestrator:
                 "disclaimer": result.disclaimer,
             }
             calc_context = result.explanation
+
+            # 2b. Deterministic product match (new-customer path only). This
+            #     turns the raw calculator stats into ONE suggested catalog
+            #     product plus plain-language reasons, so the conclusion can be
+            #     presented as a recommendation rather than a list of figures.
+            #     The matcher never computes coverage, never quotes a price,
+            #     and never pushes a product when no additional cover is needed.
+            #     The existing-policy path never reaches 'ready', but we gate on
+            #     it explicitly so this can only ever fire for a new customer.
+            if active_path != "policy":
+                recommendation_block = _build_recommendation(
+                    profile=assessment.profile,
+                    calculator_result=needs_block,
+                    context=assessment.context,
+                )
 
         # 3. Retrieve Lincoln educational content (empty if KB not configured).
         #    Skipped while collecting an assessment: retrieval is what pulled
@@ -190,10 +209,59 @@ class Orchestrator:
         else:
             mode = "explaining"
 
+        # 4b. Policy-record lookup. If the customer mentions a demo policy id
+        #     (strict DEMO-... form; a bare policy number never matches), we
+        #     explain THEIR actual record deterministically and grounded in it,
+        #     citing the source document. Unknown ids get a useful reply that
+        #     invents nothing. This takes priority over the model so the
+        #     explanation stays faithful to the record and is never paraphrased
+        #     into something the record doesn't say.
+        policy_lookup = None
+        looked_up_id = policy_records.find_policy_id_in_text(message)
+        if looked_up_id:
+            record = policy_records.get_record(looked_up_id)
+            if record is not None:
+                policy_lookup = {"status": "found", "id": record["id"],
+                                 "product_id": record.get("product_id")}
+                assistant_message = policy_records.explain_record(record)
+            else:
+                policy_lookup = {"status": "unknown", "id": looked_up_id}
+                assistant_message = policy_records.unknown_id_message(looked_up_id)
+
+        # 4c. Follow-up comparisons. Once an estimate (and therefore a
+        #     recommendation) exists on the new-customer path, the customer can
+        #     ask "what are my other options?", "why not whole life?", or
+        #     "compare these". We answer deterministically from the catalog so
+        #     nothing about a product is invented, surfacing only the most
+        #     relevant alternatives first. This never fires on the policy path
+        #     or before an estimate exists, so it can't derail intake.
+        comparison_block = None
+        if (policy_lookup is None and active_path != "policy"
+                and status == "ready" and message
+                and wants_comparison(message)):
+            resolved = product_matcher.resolve_product_query(message)
+            focus_id = resolved.get("product_id")
+            comparison = product_matcher.compare_products(
+                profile=assessment.profile,
+                calculator_result=needs_block,
+                context=assessment.context,
+                focus_product_id=focus_id,
+                include_all=wants_all_options(message),
+            )
+            comparison_block = {
+                "resolved_query": resolved,
+                **comparison,
+            }
+            assistant_message = _compose_comparison_message(comparison, resolved)
+
         # When we must clarify a repeatedly-unclear answer, the application
         # owns the wording deterministically (offering a Skip option) rather
         # than letting the model echo the same question again.
-        if clarify_field and next_field and next_field["key"] == clarify_field:
+        if policy_lookup is not None:
+            pass  # deterministic record reply already set above
+        elif comparison_block is not None:
+            pass  # deterministic comparison reply already set above
+        elif clarify_field and next_field and next_field["key"] == clarify_field:
             assistant_message = _clarify_prompt(next_field)
         else:
             assistant_message = self.bedrock.generate_grounded_response(
@@ -260,6 +328,7 @@ class Orchestrator:
             "assistant_message": assistant_message,
             "mode": mode,
             "intent": intent,
+            "policy_lookup": policy_lookup,
             "path": active_path,
             "extracted": extracted,
             "assessment_started": assessment.started,
@@ -287,6 +356,15 @@ class Orchestrator:
             },
             "skipped": skipped_now,
             "needs_assessment": needs_block,
+            # Structured, inspectable product recommendation for the new-customer
+            # path. None unless an estimate is ready on the coverage path. The
+            # frontend renders this as the conclusion; the detailed calculator
+            # math moves into an expandable section.
+            "recommendation": recommendation_block,
+            # Structured, catalog-grounded comparison of alternatives. Non-null
+            # only when the customer asked to compare / see other options / why
+            # not a named product, and an estimate already exists.
+            "comparison": comparison_block,
             "sources": [s.to_dict() for s in sources],
             "disclaimer": DISCLAIMER,
         }
@@ -366,6 +444,176 @@ class Orchestrator:
 
 def _empty_needs_block() -> dict:
     return {"illustrative_gap": None, "breakdown": {}, "assumptions": {}}
+
+
+def _compose_comparison_message(comparison: dict, resolved: dict) -> str:
+    """Build a warm, plain-language comparison reply, strictly from the
+    structured (catalog-grounded) comparison. Covers, per alternative: what it
+    does, its benefits and main tradeoff, why it fits the stated needs less
+    closely, and what change in priorities would make it a better fit. Never
+    invents a product or a fact; acknowledges a named product that isn't in the
+    catalog, and flags undocumented details rather than guessing them."""
+    lines: list[str] = []
+
+    # A named product that isn't in the demo catalog ("why not whole life?"):
+    # acknowledge the gap honestly before showing what we do model.
+    if resolved.get("named_term") and not resolved.get("in_catalog"):
+        note = resolved.get("note") or (
+            f"\"{resolved['named_term']}\" isn't one of the demo options I can "
+            "compare here.")
+        lines.append(note)
+        lines.append("")
+
+    current = comparison.get("current_suggestion")
+    if comparison.get("no_additional_coverage"):
+        lines.append("Right now your assessment doesn't point to a need for more "
+                     "cover, so there isn't a product to put forward — but here's "
+                     "how the demo options differ, in case it's useful.")
+        lines.append("")
+    elif current:
+        lines.append(f"The option I suggested is **{current['name']}**. Here's how "
+                     "the other demo options compare, so you can see the tradeoffs "
+                     "for yourself.")
+        lines.append("")
+
+    alternatives = comparison.get("alternatives") or []
+    if not alternatives:
+        lines.append("There aren't other demo options to compare beyond the one "
+                     "suggested.")
+        return "\n".join(lines).strip()
+
+    for alt in alternatives:
+        lines.append(f"**{alt['name']}**")
+        if alt.get("what_it_does"):
+            lines.append(alt["what_it_does"])
+        benefits = alt.get("benefits") or []
+        if benefits:
+            lines.append("What it offers: " + "; ".join(benefits))
+        if alt.get("primary_tradeoff"):
+            lines.append("Main tradeoff: " + alt["primary_tradeoff"])
+        less = alt.get("fits_less_closely_because") or []
+        if less:
+            lines.append("Why it fits your current needs less closely: " + less[0])
+        better = alt.get("would_fit_better_if") or []
+        if better:
+            # Phrase as a priority change the customer could make.
+            lines.append("It could be the better choice if " + better[0]
+                         .replace("it would fit better if ", "") + ".")
+        undocumented = alt.get("undocumented") or []
+        if undocumented:
+            lines.append("_Note: the demo material doesn't document "
+                         + _humanise_fields(undocumented)
+                         + " for this option, so I can't speak to those._")
+        lines.append("")
+
+    if comparison.get("has_more"):
+        remaining = comparison["alternatives_total"] - len(alternatives)
+        lines.append(f"There {'is' if remaining == 1 else 'are'} {remaining} more "
+                     f"demo option{'' if remaining == 1 else 's'} I can walk through "
+                     "— just say \"show me all my options\".")
+        lines.append("")
+
+    lines.append("None of this is a quote or a recommendation to buy. Tell me if "
+                 "your priorities have changed and I'll reconsider which fits best, "
+                 "or I can connect you with a licensed advisor.")
+    return "\n".join(lines).strip()
+
+
+# Friendly names for the catalog's "unknown" field keys, so a comparison can
+# say what is undocumented in plain words rather than exposing raw keys.
+_FIELD_HUMAN = {
+    "eligibility": "who qualifies",
+    "availability": "where it's available",
+    "costs.premium_detail": "actual pricing",
+    "costs.relative_cost": "relative cost",
+    "optional_riders": "optional add-ons",
+}
+
+
+def _humanise_fields(fields: list[str]) -> str:
+    names = [_FIELD_HUMAN.get(f, f.replace("_", " ").replace(".", " ")) for f in fields]
+    # De-duplicate while preserving order (relative_cost + premium_detail both
+    # map toward pricing-ish phrases but stay distinct here).
+    seen: list[str] = []
+    for n in names:
+        if n not in seen:
+            seen.append(n)
+    if len(seen) == 1:
+        return seen[0]
+    if len(seen) == 2:
+        return f"{seen[0]} or {seen[1]}"
+    return ", ".join(seen[:-1]) + f", or {seen[-1]}"
+
+
+# Benefits/limitations in the catalog are written for a general audience; we
+# surface at most this many so the recommendation card stays scannable. The
+# frontend may show fewer, but never invents extras.
+_MAX_BENEFITS = 3
+_MAX_LIMITATIONS = 1
+
+
+def _build_recommendation(*, profile: dict, calculator_result: dict,
+                          context: dict) -> dict:
+    """Turn the deterministic match into a presentation-ready block.
+
+    The matcher owns the DECISION (which product, why, provisional or not,
+    whether any cover is needed). Here we only attach the chosen product's
+    plain-language display fields from the catalog so the frontend can render a
+    recommendation without re-deriving anything. We invent nothing: product
+    name, explanation, benefits, duration and limitation all come straight from
+    the catalog entry, and pricing is always reported as unavailable (LifeLine
+    never quotes a price).
+    """
+    match = product_matcher.match_product(
+        profile=profile,
+        calculator_result=calculator_result,
+        context=context,
+    ).to_dict()
+
+    product_id = match.get("suggested_product_id")
+    product = product_matcher._policy(product_id) if product_id else None
+
+    display = None
+    if product:
+        benefits = product.get("benefits") or []
+        # Prefer the catalog's own curated limitations; fall back to the
+        # matcher's if the entry had none. Either way we show one tradeoff so
+        # the recommendation is honest about the downside.
+        limitations = product.get("limitations") or match.get("limitations") or []
+        duration = product.get("coverage_period")
+        # Only present a duration when the product actually defines a concrete
+        # one AND the user's need supports it (a stated term for the term
+        # products). Permanent products describe duration as conditional, so we
+        # pass the catalog text through rather than implying a fixed span.
+        display = {
+            "product_id": product_id,
+            "name": product.get("display_name") or product.get("policy_type") or product_id,
+            "policy_type": product.get("policy_type"),
+            "plain_language": product.get("plain_language") or product.get("description"),
+            "benefits": list(benefits)[:_MAX_BENEFITS],
+            "primary_limitation": (list(limitations)[:_MAX_LIMITATIONS] or [None])[0],
+            "coverage_duration": duration,
+            "tradeoffs": product.get("tradeoffs"),
+            "demo_disclaimer": product.get("demo_disclaimer"),
+        }
+
+    return {
+        # Raw, inspectable matcher output (decision + reasons + guardrail flags).
+        "match": match,
+        # Catalog-sourced display fields for the suggested product (or None when
+        # no product is suggested, e.g. insufficient evidence or no need).
+        "product": display,
+        # LifeLine never quotes a price. The frontend shows pricing as
+        # unavailable until a real quote exists (via a licensed advisor).
+        "pricing": {
+            "available": False,
+            "message": "A price isn't available here. A licensed advisor can turn "
+                       "this illustration into a real quote.",
+        },
+        # Presentation hint: a provisional match is shown as "An option to
+        # consider", a confident one as a recommendation.
+        "preliminary": bool(match.get("provisional")) or product_id is None,
+    }
 
 
 def _ask(next_field: dict) -> str:

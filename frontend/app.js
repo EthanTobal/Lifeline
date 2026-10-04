@@ -621,6 +621,12 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
         return `- ${escapeMarkdown(assumptionLabels[key] || key.replaceAll("_", " "))}: ${escapeMarkdown(display)}`;
       });
 
+    // On a comparison turn the assistant message already carries the full
+    // grounded comparison, and the recommendation card is unchanged from the
+    // turn that produced it. Re-rendering the card here would repaint it below
+    // every "other options" reply, so skip it and let the comparison stand.
+    if (data.comparison) return;
+
     if (data.assessment.status === "ready") {
       const needs = data.needs_assessment, breakdown = needs.breakdown;
       // Each line shows its own derivation ("$80,000 per year x 10 years") so
@@ -630,36 +636,156 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
       const componentLine = (row) =>
         `- **${escapeMarkdown(row.label)}: ${currency(row.amount)}**` +
         (row.detail ? `\n  - ${escapeMarkdown(row.detail)}` : "");
-      const lines = [
-        "## Your coverage estimate", "",
-        "**Estimated additional coverage**", "",
-        `**${currency(needs.illustrative_gap)}**`, "",
-        "A planning estimate based on your details and the assumptions shown.", "",
-        "### What builds this up", "",
+
+      // The detailed calculator math is the SAME transparent breakdown as
+      // before, but it is no longer the conclusion. It is tucked into an
+      // expandable section so the headline is the recommendation, not a wall
+      // of figures. A customer who wants to audit every dollar still can.
+      // The worked math itself (no leading heading — the inline <details>
+      // supplies its own summary; the saved document adds a heading).
+      const mathBodyLines = [
+        "**What builds this up**", "",
         ...breakdown.components.map(componentLine), "",
         `**Total needs: ${currency(breakdown.gross_need)}**`, "",
-        "### What you already have", "",
+        "**What you already have**", "",
         ...breakdown.offsets.map((row) => `- **${escapeMarkdown(row.label)}: −${currency(row.amount)}**`),
         "",
         `**Resources you already have: ${currency(breakdown.total_offsets)}**`, "",
-        "### Assumptions used", "",
+        "**Assumptions used**", "",
         ...assumptionLines,
-        "",
-        "> These are estimates, not facts. Just tell me in the chat if "
-        + "anything changes — your income, dependents, debts, coverage, or "
-        + "savings — and I'll recalculate. You can save or print this estimate "
-        + "any time with the buttons below.",
       ];
-      const markdown = lines.join("\n");
-      // Remember the current estimate so Save / Print act on exactly this one.
-      currentEstimate = { title: "Your coverage estimate", markdown };
+      // For the durable saved/printed copy, prefix a heading so the section
+      // reads as its own block rather than following the recommendation raw.
+      const mathLines = ["### How this coverage figure is worked out", "", ...mathBodyLines];
 
-      // Render the estimate INLINE in the chat. It is NOT a document: a
-      // recalculation just shows the new numbers here. A document is only
-      // created when the user explicitly chooses Save or Print below.
+      // Build the recommendation-first conclusion from the structured match.
+      // Everything shown comes straight from the backend (matcher + catalog);
+      // nothing here invents a product, price, benefit or coverage amount.
+      const rec = data.recommendation || null;
+      const product = rec && rec.product ? rec.product : null;
+      const match = rec ? rec.match : null;
+      const coverage = (match && Number.isFinite(match.estimated_additional_coverage))
+        ? match.estimated_additional_coverage
+        : needs.illustrative_gap;
+      const noNeed = !!(match && match.no_additional_coverage);
+      const preliminary = !!(rec && rec.preliminary);
+
+      const lines = [];
+      // One stable document title across all match states so a recalculation
+      // UPDATES the single saved copy (saveCurrentEstimate dedupes by title)
+      // rather than creating a duplicate when the state changes between
+      // estimate / recommendation / summary.
+      const title = "Your Lifeline coverage summary";
+
+      if (noNeed) {
+        // The matcher found no additional coverage is indicated: never push a
+        // product. Present that as the conclusion, honestly.
+        lines.push(
+          "## You may already be well covered", "",
+          "Based on your details, your existing coverage and savings look like "
+          + "they already meet the estimated need, so there's no additional cover "
+          + "to recommend right now.", "");
+        if (match && match.reasons && match.reasons.length) {
+          lines.push("> " + escapeMarkdown(match.reasons[0]), "");
+        }
+      } else if (product) {
+        // A concrete product was matched (confident or preliminary).
+        const heading = preliminary ? "An option to consider" : "Our recommendation for you";
+        lines.push(`## ${escapeMarkdown(heading)}`, "");
+        lines.push(`### ${escapeMarkdown(product.name)}`, "");
+        if (product.policy_type) {
+          lines.push(`*${escapeMarkdown(product.policy_type)}*`, "");
+        }
+        if (product.plain_language) {
+          lines.push("**What this is**", "", escapeMarkdown(product.plain_language), "");
+        }
+        lines.push("**Estimated additional coverage**", "",
+                   `**${currency(coverage)}**`, "",
+                   "A planning estimate from your details and the assumptions shown "
+                   + "— not a quote.", "");
+        if (product.coverage_duration) {
+          lines.push("**Proposed length of cover**", "",
+                     escapeMarkdown(product.coverage_duration), "");
+        }
+        const benefits = Array.isArray(product.benefits) ? product.benefits.filter(Boolean) : [];
+        if (benefits.length) {
+          lines.push("**Why people choose this**", "",
+                     ...benefits.map((b) => `- ${escapeMarkdown(b)}`), "");
+        }
+        if (product.primary_limitation) {
+          lines.push("**One important tradeoff**", "",
+                     `- ${escapeMarkdown(product.primary_limitation)}`, "");
+        }
+        // "Why this fits your needs" — the matcher's reasons, with assumptions
+        // clearly labelled as assumptions so nothing reads as a confirmed fact.
+        const reasons = (match && Array.isArray(match.reasons)) ? match.reasons.filter(Boolean) : [];
+        if (reasons.length) {
+          lines.push("**Why this fits your needs**", "",
+                     ...reasons.map((r) => `- ${escapeMarkdown(r)}`), "");
+        }
+        const assumptions = (match && Array.isArray(match.assumptions)) ? match.assumptions.filter(Boolean) : [];
+        if (assumptions.length) {
+          lines.push("_What we assumed:_", "",
+                     ...assumptions.map((a) => `- ${escapeMarkdown(a)}`), "");
+        }
+        // Pricing is always shown as unavailable until a real quote exists.
+        const pricingMsg = (rec && rec.pricing && rec.pricing.message)
+          || "A price isn't available here. A licensed advisor can turn this into a real quote.";
+        lines.push("**Pricing**", "", `_${escapeMarkdown(pricingMsg)}_`, "");
+      } else {
+        // Ready, but not enough preference signal to name a product yet. Lead
+        // with the coverage figure and the one useful clarifying question.
+        lines.push("## Your coverage estimate", "",
+                   "**Estimated additional coverage**", "",
+                   `**${currency(coverage)}**`, "",
+                   "A planning estimate based on your details and the assumptions "
+                   + "shown.", "");
+        const unresolved = (match && Array.isArray(match.unresolved_questions))
+          ? match.unresolved_questions.filter(Boolean) : [];
+        if (unresolved.length) {
+          lines.push("To suggest a specific option, I just need one more thing:", "",
+                     `> ${escapeMarkdown(unresolved[0])}`, "");
+        }
+      }
+
+      // The audit math goes last, inside an expandable section.
+      lines.push("<!--math-->");
+      const closing = "> These are estimates, not facts. Tell me in the chat if "
+        + "anything changes — your income, dependents, debts, coverage, or "
+        + "savings — and I'll update this. You can save or print it any time with "
+        + "the buttons below.";
+
+      // The saved/printed document keeps the full detail (recommendation +
+      // the worked math) so a durable copy is complete. Inline, the math is
+      // collapsed.
+      const savedMarkdown = lines.join("\n").replace("<!--math-->", mathLines.join("\n")) + "\n\n" + closing;
+      currentEstimate = { title, markdown: savedMarkdown };
+
+      // Render INLINE in the chat. This is NOT a document: a recalculation just
+      // replaces these numbers in place. A document is only created when the
+      // user explicitly chooses Save or Print below.
       const card = document.createElement("article");
-      card.className = "artifact-card needs-assessment-card";
-      LifelineContent.renderMarkdown(card, markdown);
+      card.className = "artifact-card needs-assessment-card recommendation-card";
+      const headMarkdown = lines.join("\n").replace("<!--math-->", "").trimEnd();
+      LifelineContent.renderMarkdown(card, headMarkdown);
+
+      // Expandable detailed math — present whenever there is a breakdown.
+      if (Array.isArray(breakdown.components)) {
+        const mathDetails = document.createElement("details");
+        mathDetails.className = "artifact-details recommendation-math";
+        const mathSummary = document.createElement("summary");
+        mathSummary.textContent = "See how this coverage figure is worked out";
+        mathDetails.appendChild(mathSummary);
+        const mathBody = document.createElement("div");
+        LifelineContent.renderMarkdown(mathBody, mathBodyLines.join("\n"));
+        mathDetails.appendChild(mathBody);
+        card.appendChild(mathDetails);
+      }
+
+      const closingNote = document.createElement("div");
+      LifelineContent.renderMarkdown(closingNote, closing);
+      card.appendChild(closingNote);
+
       card.appendChild(buildEstimateActions(currentEstimate));
       body.appendChild(card);
       // Human-in-the-loop: securely send details to a licensed advisor.
@@ -1217,13 +1343,23 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
       return dedupeSuggestions(row);
     }
 
+    // A comparison was just shown: offer the natural next steps. "Show me all
+    // my options" appears only when the backend says more remain, so we never
+    // promise options that aren't there.
+    if (data?.comparison) {
+      const row = [];
+      if (data.comparison.has_more) row.push("Show me all my options");
+      row.push("Why this option?", "Change my details", "Talk to a real person");
+      return dedupeSuggestions(row);
+    }
+
     if (status === "ready") {
-      // An estimate is on screen: offer ways to understand or refine it,
-      // never a fabricated number.
+      // A recommendation is on screen: offer ways to understand it, compare the
+      // alternatives, or revise the inputs — never a fabricated number.
       return dedupeSuggestions([
-        "Explain this estimate",
-        "Change an assumption",
-        "Something has changed",
+        "Why this option?",
+        "Compare alternatives",
+        "Change my details",
       ]);
     }
 
