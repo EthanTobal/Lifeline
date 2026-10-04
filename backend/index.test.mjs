@@ -228,42 +228,42 @@ async function runTests() {
     assert(during.assistant_message.includes("About how much do you earn"), "kept the pending question");
   });
 
-  await check("a demo policy id opens that policy", async () => {
+  await check("a preset policy key selects that policy", async () => {
     const opener = await handleTurn({
       message: "I already have a life insurance policy and I'd like help understanding it.",
       path: "policy",
     });
     assert(opener.assessment.status === "idle", opener.assessment.status);
-    assert(/is this a demo/i.test(opener.assistant_message), opener.assistant_message);
+    assert(opener.assistant_message.includes("1, 2, or 3"), opener.assistant_message);
+    assert(!/DEMO-|demo/i.test(opener.assistant_message), opener.assistant_message);
     assert(!opener.policy_id, "no policy yet");
-    const yes = await handleTurn({ session_id: opener.session_id, message: "Yes, this is a demo", path: "policy" });
-    assert(yes.assistant_message.includes("DEMO-TERM20-0001"), yes.assistant_message);
-    assert(!yes.artifacts, "asking for the id does not invent a document");
-    const opened = await handleTurn({ session_id: yes.session_id, message: "DEMO-TERM20-0001", path: "policy" });
-    assert(opened.policy_id === "DEMO-TERM20-0001", opened.policy_id);
-    assert(opened.artifacts[0].title === "Policy DEMO-TERM20-0001", opened.artifacts?.[0]?.title);
+    const opened = await handleTurn({ session_id: opener.session_id, message: "1", path: "policy" });
+    assert(opened.assistant_message.includes("policy 1"), opened.assistant_message);
+    assert(opened.policy_id === "1", opened.policy_id);
+    assert(opened.artifacts[0].title === "Policy 1", opened.artifacts?.[0]?.title);
     assert(opened.artifacts[0].markdown.includes("$250,000"), "coverage missing");
     assert(opened.artifacts[0].markdown.includes("None on this policy"), "riders should be empty");
-    assert(!/fictional|hackathon/i.test(opened.artifacts[0].markdown), opened.artifacts[0].markdown);
+    assert(!/DEMO-|fictional|hackathon/i.test(opened.artifacts[0].markdown), opened.artifacts[0].markdown);
     const kept = decodeSession(opened.session_id);
-    assert(kept.policyId === "DEMO-TERM20-0001", "policy did not stay on the session");
+    assert(kept.policyId === "1", "policy did not stay on the session");
     testOverrides.model = (prompt) => {
-      assert(prompt.includes("DEMO-TERM20-0001"), "policy context missing");
+      assert(prompt.includes("policy 1"), "policy context missing");
       assert(prompt.includes("$250,000"), "coverage missing from context");
       assert(/none on this policy/i.test(prompt), "rider fact missing");
+      assert(!/DEMO-/i.test(prompt), prompt);
       return "Your policy pays $250,000 if you die during the 20-year term. There are no riders on it.";
     };
     const follow = await handleTurn({ session_id: opened.session_id, message: "What does my policy cover?", path: "policy" });
     assert(follow.assistant_message.includes("$250,000"), follow.assistant_message);
     assert(!follow.artifacts, "the card is not sent again on a later question");
-    assert(follow.policy_id === "DEMO-TERM20-0001", "policy dropped");
-    const other = await handleTurn({ session_id: follow.session_id, message: "DEMO-TERM30-0002", path: "policy" });
-    assert(other.policy_id === "DEMO-TERM30-0002", other.policy_id);
+    assert(follow.policy_id === "1", "policy dropped");
+    const other = await handleTurn({ session_id: follow.session_id, message: "2", path: "policy" });
+    assert(other.policy_id === "2", other.policy_id);
     assert(other.artifacts[0].markdown.includes("Waiver of premium"), other.artifacts[0].markdown);
-    const missing = await handleTurn({ message: "DEMO-NOPE-9999", path: "policy" });
-    assert(!missing.policy_id, "unknown id was stored");
-    assert(!missing.artifacts, "unknown id created a document");
-    assert(missing.assistant_message.includes("DEMO-NOPE-9999"), missing.assistant_message);
+    const missing = await handleTurn({ message: "9", path: "policy" });
+    assert(!missing.policy_id, "unknown key was stored");
+    assert(!missing.artifacts, "unknown key created a document");
+    assert(missing.assistant_message.includes("1, 2, or 3"), missing.assistant_message);
   });
 
   await check("plans are spoken of as real products", async () => {

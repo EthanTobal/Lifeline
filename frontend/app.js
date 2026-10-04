@@ -42,10 +42,6 @@
     composerSuggestions: $("#composer-suggestions"),
     suggestionsWrap: $("#composer-suggestions-wrap"),
     suggestionsMore: $("#suggestions-more"),
-    policyDemo: $("#policy-demo"),
-    policyDemoChoice: $("#policy-demo-choice"),
-    policyDemoEntry: $("#policy-demo-entry"),
-    policyIdInput: $("#policy-id-input"),
   };
   const workspaceContent = [];
   let currentFollowUp = null;
@@ -54,7 +50,6 @@
   // every turn, switchable mid-chat, and reset to null on a new chat.
   let conversationPath = null;
   let openPolicyId = "";
-  let policyIdEntry = false;
   let selectedDocument = 0;
   let lastDocumentCount = 0;
   let voiceWorkspaceOpen = false;
@@ -318,15 +313,11 @@
 
   /* ---------- Views ---------- */
   function showChat() {
-    if (!el.chat.hidden) {
-      updatePolicyDemo();
-      return;
-    }
+    if (!el.chat.hidden) return;
     el.home.hidden = true;
     el.chat.hidden = false;
     el.newChat.hidden = false;
     el.continueChat.hidden = true;
-    updatePolicyDemo();
   }
   function showHome() {
     closeDocumentViewer(false, true);
@@ -340,7 +331,6 @@
     el.newChat.hidden = !el.messages.children.length;
     el.continueChat.hidden = !el.messages.children.length;
     el.latest.hidden = true;
-    updatePolicyDemo();
     scrollTo({ top: 0, behavior: "instant" });
     el.continueChat.hidden ? el.input.focus() : el.continueChat.focus();
   }
@@ -366,8 +356,6 @@
     clearComposerSuggestions();
     conversationPath = null;  // new chat resets the chosen path
     openPolicyId = "";
-    policyIdEntry = false;
-    updatePolicyDemo();
     el.input.value = "";
     autoGrow();
     followingLatest = true;
@@ -819,7 +807,6 @@
         renderAssessment(message.body, data);
         addActions(message.body, message.text);
         renderComposerSuggestions(suggestionsForTurn(data));
-        updatePolicyDemo();
         scrollDown();
       } catch (error) {
         if (!signal.aborted) {
@@ -1712,12 +1699,7 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     // Existing-policy path: help understanding, and a way to switch to a new
     // coverage assessment if they decide they want one.
     if (conversationPath === "policy" && !openPolicyId) {
-      return dedupeSuggestions([
-        "Yes, this is a demo",
-        "DEMO-TERM20-0001",
-        "DEMO-TERM30-0002",
-        "DEMO-IUL-0003",
-      ]);
+      return ["1", "2", "3"];
     }
 
     if (conversationPath === "policy") {
@@ -1835,32 +1817,6 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     policy: "I already have a life insurance policy and I'd like help understanding it.",
     general: "I just have a question about life insurance.",
   };
-
-  function updatePolicyDemo() {
-    // Once a policy is open, the prompt is finished. Leave the chat alone
-    // instead of keeping a card that announces the open id.
-    const show = !el.chat.hidden && conversationPath === "policy" && !openPolicyId;
-    el.policyDemo.hidden = !show;
-    if (!show) return;
-    $("#policy-demo-question").hidden = policyIdEntry;
-    el.policyDemoChoice.hidden = policyIdEntry;
-    el.policyDemoEntry.hidden = !policyIdEntry;
-  }
-
-  $("#policy-demo-yes").addEventListener("click", () => {
-    policyIdEntry = true;
-    updatePolicyDemo();
-    el.policyIdInput.focus();
-  });
-  $("#policy-demo-no").addEventListener("click", () => submit("No, this is not a demo."));
-  el.policyDemo.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const id = el.policyIdInput.value.trim();
-    if (!id || busy) return;
-    el.policyIdInput.value = "";
-    policyIdEntry = false;
-    submit(id);
-  });
 
   function choosePath(path) {
     if (!PATH_OPENERS[path] || busy) return;
@@ -2009,7 +1965,6 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
         renderAssessment(message.body, data);
         addActions(message.body, message.text);
         renderComposerSuggestions(suggestionsForTurn(data));
-        updatePolicyDemo();
         renderVoiceCanvas();
       });
       setVoiceState("speaking", data.assistant_message, { type: true });
