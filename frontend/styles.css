@@ -370,7 +370,8 @@ h1 #greeting { font-weight: 700; color: var(--hl); }
 .markdown-content th, .markdown-content td { padding: .6rem .75rem; border: 1px solid var(--line); text-align: left; vertical-align: top; }
 .markdown-content th { background: var(--hl-tint); font-weight: 700; }
 
-.artifact-card, .embed-card { margin-top: 1rem; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--bg); overflow: hidden; }
+.artifact-card, .embed-card { margin-top: 1rem; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--bg); overflow: hidden; overflow-anchor: none; }
+.markdown-table { overflow-anchor: none; }
 .artifact-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; padding: 1rem; background: var(--hl-tint-2); }
 .artifact-heading { min-width: 0; overflow-wrap: anywhere; }
 .artifact-heading h3 { margin: .2rem 0 0; font-size: 1.1rem; line-height: 1.35; color: var(--sh); }

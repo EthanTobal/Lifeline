@@ -659,12 +659,22 @@
       if (!root || finish.root === root) finish();
     }
   }
-  function followTyping(textEl) {
+  function followTyping(textEl, node) {
     if (textEl === el.vText) {
       textEl.scrollTop = textEl.scrollHeight;
       return;
     }
-    scrollDown();
+    // Follow the words being revealed. A table is already its full height, so
+    // chasing the page bottom would jump through it. Leave the table where it is.
+    if (node?.closest?.("table, .markdown-table")) return;
+    const target = node || textEl;
+    const rect = target.getBoundingClientRect();
+    const limit = window.innerHeight - 140;
+    if (rect.bottom <= limit) return;
+    const next = window.scrollY + (rect.bottom - limit);
+    pinning = true;
+    window.scrollTo(0, next);
+    requestAnimationFrame(() => { pinning = false; });
   }
   function playTypewriter(textEl) {
     const chars = wrapCharacters(textEl);
@@ -720,9 +730,9 @@
           index += 1;
         }
         chars[last].after(caret);
-        if (last < 3 || index % 3 === 0) followTyping(textEl);
+        if (last < 3 || index % 3 === 0) followTyping(textEl, chars[last]);
         if (index >= chars.length) {
-          followTyping(textEl);
+          followTyping(textEl, chars[last]);
           finish();
           return;
         }
@@ -807,7 +817,7 @@
         renderAssessment(message.body, data);
         addActions(message.body, message.text);
         renderComposerSuggestions(suggestionsForTurn(data));
-        scrollDown();
+        if (!message.body.querySelector("table, .markdown-table, .artifact-card")) scrollDown();
       } catch (error) {
         if (!signal.aborted) {
           stopThinking();
@@ -1102,7 +1112,7 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
       updateEstimateSaveStates();
       // Human-in-the-loop: securely send details to a licensed advisor.
       body.appendChild(buildReviewAction());
-      scrollDown();
+      if (!card.querySelector("table, .markdown-table")) scrollDown();
     }
 
     // Collection is CONVERSATION-ONLY: the backend extracts every fact from
@@ -1353,6 +1363,7 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
   }
 
   function appendContent(body, result, options = {}) {
+    const y = window.scrollY;
     if (result.artifact) {
       const index = sessionDocuments().length;
       const card = LifelineContent.artifactCard(result.artifact, toast, () => openDocumentViewer(index));
@@ -1367,8 +1378,13 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
       workspaceContent.push(result.artifact ? { artifact: result.artifact } : { embed: result.embed });
       renderVoiceCanvas();
       renderDocuments();
+      // The document grows downward from where it was inserted. Keep the
+      // words that were just read on screen instead of jumping to its end.
+      pinning = true;
+      window.scrollTo(0, y);
+      followingLatest = nearLatest();
+      requestAnimationFrame(() => { pinning = false; updateLatest(); });
     }
-    scrollDown();
   }
 
   /* ---------- Session document viewer ---------- */
@@ -1588,7 +1604,7 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     for (const embed of reply.embeds || []) appendContent(message.body, { embed });
     addActions(message.body, message.text);
     if (reply.suggestions) addSuggestions(message.body, reply.suggestions);
-    scrollDown();
+    if (!message.body.querySelector("table, .markdown-table, .artifact-card")) scrollDown();
   }
 
   function addActions(body, text) {
@@ -1672,7 +1688,6 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
       const perField = FIELD_SUGGESTIONS[field] || [];
       const row = [...perField];
       if (assessment.can_skip) row.push("Skip / not sure");
-      row.push("Talk to a real person");
       return dedupeSuggestions(row);
     }
 
@@ -1682,7 +1697,7 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     if (data?.comparison) {
       const row = [];
       if (data.comparison.has_more) row.push("Show me all my options");
-      row.push("Why this option?", "Change my details", "Talk to a real person");
+      row.push("Why this option?", "Change my details");
       return dedupeSuggestions(row);
     }
 
@@ -1707,7 +1722,6 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
         "What does my policy cover?",
         "Explain a term from my policy",
         "I'm looking for new coverage",
-        "Talk to a real person",
       ]);
     }
 
@@ -1717,7 +1731,6 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
       "Estimate my coverage",
       "I already have a policy",
       "How does life insurance work?",
-      "Talk to a real person",
     ]);
   }
 
