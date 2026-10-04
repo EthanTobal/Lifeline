@@ -59,6 +59,21 @@
     <p id="reading-motion-note" hidden>Motion is reduced on this device, so typing stays off until you turn it on.</p>
   </div>
 
+  <div class="dlg" id="voice-key-dlg" role="dialog" aria-modal="true" aria-labelledby="voice-key-title" hidden>
+    <div class="dlg-card">
+      <h2 id="voice-key-title">Voice needs an API key</h2>
+      <p class="dlg-note">Paste a Gemini API key to start voice. The box is left empty on purpose, and the key is kept only in this tab.</p>
+      <form id="voice-key-form" autocomplete="off">
+        <label for="voice-key-input">API key</label>
+        <input id="voice-key-input" name="lifeline-voice-key" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-1p-ignore data-lpignore="true" data-form-type="other" required />
+        <div class="dlg-actions">
+          <button type="button" class="btn btn-outline" id="voice-key-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Continue</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div class="dlg" id="memories-dlg" role="dialog" aria-modal="true" aria-labelledby="memories-title" hidden>
     <div class="dlg-card">
       <h2 id="memories-title">What Lifeline remembers</h2>

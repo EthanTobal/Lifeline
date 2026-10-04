@@ -124,6 +124,7 @@ Keep spoken responses conversational and concise.`;
   };
 
   // Gemini Live wants 16-bit little-endian mono PCM at 16 kHz for microphone input.
+  const LIVE_MODEL = "gemini-2.0-flash-live-001";
   const INPUT_RATE = 16000;
   const OUTPUT_RATE = 24000;
   const SDK_URL = "https://cdn.jsdelivr.net/npm/@google/genai@latest/dist/index.umd.js";
@@ -173,17 +174,16 @@ Keep spoken responses conversational and concise.`;
     return Boolean(session);
   }
 
-  /* Start a voice session. Fails cleanly if no key is configured server-side. */
-  async function start({ onState, onEvent } = {}) {
+  /* Start a voice session with the key the person typed. Nothing is filled in for them. */
+  async function start({ onState, onEvent, apiKey } = {}) {
     if (session) return session;
     if (!window.LifelineBackend) throw new Error("The Lifeline backend client is not loaded.");
+    const key = String(apiKey || "").trim();
+    if (!key) throw new Error("An API key is required for voice.");
     onState?.("connecting");
 
-    // The permanent API key never reaches the browser: ask the backend for a
-    // short-lived, single-use Live token instead.
-    const credentials = await LifelineBackend.requestGeminiToken();
     const GoogleGenAI = await loadSdk();
-    const ai = new GoogleGenAI({ apiKey: credentials.token });
+    const ai = new GoogleGenAI({ apiKey: key });
 
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
@@ -265,7 +265,7 @@ Keep spoken responses conversational and concise.`;
     };
 
     socket = await ai.live.connect({
-      model: credentials.model,
+      model: LIVE_MODEL,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         tools: [{ functionDeclarations: [ASK_TOOL] }],

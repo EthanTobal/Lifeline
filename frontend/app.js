@@ -361,6 +361,8 @@
     el.home.style.animation = "none"; void el.home.offsetWidth; el.home.style.animation = "";
   }
   let followingLatest = true;
+  let pinning = false;
+  let pinFrame = 0;
   const nearLatest = () => {
     const page = document.scrollingElement || document.documentElement;
     return page.scrollHeight - window.innerHeight - window.scrollY <= 96;
@@ -368,20 +370,39 @@
   function updateLatest() {
     el.latest.hidden = el.chat.hidden || followingLatest || nearLatest();
   }
+  function pinToLatest() {
+    const page = document.scrollingElement || document.documentElement;
+    const top = Math.max(0, page.scrollHeight - window.innerHeight);
+    if (Math.abs(window.scrollY - top) < 1) return;
+    pinning = true;
+    window.scrollTo(0, top);
+    requestAnimationFrame(() => { pinning = false; });
+  }
   function scrollDown(force = false) {
     if (el.chat.hidden || !el.voice.hidden) return;
     if (force) followingLatest = true;
-    if (followingLatest) scrollTo({ top: (document.scrollingElement || document.documentElement).scrollHeight, behavior: "instant" });
-    updateLatest();
+    if (!followingLatest) {
+      updateLatest();
+      return;
+    }
+    cancelAnimationFrame(pinFrame);
+    pinFrame = requestAnimationFrame(() => {
+      pinToLatest();
+      pinFrame = requestAnimationFrame(() => {
+        if (followingLatest) pinToLatest();
+        updateLatest();
+      });
+    });
   }
   window.addEventListener("scroll", () => {
-    if (el.chat.hidden || !el.voice.hidden) return;
+    if (pinning || el.chat.hidden || !el.voice.hidden) return;
     followingLatest = nearLatest();
     updateLatest();
   }, { passive: true });
   window.addEventListener("wheel", (event) => {
-    if (event.deltaY < 0 && !el.chat.hidden && el.voice.hidden &&
-        !event.target.closest?.(".documents-panel, .dlg")) followingLatest = false;
+    if (el.chat.hidden || !el.voice.hidden) return;
+    if (event.target.closest?.(".documents-panel, .dlg")) return;
+    if (event.deltaY < -12) followingLatest = false;
   }, { passive: true });
   el.latest.addEventListener("click", () => scrollDown(true));
 
@@ -780,6 +801,7 @@
         await revealAssistantText(message.text);
         if (!message.li.isConnected) return;
         highlightCurrentQuestion(message.text, data);
+        showTurnDocuments(message.body, data);
         renderAssessment(message.body, data);
         addActions(message.body, message.text);
         renderComposerSuggestions(suggestionsForTurn(data));
@@ -1322,10 +1344,20 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     scrollDown();
   }
 
-  function appendContent(body, result) {
+  function showTurnDocuments(body, data) {
+    for (const artifact of data.artifacts || []) appendContent(body, { artifact }, { open: true });
+    for (const embed of data.embeds || []) appendContent(body, { embed });
+  }
+
+  function appendContent(body, result, options = {}) {
     if (result.artifact) {
       const index = sessionDocuments().length;
-      body.appendChild(LifelineContent.artifactCard(result.artifact, toast, () => openDocumentViewer(index)));
+      const card = LifelineContent.artifactCard(result.artifact, toast, () => openDocumentViewer(index));
+      if (options.open) {
+        const details = card.querySelector("details");
+        if (details) details.open = true;
+      }
+      body.appendChild(card);
     }
     if (result.embed) body.appendChild(LifelineContent.embedCard(result.embed));
     if (result.artifact || result.embed) {
@@ -1917,10 +1949,11 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
       const data = await backend.turn({ message: text, signal: voiceController.signal });
       if (run !== voiceRun || el.voice.hidden) return;
       const message = makeMsg("ai");
-      LifelineContent.renderMarkdown(message.text, data.assistant_message);
+        LifelineContent.renderMarkdown(message.text, data.assistant_message);
       void revealAssistantText(message.text).then(() => {
         if (!message.li.isConnected) return;
         highlightCurrentQuestion(message.text, data);
+        showTurnDocuments(message.body, data);
         renderAssessment(message.body, data);
         addActions(message.body, message.text);
         renderComposerSuggestions(suggestionsForTurn(data));
@@ -1957,11 +1990,56 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
   /* ---------- Gemini Live voice, falling back to browser speech ----------
      Both transports use the SAME backend session, so a user can answer by
      voice and then keep going in the text chat without losing the assessment. */
+  let voiceApiKey = "";
+
+  function promptVoiceKey() {
+    const dialog = $("#voice-key-dlg");
+    const form = $("#voice-key-form");
+    const input = $("#voice-key-input");
+    const cancel = $("#voice-key-cancel");
+    input.value = "";
+    input.defaultValue = "";
+    input.readOnly = true;
+    dialog.hidden = false;
+    const unlock = () => { input.readOnly = false; };
+    input.addEventListener("focus", unlock);
+    input.focus({ preventScroll: true });
+    return new Promise((resolve) => {
+      const close = (value) => {
+        dialog.hidden = true;
+        input.value = "";
+        input.readOnly = true;
+        input.removeEventListener("focus", unlock);
+        form.removeEventListener("submit", onSubmit);
+        cancel.removeEventListener("click", onCancel);
+        document.removeEventListener("keydown", onKey);
+        resolve(value);
+      };
+      const onSubmit = (event) => {
+        event.preventDefault();
+        const value = input.value.trim();
+        if (!value) return;
+        close(value);
+      };
+      const onCancel = () => close("");
+      const onKey = (event) => {
+        if (event.key !== "Escape") return;
+        event.preventDefault();
+        event.stopPropagation();
+        close("");
+      };
+      form.addEventListener("submit", onSubmit);
+      cancel.addEventListener("click", onCancel);
+      document.addEventListener("keydown", onKey);
+    });
+  }
+
   async function startGeminiVoice() {
     if (!window.LifelineVoice) return false;
     const run = voiceRun;
     try {
       await LifelineVoice.start({
+        apiKey: voiceApiKey,
         onState: (state) => {
           if (run !== voiceRun || voiceClosing || el.voice.hidden) return;
           if (state === "connecting") setVoiceState("listening", "Connecting to the Lifeline voice service...");
@@ -1983,6 +2061,7 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
       if (el.mute.getAttribute("aria-pressed") === "true") LifelineVoice.setMuted(true);
       return true;
     } catch (error) {
+      voiceApiKey = "";
       if (run !== voiceRun || voiceClosing || el.voice.hidden) return false;
       $("#voice-input-status").textContent = error.message;
       setVoiceState("error", "Voice service unavailable. Falling back to browser speech.");
@@ -1990,8 +2069,13 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     }
   }
 
-  function openVoice(event) {
+  async function openVoice(event) {
     if (!el.voice.hidden) return;
+    if (!voiceApiKey) {
+      const key = await promptVoiceKey();
+      if (!key) return;
+      voiceApiKey = key;
+    }
     const trigger = event?.currentTarget;
     const sourceOrb = trigger?.querySelector(".orb") || (!el.home.hidden ? el.heroOrb : trigger) || el.vOrb;
     const source = sourceOrb.getBoundingClientRect();
