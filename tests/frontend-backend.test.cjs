@@ -66,6 +66,7 @@ test('voice transcript uses the same backend session as text chat', async (t) =>
   await until(() => requests.length === 1);
   await until(() => doc.querySelector('#messages').textContent.includes('Backend answer 1'));
   doc.querySelector('#voice-btn').click();
+  await until(() => Recognition.current);
   Recognition.current.say('Spoken second');
   await until(() => requests.length === 2);
   await until(() => doc.querySelector('#messages').textContent.includes('Backend answer 2'));
@@ -181,12 +182,13 @@ test('voice mute and exit stop monitoring, and old recognition events cannot sub
   }
   w.SpeechRecognition = Recognition;
   doc.querySelector('#hero-voice-btn').click();
+  await until(() => Recognition.current && started === 1);
   const old = Recognition.current;
   assert.equal(started, 1);
   doc.querySelector('#mute-btn').click();
   assert.equal(stopped, 1);
   doc.querySelector('#mute-btn').click();
-  assert.equal(started, 2);
+  await until(() => started === 2);
   doc.querySelector('#end-voice-btn').click();
   assert.equal(stopped, 2);
   const end = new w.Event('animationend');
@@ -198,7 +200,7 @@ test('voice mute and exit stop monitoring, and old recognition events cannot sub
   old.onresult({ results: [result] });
   assert.equal(requests.length, 0);
   doc.querySelector('#brand-home').click();
-  assert.equal(stopped, 3);
+  assert.equal(stopped, 2);
   assert.equal(doc.querySelector('#voice').hidden, true);
 });
 

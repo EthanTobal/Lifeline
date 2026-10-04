@@ -6,6 +6,7 @@ the same Orchestrator behind API Gateway — build now, deploy later.
 
 Endpoints:
     POST /api/turn    body: {session_id?, message?, profile_updates?, assumption_updates?}
+    POST /api/gemini-token   body: {} -> {token, model, expires_at}
     GET  /health
 """
 from __future__ import annotations
@@ -14,8 +15,10 @@ import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from .orchestrator import Orchestrator
+from .gemini_service import GeminiService, GeminiUnavailable
 
 _orchestrator = Orchestrator()
+_gemini = GeminiService()
 
 
 def _handle_turn(payload: dict) -> dict:
@@ -25,6 +28,18 @@ def _handle_turn(payload: dict) -> dict:
         profile_updates=payload.get("profile_updates"),
         assumption_updates=payload.get("assumption_updates"),
     )
+
+
+def _handle_gemini_token(payload: dict) -> dict:
+    """Mint a short-lived Gemini Live credential for the browser.
+
+    The permanent GEMINI_API_KEY stays on the server; the browser only ever
+    sees the short-lived token returned here.
+    """
+    try:
+        return _gemini.mint_live_token().to_dict()
+    except GeminiUnavailable as exc:
+        return {"error": "unavailable", "detail": str(exc)}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -49,7 +64,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send(404, {"error": "not found"})
 
     def do_POST(self):
-        if self.path != "/api/turn":
+        if self.path not in ("/api/turn", "/api/gemini-token"):
             self._send(404, {"error": "not found"})
             return
         try:
@@ -59,7 +74,12 @@ class Handler(BaseHTTPRequestHandler):
             self._send(400, {"error": "invalid JSON body"})
             return
         try:
-            self._send(200, _handle_turn(payload))
+            if self.path == "/api/gemini-token":
+                result = _handle_gemini_token(payload)
+                # 503, not 500: the backend is healthy, voice is just off.
+                self._send(200 if "error" not in result else 503, result)
+            else:
+                self._send(200, _handle_turn(payload))
         except Exception as exc:  # never leak a stack trace to the client
             self._send(500, {"error": "internal error", "detail": str(exc)})
 
@@ -68,15 +88,23 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def lambda_handler(event, context=None):
-    """AWS Lambda entry point (API Gateway proxy integration). Build-only for
-    now — not deployed. Wraps the same Orchestrator."""
+    """AWS Lambda entry point (API Gateway proxy integration). Wraps the same
+    Orchestrator, plus the Gemini Live token endpoint."""
     try:
         body = json.loads(event.get("body") or "{}")
     except (ValueError, json.JSONDecodeError):
         return {"statusCode": 400, "body": json.dumps({"error": "invalid JSON body"})}
-    result = _handle_turn(body)
+
+    path = (event.get("resource") or event.get("path") or "")
+    if path.endswith("/api/gemini-token"):
+        result = _handle_gemini_token(body)
+        status = 200 if "error" not in result else 503
+    else:
+        result = _handle_turn(body)
+        status = 200
+
     return {
-        "statusCode": 200,
+        "statusCode": status,
         "headers": {"Content-Type": "application/json",
                     "Access-Control-Allow-Origin": "*"},
         "body": json.dumps(result),

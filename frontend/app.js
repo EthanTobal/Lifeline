@@ -377,7 +377,7 @@
   }
 
   /* ---------- Streaming reply ---------- */
-  const backend = LifelineBackend.createClient();
+  const backend = LifelineBackend.getSharedClient();
   let busy = false;
   let activeResponse = null;
   let activeTurn = null;
@@ -1080,6 +1080,8 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     voiceController = null;
     recognition?.abort();
     recognition = null;
+    // Gemini Live owns its own mic and playback; tear it down too.
+    if (window.LifelineVoice?.isActive()) LifelineVoice.stop();
     LifelineSpeech.cancel();
     voicePending = false;
     el.voice.classList.remove("is-opening");
@@ -1147,6 +1149,42 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     void el.voice.offsetWidth;
     el.voice.classList.add(closing ? "is-closing" : "is-opening");
   }
+  /* ---------- Gemini Live voice, falling back to browser speech ----------
+     Both transports use the SAME backend session, so a user can answer by
+     voice and then keep going in the text chat without losing the assessment. */
+  async function startGeminiVoice() {
+    if (!window.LifelineVoice) return false;
+    const run = voiceRun;
+    try {
+      await LifelineVoice.start({
+        onState: (state) => {
+          if (run !== voiceRun || voiceClosing || el.voice.hidden) return;
+          if (state === "connecting") setVoiceState("listening", "Connecting to the Lifeline voice service...");
+          else if (state === "listening") setVoiceState("listening", "Go ahead, I'm listening.");
+        },
+        onEvent: (event) => {
+          if (run !== voiceRun || voiceClosing || el.voice.hidden) return;
+          if (event.type === "assistant-speech" && event.text) {
+            setVoiceState("speaking", event.text);
+          } else if (event.type === "error") {
+            setVoiceState("error", event.message);
+          }
+        },
+      });
+      if (run !== voiceRun || voiceClosing || el.voice.hidden) {
+        await LifelineVoice.stop();
+        return false;
+      }
+      if (el.mute.getAttribute("aria-pressed") === "true") LifelineVoice.setMuted(true);
+      return true;
+    } catch (error) {
+      if (run !== voiceRun || voiceClosing || el.voice.hidden) return false;
+      $("#voice-input-status").textContent = error.message;
+      setVoiceState("error", "Voice service unavailable. Falling back to browser speech.");
+      return false;
+    }
+  }
+
   function openVoice(event) {
     if (!el.voice.hidden) return;
     const trigger = event?.currentTarget;
@@ -1162,23 +1200,30 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     el.voice.scrollTop = 0;
     el.voice.classList.remove("is-opening");
     renderVoiceCanvas();
+    animateVoiceOpening(source);
     document.body.style.overflow = "hidden";
     el.mute.setAttribute("aria-pressed", "false");
     $("span", el.mute).textContent = "Mute";
     el.endVoice.focus({ preventScroll: true });
+    // Prefer Gemini Live; fall back to the browser's own speech recognition.
+    const run = voiceRun;
+    startGeminiVoice().then((started) => {
+      if (started || run !== voiceRun || el.voice.hidden) return;
+      startBrowserVoice(run);
+    });
+  }
+  function startBrowserVoice(run) {
+    if (el.voice.hidden || voiceClosing || run !== voiceRun) return;
     const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!Recognition) {
       setVoiceState("error", "Speech recognition is unavailable here. Type your reply below.");
-      animateVoiceOpening(source);
       return;
     }
     try { recognition = new Recognition(); }
     catch (error) {
       setVoiceState("error", "Speech recognition is unavailable here. Type your reply below.");
-      animateVoiceOpening(source);
       return;
     }
-    const run = voiceRun;
     recognition.lang = document.documentElement.lang || "en-US";
     recognition.continuous = false;
     recognition.interimResults = true;
@@ -1205,7 +1250,6 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     };
     listen();
     startVoiceMeter();
-    animateVoiceOpening(source);
   }
   el.voice.addEventListener("animationend", (event) => {
     if (event.target === el.voice && event.animationName === "voice-expand")
@@ -1222,7 +1266,10 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     const muted = el.mute.getAttribute("aria-pressed") !== "true";
     el.mute.setAttribute("aria-pressed", String(muted));
     $("span", el.mute).textContent = muted ? "Unmute" : "Mute";
-    if (muted) { stopVoiceMeter(); recognition?.abort(); setVoiceState("muted", "Press Unmute when you're ready."); }
+    if (window.LifelineVoice?.isActive()) {
+      LifelineVoice.setMuted(muted);
+      setVoiceState(muted ? "muted" : "listening", muted ? "Press Unmute when you're ready." : "Go ahead, I'm listening.");
+    } else if (muted) { stopVoiceMeter(); recognition?.abort(); setVoiceState("muted", "Press Unmute when you're ready."); }
     else { listen(); startVoiceMeter(); }
   });
   $("#retry-voice-btn").addEventListener("click", () => {
