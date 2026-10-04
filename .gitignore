@@ -18,6 +18,9 @@ venv/
 backend/lambda_pkg.zip
 backend/lambda_pkg.b64
 backend/lifeline_lambda.zip
+backend/package/
+backend/lambda_build/
+backend/lifeline-backend.zip
 
 # Throwaway helper scripts (may contain presigned URLs / endpoints)
 backend/_*.ps1
