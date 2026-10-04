@@ -14,13 +14,20 @@ at the bottom. The rest of the flow is storage-agnostic.
 """
 from __future__ import annotations
 
+import re
 import uuid
 from dataclasses import dataclass, field
 
 from .calculator import run_needs_assessment, DISCLAIMER
 from .models import Assessment
 from .bedrock_service import BedrockService, Source
-from .extractor import extract_profile_updates, classify_intent
+from .extractor import (extract_profile_updates, classify_intent,
+                        extract_bare_amount)
+
+# Required inputs that hold a money amount. A bare numeric reply ("About 85k.")
+# is attributed to whichever of these the assistant asked about last.
+_MONEY_FIELDS = {"annual_income", "mortgage_balance", "non_mortgage_debt",
+                 "existing_coverage", "liquid_savings"}
 
 
 class SessionStore:
@@ -74,6 +81,28 @@ class Orchestrator:
 
         intent = classify_intent(message)
 
+        # 1c. Decide whether an assessment is actually wanted. Previously ANY
+        #     message while status was "collecting" triggered the next intake
+        #     question, so out-of-scope chatter started a life-insurance
+        #     assessment. It now begins only when the user asks for it, or has
+        #     volunteered information that clearly belongs to one.
+        assessment_keys = {"annual_income", "num_children", "mortgage_balance",
+                           "non_mortgage_debt", "existing_coverage", "liquid_savings"}
+        if intent == "assessment" or (extracted and assessment_keys & set(extracted)):
+            assessment.assessment_started = True
+
+        # 1d. A bare figure answering the question we just asked. People reply
+        #     "About 85k." rather than restating "I make ...", so the keyword
+        #     extractors can't see it. Attribute it to the field we asked
+        #     about -- the orchestrator knows that, the extractor never guesses.
+        if assessment.assessment_started and not (extracted and assessment_keys & set(extracted)):
+            pending = assessment.next_field()
+            if pending and pending["key"] in _MONEY_FIELDS:
+                bare = extract_bare_amount(message)
+                if bare is not None:
+                    assessment.update({pending["key"]: bare})
+                    extracted = {**(extracted or {}), pending["key"]: bare}
+
         # 2. Deterministic calculation (only when we have the required inputs).
         needs_block = _empty_needs_block()
         calc_context = ""
@@ -101,7 +130,7 @@ class Orchestrator:
         # 3. Retrieve Lincoln educational content (empty if KB not configured).
         #    Skipped while collecting an assessment: retrieval is what pulled
         #    the model toward writing an article instead of asking a question.
-        collecting = status == "collecting"
+        collecting = status == "collecting" and assessment.assessment_started
         sources: list[Source] = []
         if message and (not collecting or intent == "educational"):
             sources = self.bedrock.retrieve_knowledge(message)
@@ -110,7 +139,10 @@ class Orchestrator:
 
         # 4. Decide the mode. The APPLICATION decides this, not the model.
         guardrail = intent if intent in ("pricing", "recommendation", "approval") else None
-        if collecting and intent == "educational":
+        if intent == "out_of_scope":
+            # Out of scope wins over everything else: never open an assessment.
+            mode = "out_of_scope"
+        elif collecting and intent == "educational":
             # A genuine educational question mid-assessment: answer briefly,
             # then return to the pending question.
             mode = "answering_then_resuming"
@@ -128,7 +160,9 @@ class Orchestrator:
         # 5. Deterministic fallbacks. These must produce a usable turn even when
         #    Bedrock is unconfigured or returns nothing.
         if not assistant_message:
-            if guardrail:
+            if mode == "out_of_scope":
+                assistant_message = _out_of_scope_fallback(intent, message)
+            elif guardrail:
                 assistant_message = _guardrail_fallback(guardrail)
                 if collecting and next_field:
                     assistant_message += "\n\n" + _ask(next_field)
@@ -138,18 +172,27 @@ class Orchestrator:
                 assistant_message = (_educational_fallback(assessment)
                                      + "\n\n" + _ask(next_field))
             else:
-                assistant_message = calc_context or _ready_prompt()
+                assistant_message = _ready_prompt(needs_block)
 
         # 6. Assemble the response contract.
         assessment_block = assessment.to_dict()
+        # Don't advertise a pending intake question while no assessment is
+        # actually running -- otherwise the UI is told to prompt for a field
+        # even though we just told the user we aren't starting one.
+        if not assessment.assessment_started:
+            assessment_block["next_field"] = None
+            assessment_block["next_field_question"] = None
+            assessment_block["next_field_why"] = None
         return {
             "session_id": session_id,
             "assistant_message": assistant_message,
             "mode": mode,
             "intent": intent,
             "extracted": extracted,
+            "assessment_started": assessment.assessment_started,
             "assessment": {
                 "status": assessment_block["status"],
+                "assessment_started": assessment_block["assessment_started"],
                 "missing_fields": assessment_block["missing_fields"],
                 "next_field": assessment_block["next_field"],
                 "next_field_question": assessment_block["next_field_question"],
@@ -188,9 +231,71 @@ def _collecting_prompt(assessment: Assessment, next_field: dict) -> str:
     return f"Thanks — got it. So far I have: {known}.\n\n{_ask(next_field)}"
 
 
-def _ready_prompt() -> str:
-    return ("Thanks — I have everything I need. Your illustrative estimate is "
-            "shown below, and you can change any answer and I will recalculate.")
+def _ready_prompt(needs: dict | None = None) -> str:
+    """Explain the estimate conversationally, using the calculator's own output.
+
+    Every figure here comes from `needs` (the deterministic calculator). Nothing
+    is recomputed or invented.
+    """
+    if not needs or needs.get("illustrative_gap") is None:
+        return ("Thanks — I have everything I need. Your illustrative estimate is "
+                "shown below.")
+
+    gap = needs["illustrative_gap"]
+    breakdown = needs.get("breakdown", {})
+    gross = breakdown.get("gross_need")
+    offsets = breakdown.get("total_offsets")
+    components = sorted(
+        (c for c in breakdown.get("components", []) if c["amount"] > 0),
+        key=lambda c: c["amount"], reverse=True)
+
+    parts = ["Thanks — I have what I need.",
+             f"Based on the information you've provided, the illustrative estimate "
+             f"is approximately ${gap:,} of additional coverage."]
+
+    if components:
+        biggest = components[0]
+        others = [c for c in components[1:]]
+        listed = ", ".join(c["label"].lower() for c in others)
+        why = f"The largest component is {biggest['label'].lower()} at " \
+               f"${biggest['amount']:,}"
+        if biggest.get("detail"):
+            why += f" ({biggest['detail']})"
+        why += "."
+        if others:
+            why += f" The estimate also includes {listed}."
+        parts.append(why)
+
+    if offsets:
+        parts.append(
+            f"Your existing coverage and savings reduce the remaining gap, and "
+            f"you can see every line in the breakdown below.")
+    else:
+        parts.append("There are no existing resources offsetting this yet.")
+
+    parts.append(
+        "This is an illustration based on the assumptions I listed, not a quote "
+        "or a recommendation. Happy to explain any part, or talk through term "
+        "versus permanent approaches.")
+    return " ".join(parts)
+
+
+def _out_of_scope_fallback(intent: str, message: str) -> str:
+    """Politely restate scope. Never starts an assessment."""
+    topic = ""
+    match = re.search(
+        r"\b(health insurance|medical insurance|dental|vision insurance|"
+        r"car insurance|auto insurance|vehicle insurance|home insurance|"
+        r"renters insurance|renters'?|homeowners|travel insurance|"
+        r"disability insurance|long[- ]term care insurance|pet insurance)\b",
+        message or "", re.IGNORECASE)
+    if match:
+        topic = match.group(0).lower()
+    lead = (f"LifeLine focuses on life insurance rather than {topic}. "
+            if topic else "LifeLine focuses on life insurance. ")
+    return (lead + "I can help you understand life-insurance options, or work "
+            "through an illustrative estimate of your family's protection needs. "
+            "Would either of those be useful?")
 
 
 def _educational_fallback(assessment: Assessment) -> str:

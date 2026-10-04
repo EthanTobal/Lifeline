@@ -349,14 +349,19 @@ def test_uninformed_customer_completes_assessment_in_one_question_per_turn():
     counts = [len(t["assessment"]["missing_fields"]) for t in turns]
     assert counts == sorted(counts, reverse=True)
 
+    # The opening pleasantry does not start the estimate by itself; the first
+    # message that actually carries information does.
+    assert turns[0]["assessment_started"] is False
+    assert turns[0]["assessment"]["next_field"] is None
+
     # Every turn declares exactly one next field, chosen by the orchestrator
     # rather than by the model.
-    expected_order = ["annual_income", "num_children", "mortgage_balance",
+    expected_order = ["num_children", "mortgage_balance",
                       "non_mortgage_debt", "existing_coverage",
-                      "liquid_savings"]
-    got = [t["assessment"]["next_field"] for t in turns[:-1]]
+                      "liquid_savings", None]
+    got = [t["assessment"]["next_field"] for t in turns[1:]]
     assert got == expected_order
-    for turn in turns[:-1]:
+    for turn in turns[1:-1]:
         assert turn["assessment"]["next_field_question"]
 
     # The calculator ran, deterministically, on the collected profile.
@@ -387,9 +392,15 @@ def test_workplace_insurance_without_amount_stays_missing():
 
 
 def test_collecting_turn_never_returns_an_article():
-    """While collecting, the reply is a question -- not educational prose."""
+    """While collecting, the reply is a question -- not educational prose.
+
+    The opening pleasantry does NOT start an assessment on its own: an
+    assessment begins once the user asks for one or supplies information that
+    belongs to one. From that point every turn asks exactly one question.
+    """
     _, _, turns = _conversation(UNINFORMED)
-    for turn in turns[:-1]:
+    assert turns[0]["assessment_started"] is False
+    for turn in turns[1:-1]:
         assert turn["mode"] == "collecting"
         assert turn["sources"] == []  # KB retrieval is suppressed while collecting
         assert turn["assessment"]["next_field_question"] in turn["assistant_message"]
@@ -653,3 +664,189 @@ def test_calculator_remains_authoritative_under_voice():
     assert na["breakdown"]["gross_need"] == 1_207_000
     # and still no premium anywhere in the payload voice would receive
     assert "premium_estimate" not in json.dumps(turns[-1])
+
+# ================================================================
+# Conversational routing: scope, intent, and progressive collection
+# ================================================================
+
+def test_out_of_scope_health_insurance_does_not_start_assessment():
+    """"I am trying to set up my health insurance" must not open an estimate."""
+    orch = Orchestrator(store=SessionStore())
+    resp = orch.handle_turn(message="I am trying to set up my health insurance")
+    assert resp["intent"] == "out_of_scope"
+    assert resp["mode"] == "out_of_scope"
+    assert resp["assessment_started"] is False
+    # no intake question, no assessment fields
+    assert resp["assessment"]["next_field"] is None
+    assert resp["assessment"]["next_field_question"] is None
+    assert resp["assessment"]["missing_fields"] != []
+    reply = resp["assistant_message"].lower()
+    assert "life insurance" in reply
+    assert "earn" not in reply and "income" not in reply
+
+
+def test_out_of_scope_car_and_offtopic():
+    for message, in (("Help me insure my car",), ("What's the weather?",)):
+        resp = Orchestrator(store=SessionStore()).handle_turn(message=message)
+        assert resp["intent"] == "out_of_scope", message
+        assert resp["assessment_started"] is False
+        assert resp["assessment"]["next_field"] is None
+
+
+def test_assessment_intent_begins_conversationally():
+    """An explicit request starts the estimate, one question at a time."""
+    orch = Orchestrator(store=SessionStore())
+    resp = orch.handle_turn(message="How much life insurance do I need?")
+    assert resp["intent"] == "assessment"
+    assert resp["assessment_started"] is True
+    assert resp["mode"] == "collecting"
+    assert resp["assessment"]["next_field"] == "annual_income"
+    # exactly one question
+    assert resp["assessment"]["next_field_question"] in resp["assistant_message"]
+
+
+def test_income_stored_and_not_asked_again():
+    orch, sid, _ = _conversation(["I need life insurance.", "I make $85k"])
+    resp = orch.handle_turn(session_id=sid, message="I make $85k")
+    assert resp["assessment"]["profile"]["annual_income"] == 85_000
+    assert "annual_income" not in resp["assessment"]["missing_fields"]
+    assert resp["assessment"]["next_field"] != "annual_income"
+
+
+def test_explicit_zero_counts_as_answered():
+    """An explicit zero is a real answer and must not be re-asked."""
+    orch, sid, _ = _conversation(["I need life insurance.", "I make $85k"])
+    resp = orch.handle_turn(session_id=sid, message="I have no mortgage")
+    assert resp["assessment"]["profile"]["mortgage_balance"] == 0
+    assert "mortgage_balance" not in resp["assessment"]["missing_fields"]
+    assert resp["assessment"]["next_field"] != "mortgage_balance"
+
+
+def test_multiple_values_in_one_message_are_all_captured():
+    orch, sid, _ = _conversation(["I need life insurance."])
+    resp = orch.handle_turn(
+        session_id=sid,
+        message="I make 90k and have two kids.")
+    profile = resp["assessment"]["profile"]
+    assert profile["annual_income"] == 90_000
+    assert profile["num_children"] == 2
+    # both were answered in one turn, so neither may be asked again
+    missing = resp["assessment"]["missing_fields"]
+    assert "annual_income" not in missing and "num_children" not in missing
+    asked = resp["assessment"]["next_field"]
+    assert asked not in ("annual_income", "num_children")
+
+
+def test_related_facts_without_formal_request_are_not_discarded():
+    """Case E: volunteered life-insurance facts start the estimate."""
+    orch = Orchestrator(store=SessionStore())
+    resp = orch.handle_turn(
+        message=("I'm married, have two kids, make about 100k, and I'm worried my "
+                 "family couldn't afford our mortgage if something happened to me."))
+    assert resp["intent"] == "assessment"
+    assert resp["assessment_started"] is True
+    assert resp["assessment"]["profile"]["annual_income"] == 100_000
+    assert resp["assessment"]["profile"]["num_children"] == 2
+    assert resp["assessment"]["next_field"] is not None
+
+
+def test_educational_question_does_not_start_assessment():
+    orch = Orchestrator(store=SessionStore())
+    resp = orch.handle_turn(message="What is term life insurance?")
+    assert resp["intent"] == "educational"
+    assert resp["assessment_started"] is False
+    assert resp["assessment"]["next_field"] is None
+    assert resp["assessment"]["missing_fields"] != []
+
+
+def test_education_available_during_active_assessment():
+    """An educational question mid-assessment is answered, state preserved."""
+    orch, sid, _ = _conversation(["I need life insurance.", "I make $85k"])
+    before = orch.store.get_or_create(sid)[1].missing_fields()
+    resp = orch.handle_turn(session_id=sid,
+                            message="Before I answer, what exactly is term life insurance?")
+    assert resp["mode"] == "answering_then_resuming"
+    assert orch.store.get_or_create(sid)[1].missing_fields() == before
+    # and the conversation can resume afterwards
+    resumed = orch.handle_turn(session_id=sid, message="I have two kids.")
+    assert resumed["assessment"]["profile"]["num_children"] == 2
+    assert resumed["assessment"]["next_field"] not in (None, "num_children")
+
+
+def test_calculator_runs_and_result_is_explained_conversationally():
+    orch, _, turns = _conversation(UNINFORMED)
+    final = turns[-1]
+    assert final["assessment"]["status"] == "ready"
+    na = final["needs_assessment"]
+    assert na["illustrative_gap"] == 1_107_000
+    reply = final["assistant_message"]
+    # the estimate and WHY it exists, in plain words
+    assert "$1,107,000" in reply
+    assert "largest component" in reply.lower()
+    assert "illustrative" in reply.lower()
+    # figures come from the calculator, not invented in prose
+    amounts = {c["key"]: c["amount"] for c in na["breakdown"]["components"]}
+    assert amounts["income"] == 800_000
+    assert amounts["education"] == 200_000
+    assert amounts["final_expenses"] == 15_000
+
+
+def test_assumptions_disclosed_with_result_not_requested_as_input():
+    """Assumptions are explained with the result, never demanded up front."""
+    orch, _, turns = _conversation(UNINFORMED)
+    for turn in turns[:-1]:
+        assert "income replacement years" not in turn["assistant_message"].lower()
+    final = turns[-1]
+    assert "assumptions" in final["needs_assessment"]
+    assert set(final["needs_assessment"]["assumptions"]) >= {
+        "income_replacement_years", "education_per_child", "final_expenses"}
+
+
+def test_frontend_does_not_render_the_intake_form():
+    """The conversational UX must not ask the user to fill in backend fields."""
+    import os
+    path = os.path.join(os.path.dirname(__file__), "..", "frontend", "app.js")
+    with open(path, encoding="utf-8") as fh:
+        source = fh.read()
+    # No intake form is built any more.
+    assert "Details for your estimate" not in source
+    assert "Calculate estimate" not in source
+    assert 'editor.className = "assessment-editor' not in source
+    # ...but the results breakdown and voice controls are still rendered.
+    assert "Illustrative coverage gap" in source
+    assert "LifelineVoice" in source
+
+def test_bare_numeric_reply_is_attributed_to_the_pending_question():
+    """"About 85k." answers "what do you earn?" without repeating the question."""
+    orch, sid, _ = _conversation(["I think I need life insurance."])
+    assert orch.store.get_or_create(sid)[1].next_field()["key"] == "annual_income"
+    resp = orch.handle_turn(session_id=sid, message="About 85k.")
+    assert resp["assessment"]["profile"]["annual_income"] == 85_000
+    assert resp["assessment"]["next_field"] == "num_children"
+    # and it must never be asked again
+    again = orch.handle_turn(session_id=sid, message="Two kids.")
+    assert "earn" not in again["assessment"]["next_field_question"].lower()
+
+
+def test_full_conversational_estimate_matches_the_brief():
+    """The exact conversation from the product brief, end to end."""
+    orch = Orchestrator(store=SessionStore())
+    sid = None
+    for message in ("I think I need life insurance.", "About 85k.", "Two kids.",
+                    "We rent and I don't have any other debt.",
+                    "I don't have life insurance through work.", "Nothing saved."):
+        resp = orch.handle_turn(session_id=sid, message=message)
+        sid = resp["session_id"]
+    assert resp["assessment"]["status"] == "ready"
+    na = resp["needs_assessment"]
+    amounts = {c["key"]: c["amount"] for c in na["breakdown"]["components"]}
+    assert amounts["income"] == 850_000        # 85,000 x 10
+    assert amounts["education"] == 200_000     # 2 x 100,000
+    assert amounts["mortgage"] == 0            # rents
+    assert amounts["debt"] == 0                # no other debt
+    assert amounts["final_expenses"] == 15_000
+    assert na["illustrative_gap"] == 1_065_000
+    reply = resp["assistant_message"]
+    assert "$1,065,000" in reply
+    assert "largest component" in reply.lower()
+    assert reply.lower().count("final expenses") <= 2

@@ -124,6 +124,11 @@ class Assessment:
     profile: dict = field(default_factory=dict)        # calculation inputs
     context: dict = field(default_factory=dict)        # affordability, name, etc.
     assumptions: dict = field(default_factory=lambda: dict(DEFAULT_ASSUMPTIONS))
+    # True once the user has actually asked for an estimate, or has supplied
+    # information that only makes sense as part of one. Until then the
+    # assistant must NOT start asking intake questions -- otherwise any
+    # message, including "I need health insurance", opens the assessment.
+    assessment_started: bool = False
 
     # ---- updating ----
     def update(self, data: dict) -> None:
@@ -204,6 +209,7 @@ class Assessment:
             "known_summary": self.known_summary(),
             "profile": dict(self.profile),
             "context": dict(self.context),
+            "assessment_started": self.assessment_started,
             "assumptions": dict(self.assumptions),
             "field_help": {f["key"]: f["why"] for f in PROFILE_FIELDS},
         }

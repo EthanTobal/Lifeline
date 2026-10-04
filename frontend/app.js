@@ -487,73 +487,15 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
       }
     }
 
-    // The backend also extracts facts from free text, but a customer editing
-    // numbers here means exactly these values. Send only the edited fields and
-    // let the backend calculator recompute -- this UI never does the maths.
-    const editor = document.createElement("details");
-    editor.className = "assessment-editor artifact-card artifact-details";
-    editor.open = data.assessment.status === "collecting";
-    const summary = document.createElement("summary");
-    summary.textContent = data.assessment.status === "collecting" ? "Details for your estimate" : "Update your estimate";
-    editor.appendChild(summary);
-    const form = document.createElement("form");
-    form.className = "dlg-card";
-    const fields = [
-      ["annual_income", "Annual income ($)", "profile", 0.01],
-      ["num_children", "Number of children / dependents", "profile", 1],
-      ["mortgage_balance", "Mortgage balance ($)", "profile", 0.01],
-      ["non_mortgage_debt", "Other debts ($)", "profile", 0.01],
-      ["existing_coverage", "Existing life insurance ($)", "profile", 0.01],
-      ["liquid_savings", "Savings and investments ($)", "profile", 0.01],
-      ["income_replacement_years", "Years of income to replace", "assumptions", 1],
-      ["education_per_child", "Education allowance per child ($)", "assumptions", 0.01],
-      ["final_expenses", "Final expenses ($)", "assumptions", 0.01],
-    ];
-    for (const [key, title, group, step] of fields) {
-      const label = document.createElement("label");
-      label.className = "model-label";
-      label.textContent = title;
-      const input = document.createElement("input");
-      input.type = "number";
-      input.name = key;
-      input.min = "0";
-      input.step = String(step);
-      input.required = key === "annual_income";
-      input.value = data.assessment[group][key] ?? "";
-      label.appendChild(input);
-      form.appendChild(label);
-      if (data.assessment.field_help?.[key]) {
-        const help = document.createElement("p");
-        help.className = "dlg-note";
-        help.textContent = data.assessment.field_help[key];
-        form.appendChild(help);
-      }
-    }
-    const note = document.createElement("p");
-    note.className = "dlg-note";
-    note.textContent = "Optional details left blank use the service's assumptions. Review them with your estimate.";
-    form.appendChild(note);
-    const button = document.createElement("button");
-    button.type = "submit";
-    button.className = "btn btn-outline assessment-submit";
-    button.textContent = "Calculate estimate";
-    form.appendChild(button);
-    form.addEventListener("submit", (event) => {
-      event.preventDefault();
-      if (busy || !form.reportValidity()) return;
-      const profileUpdates = {}, assumptionUpdates = {};
-      for (const [key, , group] of fields) {
-        const value = form.elements.namedItem(key).value;
-        const previous = data.assessment[group][key];
-        if (value === "" || (previous !== null && previous !== undefined && previous !== "" && Number(value) === Number(previous))) continue;
-        const number = Number(value);
-        if (!Number.isFinite(number) || number < 0) return;
-        (group === "profile" ? profileUpdates : assumptionUpdates)[key] = number;
-      }
-      submit("Calculate my estimate using these details.", { profileUpdates, assumptionUpdates });
-    });
-    editor.appendChild(form);
-    body.appendChild(editor);
+    // The intake form is deliberately NOT rendered here.
+    //
+    // The assessment is meant to be conversational: the assistant asks one
+    // question at a time and the backend extracts the numbers from what the
+    // user actually says. Showing a nine-field intake form forced people to
+    // learn the backend's field names before they could
+    // start. The profile/session structures are untouched -- they are still
+    // populated by extraction and still carry every value the calculator needs
+    // -- we just no longer ask the customer to type them into a form.
   }
 
   // Calculator UI can submit collected fields without owning chat transport.
