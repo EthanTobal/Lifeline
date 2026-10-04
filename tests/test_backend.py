@@ -582,3 +582,74 @@ def test_session_survives_an_assumption_change():
     assert resp["assessment"]["missing_fields"] == []
     # and the backend recalculated: +10,000 of final expenses
     assert resp["needs_assessment"]["illustrative_gap"] == 1_117_000
+
+# ================================================================
+# Gemini Live: credentials stay server-side, and the app degrades
+# gracefully when no key is configured.
+# ================================================================
+
+from app.gemini_service import GeminiService, GeminiUnavailable
+from app import api as api_module
+
+
+def test_gemini_disabled_without_api_key():
+    """No key configured must be a safe no-op, never a crash."""
+    svc = GeminiService(api_key="")
+    assert svc.enabled is False
+    try:
+        svc.mint_live_token()
+    except GeminiUnavailable:
+        pass
+    else:
+        raise AssertionError("expected GeminiUnavailable with no API key")
+
+
+def test_gemini_never_returns_the_permanent_key():
+    """The permanent key must never appear in anything the browser receives."""
+    svc = GeminiService(api_key="secret-key-not-for-the-browser")
+    assert svc.enabled is True
+    # With a bogus key the call fails, but the failure path must not echo it.
+    try:
+        result = svc.mint_live_token()
+        payload = result.to_dict()
+    except GeminiUnavailable as exc:
+        payload = {"detail": str(exc)}
+    assert "secret-key-not-for-the-browser" not in json.dumps(payload)
+
+
+def test_gemini_model_defaults_to_the_live_model():
+    svc = GeminiService(api_key="k")
+    assert svc.model == "gemini-2.0-flash-live-001"
+    assert svc.model.endswith("-live-001")
+
+
+def test_gemini_token_route_degrades_without_a_key():
+    """The browser must get a clean 'unavailable', not a 500 or a stack trace."""
+    original = api_module._gemini
+    api_module._gemini = GeminiService(api_key="")
+    try:
+        result = api_module._handle_gemini_token({})
+        assert result["error"] == "unavailable"
+        assert "secret" not in json.dumps(result).lower()
+        assert api_module._handle_gemini_token({})["error"] == "unavailable"
+    finally:
+        api_module._gemini = original
+
+
+def test_turn_endpoint_is_untouched_by_gemini():
+    """Adding voice must not change the existing text chat contract."""
+    resp = api_module._handle_turn({"message": "hello"})
+    assert resp["assessment"]["status"] == "collecting"
+    for key in ("session_id", "assistant_message", "assessment",
+                "needs_assessment", "sources", "disclaimer"):
+        assert key in resp
+
+
+def test_calculator_remains_authoritative_under_voice():
+    """Amounts still come from calculator.py, whatever the voice layer does."""
+    orch, _, turns = _conversation(UNINFORMED)
+    na = turns[-1]["needs_assessment"]
+    assert na["illustrative_gap"] == 1_107_000
+    assert na["breakdown"]["gross_need"] == 1_207_000
+    # and still no premium anywhere in the payload voice would receive
+    assert "premium_estimate" not in json.dumps(turns[-1])

@@ -1,14 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport"
     content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
   <meta name="theme-color" content="#FFFFFF" />
-  <meta name="viewport"
-    content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
-  <meta name="theme-color" content="#650030" />
   <title>Lincon Lifeline</title>
   <link rel="icon" type="image/jpeg" href="./icon.jpeg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -16,7 +12,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
-
 <body>
   <!-- ============ HEADER ============ -->
   <header class="topbar">
@@ -31,9 +26,7 @@
         <button class="ts ts-xl" data-size="xlarge" aria-pressed="false" aria-label="Extra large text">A</button>
       </div>
       <button class="btn btn-outline" id="new-chat-btn" aria-label="New chat" title="New chat" hidden>
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M12 5v14M5 12h14" />
-        </svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
         <span>New chat</span>
       </button>
     </div>
@@ -47,105 +40,87 @@
         <section class="home" id="home" aria-labelledby="home-title">
           <div class="orb orb-hero" data-state="idle" aria-hidden="true"><span class="orb-core"></span></div>
 
-          <h1 id="home-title"><span id="greeting">Hello</span>.<br />How can I help you today?</h1>
-          <p class="lead">Ask me anything about life insurance, in your own words.</p>
+      <h1 id="home-title"><span id="greeting">Hello</span>.<br />How can I help you today?</h1>
+      <p class="lead">Ask me anything about life insurance, in your own words.</p>
 
-          <button class="btn btn-primary btn-xl" id="voice-cta">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <rect x="9" y="3" width="6" height="11" rx="3" />
-              <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
-            </svg>
-            Talk to Lifeline
-          </button>
-          <button type="button" class="btn btn-outline continue-chat" id="continue-chat-btn" hidden>Continue
-            conversation</button>
+      <button class="btn btn-primary btn-xl" id="voice-cta">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg>
+        Talk to Lifeline
+      </button>
+      <button type="button" class="btn btn-outline continue-chat" id="continue-chat-btn" hidden>Continue conversation</button>
 
-          <div class="topics" role="list">
-            <button class="topic" role="listitem" data-prompt="I'd like to get a quote for life insurance.">
-              <span>Get a quote</span>
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M9 6l6 6-6 6" />
-              </svg>
-            </button>
-            <button class="topic" role="listitem" data-prompt="Can you help me understand my current policy?">
-              <span>Understand my policy</span>
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M9 6l6 6-6 6" />
-              </svg>
-            </button>
-            <button class="topic" role="listitem" data-prompt="How do I make a claim?">
-              <span>Make a claim</span>
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M9 6l6 6-6 6" />
-              </svg>
-            </button>
-            <button class="topic" role="listitem" data-prompt="Can I speak to a real person?">
-              <span>Speak to a person</span>
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M9 6l6 6-6 6" />
-              </svg>
-            </button>
-          </div>
-        </section>
-
-        <!-- Chat -->
-        <section class="chat" id="chat" aria-label="Conversation" hidden>
-          <ol class="messages" id="messages" aria-live="polite"></ol>
-        </section>
-      </main>
-
-      <!-- ============ COMPOSER ============ -->
-      <footer class="composer-wrap">
-        <button type="button" class="btn btn-outline jump-latest" id="jump-latest-btn" hidden>Jump to latest</button>
-        <form class="composer" id="composer" autocomplete="off">
-          <label for="message-input" class="sr-only">Type your question</label>
-          <textarea id="message-input" rows="1" placeholder="Type your question…"></textarea>
-          <button type="button" class="icon-btn" id="voice-btn" aria-label="Talk instead of typing"
-            title="Talk instead of typing">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <rect x="9" y="3" width="6" height="11" rx="3" />
-              <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
-            </svg>
-          </button>
-          <button type="submit" class="btn btn-primary" id="send-btn" aria-label="Send message" disabled>
-            <span class="send-label">Send</span>
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M5 12h13M13 6l6 6-6 6" />
-            </svg>
-          </button>
-          <button type="button" class="btn btn-outline" id="stop-response-btn" hidden>Stop response</button>
-        </form>
-        <p class="fineprint">Private and secure · You can ask for a real person at any time</p>
-      </footer>
-    </div>
-
-    <!-- ============ SESSION DOCUMENTS ============ -->
-    <aside class="documents-panel" id="documents-panel" role="region" aria-labelledby="documents-title" hidden>
-      <div class="documents-heading">
-        <div>
-          <h2 id="documents-title">Documents</h2>
-          <p id="documents-summary" role="status">No documents in this chat yet</p>
-        </div>
-        <button type="button" class="icon-btn" id="documents-close" aria-label="Close document viewer"
-          title="Close document viewer">
-          <!-- <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M6 6l12 12M18 6L6 18" />
-          </svg> -->
+      <div class="topics" role="list">
+        <button class="topic" role="listitem" data-prompt="I'd like to get a quote for life insurance.">
+          <span class="topic-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-8 9-8 9s-8-4-8-9V7z"/><path d="M8 12l3 3 5-6"/></svg></span>
+          <span class="topic-label">Get a quote</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+        </button>
+        <button class="topic" role="listitem" data-prompt="Can you help me understand my current policy?">
+          <span class="topic-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 3H6v18h12V7zM14 3v4h4M9 11h6M9 15h6"/></svg></span>
+          <span class="topic-label">Understand my policy</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+        </button>
+        <button class="topic" role="listitem" data-prompt="How do I make a claim?">
+          <span class="topic-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 5a5 5 0 0 0-8 1 5 5 0 0 0-8-1c-3 4 0 8 8 15 8-7 11-11 8-15z"/></svg></span>
+          <span class="topic-label">Make a claim</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+        </button>
+        <button class="topic" role="listitem" data-prompt="Can I speak to a real person?">
+          <span class="topic-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg></span>
+          <span class="topic-label">Speak to a person</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
         </button>
       </div>
-      <p class="documents-empty" id="documents-empty">Ask Lifeline for a summary, checklist, or plan. Every document
-        created in this chat will appear here.</p>
-      <nav class="documents-nav" aria-label="Documents in this chat" id="documents-nav" hidden>
-        <ol class="documents-list" id="documents-list"></ol>
-      </nav>
-      <article class="document-preview" id="document-preview" aria-labelledby="document-title" hidden>
-        <div class="document-toolbar">
-          <h3 id="document-title"></h3>
-          <button type="button" class="btn btn-outline" id="document-print">Print</button>
-        </div>
-        <div class="markdown-content document-content" id="document-content"></div>
-      </article>
-    </aside>
+    </section>
+
+    <!-- Chat -->
+    <section class="chat" id="chat" aria-label="Conversation" hidden>
+      <ol class="messages" id="messages" aria-live="polite"></ol>
+    </section>
+  </main>
+
+  <!-- ============ COMPOSER ============ -->
+  <footer class="composer-wrap">
+    <button type="button" class="btn btn-outline jump-latest" id="jump-latest-btn" hidden>Jump to latest</button>
+    <form class="composer" id="composer" autocomplete="off">
+      <label for="message-input" class="sr-only">Type your question</label>
+      <textarea id="message-input" rows="1" placeholder="Type your question…"></textarea>
+      <button type="button" class="icon-btn" id="voice-btn" aria-label="Talk instead of typing" title="Talk instead of typing">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg>
+      </button>
+      <button type="submit" class="btn btn-primary" id="send-btn" aria-label="Send message" disabled>
+        <span class="send-label">Send</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6" /></svg>
+      </button>
+      <button type="button" class="btn btn-outline" id="stop-response-btn" hidden>Stop response</button>
+    </form>
+    <p class="fineprint">Private and secure · You can ask for a real person at any time</p>
+  </footer>
+  </div>
+
+  <!-- ============ SESSION DOCUMENTS ============ -->
+  <aside class="documents-panel" id="documents-panel" role="region" aria-labelledby="documents-title" hidden>
+    <div class="documents-heading">
+      <div>
+        <h2 id="documents-title">Documents</h2>
+        <p id="documents-summary" role="status">No documents in this chat yet</p>
+      </div>
+      <button type="button" class="icon-btn" id="documents-close" aria-label="Close document viewer" title="Close document viewer">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+      </button>
+    </div>
+    <p class="documents-empty" id="documents-empty">Ask Lifeline for a summary, checklist, or plan. Every document created in this chat will appear here.</p>
+    <nav class="documents-nav" aria-label="Documents in this chat" id="documents-nav" hidden>
+      <ol class="documents-list" id="documents-list"></ol>
+    </nav>
+    <article class="document-preview" id="document-preview" aria-labelledby="document-title" hidden>
+      <div class="document-toolbar">
+        <h3 id="document-title"></h3>
+        <button type="button" class="btn btn-outline" id="document-print">Print</button>
+      </div>
+      <div class="markdown-content document-content" id="document-content"></div>
+    </article>
+  </aside>
   </div>
   <div class="documents-backdrop" id="documents-backdrop" hidden></div>
   <button type="button" class="icon-btn documents-toggle" id="documents-btn" aria-label="Open documents"
@@ -168,52 +143,48 @@
     </button>
     <div class="voice-workspace-backdrop" id="voice-workspace-backdrop" aria-hidden="true" hidden></div>
     <div class="voice-layout">
-      <div class="voice-inner">
-        <div class="orb orb-voice" id="voice-orb" data-state="listening" aria-hidden="true"><span
-            class="orb-core"></span></div>
-
-        <h2 class="voice-status" id="voice-status" aria-live="assertive">Listening</h2>
-        <p class="voice-transcript" id="voice-transcript" aria-live="polite">Go ahead, I'm listening.</p>
-        <p class="dlg-note" id="voice-input-status" role="status"></p>
-        <p class="dlg-note" id="voice-output-status" role="status"></p>
-        <p class="voice-error" id="voice-error" role="alert" hidden></p>
-
-        <div class="voice-controls">
-          <button type="button" class="btn btn-outline btn-lg" id="retry-voice-btn" hidden>Retry voice</button>
-          <button class="btn btn-outline btn-lg" id="mute-btn" aria-pressed="false">
-            <svg viewBox="0 0 24 24" aria-hidden="true" class="ic-mic">
-              <rect x="9" y="3" width="6" height="11" rx="3" />
-              <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
-            </svg>
-            <svg viewBox="0 0 24 24" aria-hidden="true" class="ic-mic-off">
-              <path d="M3 3l18 18M9 9v2a3 3 0 0 0 5 2.2M15 10V6a3 3 0 0 0-5.7-1.3M5 11a7 7 0 0 0 11.5 5.3M12 18v3" />
-            </svg>
-            <span>Mute</span>
-          </button>
-          <button class="btn btn-primary btn-lg" id="end-voice-btn">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M6 6l12 12M18 6L6 18" />
-            </svg>
-            <span>End</span>
-          </button>
-        </div>
-        <form id="voice-reply-form" class="voice-reply-form">
-          <label for="voice-reply-input" class="sr-only">Type a reply during voice mode</label>
-          <input id="voice-reply-input" placeholder="Or type your reply…" autocomplete="off" />
-          <button class="btn btn-outline" type="submit" id="voice-reply-send">Send</button>
-        </form>
-        <div id="voice-follow-up" class="voice-follow-up" hidden></div>
+    <div class="voice-inner">
+      <div class="voice-orb-stage">
+        <div class="orb orb-voice" id="voice-orb" data-state="listening" aria-hidden="true"><span class="orb-core"></span></div>
       </div>
-      <aside class="voice-canvas" aria-labelledby="voice-canvas-title">
-        <div class="voice-canvas-heading">
-          <span class="content-label">Your workspace</span>
-          <h2 id="voice-canvas-title">Documents &amp; resources</h2>
-          <p>View and print documents while we talk.</p>
-        </div>
-        <p id="voice-canvas-empty" class="voice-canvas-empty">Ask for a summary, checklist, or plan. Lifeline will put
-          it here.</p>
-        <div id="voice-canvas-content"></div>
-      </aside>
+
+      <h2 class="voice-status" id="voice-status" aria-live="assertive">Listening</h2>
+      <p class="voice-transcript" id="voice-transcript" aria-live="polite">Go ahead, I'm listening.</p>
+      <p class="dlg-note" id="voice-input-status" role="status"></p>
+      <p class="dlg-note" id="voice-output-status" role="status"></p>
+      <p class="voice-error" id="voice-error" role="alert" hidden></p>
+
+      <div class="voice-controls">
+        <button type="button" class="btn btn-outline btn-lg" id="retry-voice-btn" hidden>Retry voice</button>
+        <button class="btn btn-outline btn-lg" id="mute-btn" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true" class="ic-mic"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true" class="ic-mic-off"><path d="M3 3l18 18M9 9v2a3 3 0 0 0 5 2.2M15 10V6a3 3 0 0 0-5.7-1.3M5 11a7 7 0 0 0 11.5 5.3M12 18v3" /></svg>
+          <span>Mute</span>
+        </button>
+        <button class="btn btn-primary btn-lg" id="end-voice-btn">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+          <span>End</span>
+        </button>
+      </div>
+      <form id="voice-reply-form" class="voice-reply-form">
+        <label for="voice-reply-input" class="sr-only">Type a reply during voice mode</label>
+        <input id="voice-reply-input" placeholder="Or type your reply…" autocomplete="off" />
+        <button class="btn btn-outline" type="submit" id="voice-reply-send">Send</button>
+      </form>
+      <div id="voice-follow-up" class="voice-follow-up" hidden></div>
+    </div>
+    <aside class="voice-canvas" id="voice-workspace" aria-labelledby="voice-canvas-title" hidden>
+      <button type="button" class="icon-btn voice-workspace-close" id="voice-workspace-close" aria-label="Close documents and resources" title="Close documents">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+      </button>
+      <div class="voice-canvas-heading">
+        <span class="content-label">Your workspace</span>
+        <h2 id="voice-canvas-title">Documents &amp; resources</h2>
+        <p>View and print documents while we talk.</p>
+      </div>
+      <p id="voice-canvas-empty" class="voice-canvas-empty">Ask for a summary, checklist, or plan. Lifeline will put it here.</p>
+      <div id="voice-canvas-content"></div>
+    </aside>
     </div>
   </div>
 
@@ -252,5 +223,4 @@
   <script src="backend-api.js"></script>
   <script src="app.js"></script>
 </body>
-
 </html>

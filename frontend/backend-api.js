@@ -81,5 +81,28 @@ const LifelineBackend = (() => {
     }
     return { turn, reset, getSessionId: () => sessionId };
   }
-  return { TURN_URL, createClient, validateResponse };
+  /* One client shared by every surface (text chat and Gemini Live voice) so a
+     user can answer by voice and then continue by text without losing the
+     assessment. `createClient` is kept for isolated/testing use. */
+  let shared = null;
+  function getSharedClient() {
+    if (!shared) shared = createClient();
+    return shared;
+  }
+
+  /* Mint a short-lived Gemini Live credential. The permanent API key stays on
+     the server; this returns only the ephemeral token the browser needs. */
+  async function requestGeminiToken() {
+    const response = await fetch(TURN_URL.replace(/\/api\/turn$/, "/api/gemini-token"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    });
+    if (!response.ok) throw new Error("Voice mode is unavailable right now.");
+    const data = await response.json();
+    if (data.error || !data.token) throw new Error(data.detail || "Voice mode is unavailable right now.");
+    return data;
+  }
+
+  return { TURN_URL, createClient, getSharedClient, requestGeminiToken, validateResponse };
 })();
