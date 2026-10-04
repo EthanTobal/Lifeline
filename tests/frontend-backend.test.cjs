@@ -19,7 +19,7 @@ function boot(t, { reduceMotion = true } = {}) {
     requests.push({ url, body: JSON.parse(options.body) });
     return { ok: true, json: async () => response('session-' + requests.length, 'Backend answer ' + requests.length) };
   };
-  for (const file of ['vendor/marked.umd.js', 'vendor/purify.min.js', 'content.js', 'speech.js', 'backend-api.js', 'app.js']) {
+  for (const file of ['vendor/marked.umd.js', 'vendor/purify.min.js', 'content.js', 'memories.js', 'speech.js', 'backend-api.js', 'app.js']) {
     const script = w.document.createElement('script');
     script.textContent = readFileSync(resolve(root, file), 'utf8');
     w.document.body.appendChild(script);
@@ -50,8 +50,40 @@ test('new UI routes chat to backend, reuses session, and resets on new chat', as
   assert.equal(doc.querySelector('#messages').textContent.includes('Backend answer 1'), false);
 });
 
+test('memory editor saves safe text, survives new chat, and sends notes to the backend', async (t) => {
+  const { w, doc, requests } = boot(t);
+  const open = doc.querySelector('#memories-btn');
+  open.focus();
+  open.click();
+  const dialog = doc.querySelector('#memories-dlg');
+  assert.equal(dialog.hidden, false);
+  const input = doc.querySelector('#memory-input');
+  const form = doc.querySelector('#memory-form');
+  input.value = '<img src=x onerror=alert(1)> I prefer short answers.';
+  form.dispatchEvent(new w.Event('submit', { bubbles: true, cancelable: true }));
+  assert.equal(doc.querySelector('#mem-list img'), null);
+  assert.equal(doc.querySelectorAll('#mem-list li').length, 1);
+  doc.querySelector('#mem-list button').click();
+  input.value = 'I prefer short answers.';
+  form.dispatchEvent(new w.Event('submit', { bubbles: true, cancelable: true }));
+  doc.querySelector('#mem-close').click();
+  assert.equal(dialog.hidden, true);
+  assert.equal(doc.activeElement, open);
+  doc.querySelector('#new-chat-btn').click();
+  assert.equal(JSON.parse(w.localStorage.getItem('lifeline-memories'))[0].text, 'I prefer short answers.');
+  doc.querySelector('#message-input').value = 'Hello';
+  doc.querySelector('#composer').dispatchEvent(new w.Event('submit', { bubbles: true, cancelable: true }));
+  await until(() => requests.length === 1);
+  assert.deepEqual(requests[0].body.memories, ['I prefer short answers.']);
+  open.click();
+  doc.querySelector('#mem-list button:last-child').click();
+  assert.equal(doc.querySelectorAll('#mem-list li').length, 0);
+  assert.deepEqual(JSON.parse(w.localStorage.getItem('lifeline-memories')), []);
+});
+
 test('voice transcript uses the same backend session as text chat', async (t) => {
   const { w, doc, requests } = boot(t);
+  w.eval('LifelineMemories').save('I prefer short answers.');
   class Recognition {
     constructor() { Recognition.current = this; }
     start() {}
@@ -72,6 +104,7 @@ test('voice transcript uses the same backend session as text chat', async (t) =>
   await until(() => doc.querySelector('#messages').textContent.includes('Backend answer 2'));
   assert.equal(requests[1].body.session_id, 'session-1');
   assert.equal(requests[1].body.message, 'Spoken second');
+  assert.ok(requests.every((request) => request.body.memories[0] === 'I prefer short answers.'));
 });
 
 

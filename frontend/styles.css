@@ -597,7 +597,8 @@ h1 #greeting { font-weight: 700; color: var(--hl); }
   padding: .75rem 1rem; background: var(--hl-tint-2); border: 1px solid var(--line); border-radius: 12px;
   flex-wrap: wrap;
 }
-.mem-list li span { flex: 1 1 10rem; min-width: 0; }
+.mem-list li span { flex: 1 1 10rem; min-width: 0; overflow-wrap: anywhere; }
+#memory-form { margin-top: 1.25rem; }
 .mem-empty { color: var(--ink-soft); }
 .memory-feedback { color: var(--ink-soft); }
 .memory-feedback:empty { display: none; }

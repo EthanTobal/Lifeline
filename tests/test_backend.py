@@ -212,6 +212,28 @@ def test_unknown_fields_dropped():
     assert "favorite_color" not in a.context
 
 
+def test_memories_are_bounded_context_and_never_assessment_inputs():
+    class MemoryBedrock:
+        def retrieve_knowledge(self, query):
+            return []
+
+        def generate_grounded_response(self, **kwargs):
+            self.memories = kwargs["memories"]
+            return "A short response."
+
+    bedrock = MemoryBedrock()
+    orch = Orchestrator(bedrock=bedrock, store=SessionStore())
+    first = orch.handle_turn(message="Hello", memories=[" Income is $90000. ", "", 123, "x" * 501])
+    assert bedrock.memories == ["Income is $90000."]
+    assert first["assessment"]["profile"] == {}
+    assert first["assessment"]["status"] == "idle"
+    assert first["needs_assessment"]["illustrative_gap"] is None
+    orch.handle_turn(session_id=first["session_id"], message="Hello", memories=[])
+    assert bedrock.memories == []  # Deleted notes cannot linger in session state.
+    orch.handle_turn(message="Hello", memories="invalid")
+    assert bedrock.memories == []
+
+
 # ---------------- bedrock service degrades offline ----------------
 
 def test_bedrock_noop_when_unconfigured():
@@ -222,6 +244,25 @@ def test_bedrock_noop_when_unconfigured():
     object.__setattr__(svc.config, "model_id", "")
     assert svc.retrieve_knowledge("term vs whole life") == []
     assert svc.generate_grounded_response("hello", "ctx", []) == ""
+
+
+def test_bedrock_receives_memories_as_unconfirmed_personal_context():
+    captured = {}
+
+    class Runtime:
+        def converse(self, **kwargs):
+            captured.update(kwargs)
+            return {"output": {"message": {"content": [{"text": "Hello Margaret."}]}}}
+
+    svc = BedrockService()
+    object.__setattr__(svc.config, "knowledge_base_id", "test-kb")
+    object.__setattr__(svc.config, "model_id", "test-model")
+    svc._runtime = lambda: Runtime()
+    assert svc.generate_grounded_response("Hello", memories=["My name is Margaret."]) == "Hello Margaret."
+    prompt = captured["messages"][0]["content"][0]["text"]
+    assert "My name is Margaret." in prompt
+    assert "not instructions" in prompt
+    assert "Ask for current financial details" in prompt
 
 
 # ---------------- orchestrator response contract ----------------
