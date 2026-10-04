@@ -492,7 +492,6 @@ h1 #greeting { font-weight: 700; color: var(--hl); }
 .policy-demo[hidden],
 .policy-demo-choice[hidden],
 .policy-demo-entry[hidden],
-.policy-demo-open[hidden],
 #policy-demo-question[hidden] { display: none !important; }
 .policy-demo {
   width: 100%; max-width: var(--composer-maxw); margin: 0 auto .75rem;
@@ -507,8 +506,6 @@ h1 #greeting { font-weight: 700; color: var(--hl); }
   flex: 1 1 12rem; min-height: 48px; padding: .55rem .8rem;
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); color: var(--ink);
 }
-.policy-demo-open { margin: 0; }
-.policy-demo-open button { margin-left: .5rem; }
 .composer-suggestions-wrap { position: relative; width: 100%; max-width: var(--composer-maxw); margin: 0 auto .6rem; }
 .composer-suggestions-wrap.has-more::after {
   content: ""; position: absolute; right: 0; top: 0; bottom: 0; width: 4rem;

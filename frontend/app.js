@@ -45,7 +45,6 @@
     policyDemo: $("#policy-demo"),
     policyDemoChoice: $("#policy-demo-choice"),
     policyDemoEntry: $("#policy-demo-entry"),
-    policyDemoOpen: $("#policy-demo-open"),
     policyIdInput: $("#policy-id-input"),
   };
   const workspaceContent = [];
@@ -1838,29 +1837,14 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
   };
 
   function updatePolicyDemo() {
-    const show = !el.chat.hidden && conversationPath === "policy";
+    // Once a policy is open, the prompt is finished. Leave the chat alone
+    // instead of keeping a card that announces the open id.
+    const show = !el.chat.hidden && conversationPath === "policy" && !openPolicyId;
     el.policyDemo.hidden = !show;
     if (!show) return;
-    const open = Boolean(openPolicyId);
-    $("#policy-demo-question").hidden = open && !policyIdEntry;
-    el.policyDemoChoice.hidden = open || policyIdEntry;
+    $("#policy-demo-question").hidden = policyIdEntry;
+    el.policyDemoChoice.hidden = policyIdEntry;
     el.policyDemoEntry.hidden = !policyIdEntry;
-    el.policyDemoOpen.hidden = !open || policyIdEntry;
-    if (open && !policyIdEntry) {
-      el.policyDemoOpen.replaceChildren();
-      el.policyDemoOpen.append(`Policy ${openPolicyId} is open. `);
-      const change = document.createElement("button");
-      change.type = "button";
-      change.className = "btn btn-outline";
-      change.textContent = "Use a different ID";
-      change.addEventListener("click", () => {
-        policyIdEntry = true;
-        el.policyIdInput.value = "";
-        updatePolicyDemo();
-        el.policyIdInput.focus();
-      });
-      el.policyDemoOpen.append(change);
-    }
   }
 
   $("#policy-demo-yes").addEventListener("click", () => {
