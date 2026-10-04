@@ -61,6 +61,19 @@ GROUNDED_SYSTEM_PROMPT = (
     "confusing or stressful, reassure them, and let them know there's no pressure "
     "and they can take their time or talk to a real person whenever they want.\n"
     "\n"
+    "GUIDED ASSESSMENT (only when you are told an assessment is in progress):\n"
+    "- The application decides which piece of information is needed next. Your only "
+    "job is to ask for it in a warm, natural, plain-language way.\n"
+    "- Ask for EXACTLY the one field you are given. Ask ONE question. Never list "
+    "several questions, never number the steps, never give an overview of the plan.\n"
+    "- Do NOT write an educational article while collecting. Do not explain what life "
+    "insurance is, do not list product types, and do not suggest getting a quote or "
+    "consulting a professional. That is not what was asked at this moment.\n"
+    "- Acknowledge what the person just said in one short sentence, then ask the "
+    "question. Two or three sentences total.\n"
+    "- 'Nothing', 'zero', and 'no' are valid answers for several of these questions.\n"
+    "- Never repeat a question the person has already answered.\n"
+    "\n"
     "HARD RULES (safety — never break these):\n"
     "- You MUST NOT produce or change any dollar figure, coverage amount, or "
     "premium. Those come only from the deterministic calculator provided to you; "
@@ -140,11 +153,23 @@ class BedrockService:
         return sources
 
     def generate_grounded_response(
-        self, query: str, context: str = "", sources: list[Source] | None = None
+        self,
+        query: str,
+        context: str = "",
+        sources: list[Source] | None = None,
+        *,
+        mode: str = "explaining",
+        next_field: dict | None = None,
+        known_summary: str = "",
+        guardrail: str | None = None,
     ) -> str:
         """Ask the Bedrock model to EXPLAIN, grounded in the calculator
         `context` and retrieved `sources`. Returns "" when not configured so
-        the caller can fall back to the calculator's own explanation."""
+        the caller can fall back to the calculator's own explanation.
+
+        `mode` controls what the model is allowed to do. The application always
+        decides the mode and the next field; the model only chooses wording.
+        """
         if not self.config.bedrock_enabled:
             return ""
 
@@ -153,13 +178,82 @@ class BedrockService:
             f"[Source {i + 1}] {s.content}" for i, s in enumerate(sources)
         ) or "(no knowledge-base snippets retrieved)"
 
-        user_block = (
-            f"Deterministic calculator result (authoritative — do not change the "
-            f"numbers):\n{context or '(none)'}\n\n"
-            f"Retrieved Lincoln educational content:\n{source_text}\n\n"
-            f"User question: {query}\n\n"
-            f"Explain in plain, reassuring language."
-        )
+        parts: list[str] = []
+
+        if context:
+            parts.append(
+                "Deterministic calculator result (authoritative — do not change "
+                f"the numbers):\n{context}"
+            )
+        else:
+            parts.append(
+                "Deterministic calculator result: none yet — an assessment is "
+                "still in progress, so there are no figures to quote."
+            )
+
+        parts.append(f"Retrieved Lincoln educational content:\n{source_text}")
+        parts.append(f"User said: {query}")
+
+        if guardrail == "pricing":
+            parts.append(
+                "TASK: The user asked what this will cost per month. You must NOT "
+                "give, estimate, or hint at any premium, rate, or monthly price. Say "
+                "briefly that Lifeline produces an illustrative needs assessment "
+                "rather than quotes, that actual pricing comes from a licensed "
+                "adviser after underwriting, and then carry on with the assessment."
+            )
+        elif guardrail == "recommendation":
+            parts.append(
+                "TASK: The user asked which policy to buy. Do NOT recommend, rank, "
+                "or name a best product, and do not say they should buy anything. "
+                "Briefly explain the term versus permanent tradeoff in neutral terms "
+                "and invite them to talk to a licensed adviser, then carry on with "
+                "the assessment."
+            )
+        elif guardrail == "approval":
+            parts.append(
+                "TASK: The user asked about approval, eligibility, or underwriting. "
+                "State plainly that Lifeline cannot approve anyone, does not assess "
+                "eligibility, and does not underwrite — only a licensed insurer can "
+                "do that. Then carry on with the assessment."
+            )
+        elif mode == "collecting":
+            parts.append(
+                "TASK (guided assessment): acknowledge what the person just said in "
+                "ONE short sentence, then ask for the ONE piece of information "
+                "specified below. Do not give an educational article. Do not explain "
+                "life insurance. Do not list questions or steps."
+            )
+        elif mode == "answering_then_resuming":
+            parts.append(
+                "TASK: The person asked a genuine educational question in the middle "
+                "of an assessment. Answer it briefly (two or three sentences, in "
+                "plain words, grounded in the retrieved content), then immediately "
+                "return to the pending assessment question below. Keep the whole "
+                "reply short."
+            )
+        else:
+            parts.append("TASK: Explain in plain, reassuring language.")
+
+        if mode == "collecting" and next_field:
+            parts.append(
+                "Information to ask for next (the application chose this — ask for "
+                f"this and nothing else):\n  {next_field['question']}\n"
+                f"  Why it matters, for your own understanding only (do not lecture): "
+                f"{next_field['why']}"
+            )
+        elif mode == "answering_then_resuming" and next_field:
+            parts.append(
+                "After answering, finish by asking for exactly this: "
+                f"\"{next_field['question']}\""
+            )
+
+        if known_summary:
+            parts.append(
+                "Already captured (never ask for these again): " + known_summary
+            )
+
+        user_block = "\n\n".join(parts)
 
         try:
             resp = self._runtime().converse(

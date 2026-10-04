@@ -427,28 +427,56 @@
   function renderAssessment(body, data) {
     $$(".assessment-editor", el.messages).forEach((form) => form.remove());
     const currency = (value) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
+    // Labels for the three assumptions the customer actually sees. HLV and
+    // sanity-band parameters stay in the backend response but are never
+    // rendered, so they have no label here.
     const assumptionLabels = {
-      income_replacement_years: "Years of income to replace", education_per_child: "Education allowance per child",
-      final_expenses: "Final expenses", income_multiple_low: "Income comparison lower multiple",
-      income_multiple_high: "Income comparison upper multiple", hlv_discount_rate: "Future income discount rate",
-      hlv_income_growth: "Expected annual income growth", hlv_personal_consumption: "Personal spending share",
-      retirement_age: "Retirement age", max_coverage: "Maximum illustrative coverage",
+      income_replacement_years: "Years of income to replace",
+      education_per_child: "Education allowance per child",
+      final_expenses: "Final expenses",
     };
+    // The backend returns every assumption for transparency, but only these three
+// drive the published DIME result. HLV and sanity-band parameters belong to
+// internal calculations that are not part of the customer-facing experience,
+// so they are not shown.
+const CUSTOMER_ASSUMPTIONS = [
+  "income_replacement_years", "education_per_child", "final_expenses",
+];
+const assumptionLines = Object.entries(data.assessment.assumptions)
+      .filter(([key]) => CUSTOMER_ASSUMPTIONS.includes(key))
+      .map(([key, value]) => {
+        const display = ["education_per_child", "final_expenses"].includes(key) && Number.isFinite(value)
+          ? currency(value) : value;
+        return `- ${escapeMarkdown(assumptionLabels[key] || key.replaceAll("_", " "))}: ${escapeMarkdown(display)}`;
+      });
+
     if (data.assessment.status === "ready") {
       const needs = data.needs_assessment, breakdown = needs.breakdown;
-      const lines = ["## Illustrative coverage gap", "", `**${currency(needs.illustrative_gap)}**`, "", escapeMarkdown(needs.disclaimer || data.disclaimer), "",
-        "| Need | Amount |", "| --- | ---: |",
-        ...breakdown.components.map((row) => `| ${escapeMarkdown(row.label)} | ${currency(row.amount)} |`),
-        `| **Total need** | **${currency(breakdown.gross_need)}** |`, "", "### Existing resources", "",
-        "| Resource | Amount |", "| --- | ---: |",
-        ...breakdown.offsets.map((row) => `| ${escapeMarkdown(row.label)} | ${currency(row.amount)} |`),
-        `| **Total resources** | **${currency(breakdown.total_offsets)}** |`, "", "### Assumptions", "",
-        ...Object.entries(data.assessment.assumptions).map(([key, value]) => {
-          const display = ["education_per_child", "final_expenses", "max_coverage"].includes(key) && Number.isFinite(value)
-            ? currency(value) : ["hlv_discount_rate", "hlv_income_growth", "hlv_personal_consumption"].includes(key) && Number.isFinite(value)
-              ? new Intl.NumberFormat("en-US", { style: "percent", maximumFractionDigits: 2 }).format(value) : value;
-          return `- ${escapeMarkdown(assumptionLabels[key] || key.replaceAll("_", " "))}: ${escapeMarkdown(display)}`;
-        }),
+      // Each line shows its own derivation ("$80,000 per year x 10 years") so
+      // the customer can see exactly where every dollar came from. The amounts
+      // and the detail text both come straight from the backend calculator --
+      // nothing here recomputes the maths.
+      const componentLine = (row) =>
+        `- **${escapeMarkdown(row.label)}: ${currency(row.amount)}**` +
+        (row.detail ? `\n  - ${escapeMarkdown(row.detail)}` : "");
+      const lines = [
+        "## Illustrative coverage gap", "",
+        `**${currency(needs.illustrative_gap)}**`, "",
+        escapeMarkdown(needs.disclaimer || data.disclaimer), "",
+        "### What builds this up", "",
+        ...breakdown.components.map(componentLine), "",
+        `**Gross illustrative need: ${currency(breakdown.gross_need)}**`, "",
+        "### What you already have", "",
+        ...breakdown.offsets.map((row) => `- **${escapeMarkdown(row.label)}: −${currency(row.amount)}**`),
+        "",
+        `**Total resources: ${currency(breakdown.total_offsets)}**`, "",
+        "### Assumptions behind these figures", "",
+        ...assumptionLines,
+        "",
+        "> These are estimates, not facts. Open “Update your estimate” "
+        + "below to change the years of income replaced, the education "
+        + "allowance per child, or final expenses, and the backend will "
+        + "recalculate.",
       ];
       const result = LifelineContent.validateArtifact({ title: "Your illustrative needs assessment", markdown: lines.join("\n") });
       if (result.ok) {
@@ -459,8 +487,9 @@
       }
     }
 
-    // The API does not extract profile fields from free text. Collect explicit
-    // numbers, including zero, and send only edited fields to its calculator.
+    // The backend also extracts facts from free text, but a customer editing
+    // numbers here means exactly these values. Send only the edited fields and
+    // let the backend calculator recompute -- this UI never does the maths.
     const editor = document.createElement("details");
     editor.className = "assessment-editor artifact-card artifact-details";
     editor.open = data.assessment.status === "collecting";
