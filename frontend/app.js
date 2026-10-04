@@ -68,7 +68,7 @@
 
   /* ---------- Greeting & text size ---------- */
   const hr = new Date().getHours();
-  $("#greeting").textContent = hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening";
+  $("#greeting").textContent = hr < 12 ? "Good Morning" : hr < 18 ? "Good Afternoon" : "Good Evening";
 
   function setTextSize(size) {
     size === "normal" ? document.documentElement.removeAttribute("data-size")
