@@ -1,0 +1,85 @@
+/* Text chat talks only to the Lifeline API; AWS credentials stay on the server. */
+const LifelineBackend = (() => {
+  "use strict";
+  const TURN_URL = (window.LIFELINE_API_BASE || "https://oa8m1sol3h.execute-api.us-east-2.amazonaws.com").replace(/\/$/, "") + "/api/turn";
+  const object = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
+  const money = (value) => typeof value === "number" && Number.isFinite(value) && value >= 0;
+
+  function validateResponse(data) {
+    if (!object(data) || typeof data.session_id !== "string" || !data.session_id.trim() ||
+        typeof data.assistant_message !== "string" || !data.assistant_message.trim() ||
+        !object(data.assessment) || !["collecting", "ready"].includes(data.assessment.status) ||
+        !object(data.assessment.profile) || !object(data.assessment.assumptions) ||
+        !Array.isArray(data.assessment.missing_fields) || !object(data.needs_assessment) ||
+        typeof data.disclaimer !== "string" || !data.disclaimer.trim()) {
+      throw new Error("The Lifeline service returned an incomplete response. Please try again.");
+    }
+    if (data.assessment.status === "ready") {
+      const needs = data.needs_assessment, breakdown = needs.breakdown;
+      if (!money(needs.illustrative_gap) || !object(breakdown) ||
+          !money(breakdown.gross_need) || !money(breakdown.total_offsets) ||
+          !Array.isArray(breakdown.components) || !Array.isArray(breakdown.offsets) ||
+          ![...breakdown.components, ...breakdown.offsets].every((row) =>
+            object(row) && typeof row.label === "string" && money(row.amount))) {
+        throw new Error("The Lifeline service returned an incomplete assessment. Please try again.");
+      }
+    }
+    return data;
+  }
+
+  function createClient({ fetchImpl = (...args) => fetch(...args), timeoutMs = 45000 } = {}) {
+    let sessionId, generation = 0;
+    const pending = new Set();
+    function reset() {
+      generation++;
+      sessionId = undefined;
+      for (const controller of pending) controller.abort();
+    }
+    async function turn({ message = "", profileUpdates, assumptionUpdates, signal } = {}) {
+      if (typeof message !== "string" || (profileUpdates !== undefined && !object(profileUpdates)) ||
+          (assumptionUpdates !== undefined && !object(assumptionUpdates))) {
+        throw new Error("Please provide valid assessment updates.");
+      }
+      signal?.throwIfAborted();
+      const run = generation, controller = new AbortController();
+      pending.add(controller);
+      let timedOut = false;
+      const abort = () => controller.abort();
+      signal?.addEventListener("abort", abort, { once: true });
+      const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
+      try {
+        const response = await fetchImpl(TURN_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...(sessionId ? { session_id: sessionId } : {}), message,
+            ...(profileUpdates !== undefined ? { profile_updates: profileUpdates } : {}),
+            ...(assumptionUpdates !== undefined ? { assumption_updates: assumptionUpdates } : {}),
+          }),
+          signal: controller.signal,
+        });
+        controller.signal.throwIfAborted();
+        if (!response.ok) throw new Error(`The Lifeline service could not complete your request (${response.status}). Please try again.`);
+        let data;
+        try { data = await response.json(); }
+        catch { throw new Error("The Lifeline service returned an unreadable response. Please try again."); }
+        controller.signal.throwIfAborted();
+        if (run !== generation) throw new DOMException("Conversation reset", "AbortError");
+        validateResponse(data);
+        sessionId = data.session_id;
+        return data;
+      } catch (error) {
+        if (timedOut) throw new Error("The Lifeline service took too long to respond. Please try again.");
+        if (controller.signal.aborted) throw new DOMException("Request cancelled", "AbortError");
+        if (error.name === "TypeError") throw new Error("Could not reach the Lifeline service. Check your connection and try again.");
+        throw error;
+      } finally {
+        clearTimeout(timer);
+        signal?.removeEventListener("abort", abort);
+        pending.delete(controller);
+      }
+    }
+    return { turn, reset, getSessionId: () => sessionId };
+  }
+  return { TURN_URL, createClient, validateResponse };
+})();

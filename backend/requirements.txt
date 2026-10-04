@@ -1,0 +1,15 @@
+# Lifeline backend dependencies
+# Kept minimal on purpose. The deterministic calculator and the data
+# models use only the Python standard library, so they run and test with
+# zero third-party packages. The extras below are only needed when you
+# actually talk to AWS or serve the HTTP API.
+
+# AWS SDK — only used by the Bedrock service module. The calculator and
+# models do NOT import this, so tests run without it.
+boto3>=1.34.0
+
+# Loads backend/.env into environment variables for local development.
+python-dotenv>=1.0.0
+
+# Test runner.
+pytest>=8.0.0

@@ -135,6 +135,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   max-width: 760px; margin: 0 auto;
 }
 .home .orb-hero { margin-bottom: 2rem; }
+.continue-chat { margin-top: 1rem; }
 h1 {
   margin: 0 0 .75rem;
   font-weight: 300; font-size: clamp(1.65rem, 5.4vw, 2.9rem); line-height: 1.15; letter-spacing: -.02em;
@@ -249,6 +250,13 @@ h1 #greeting { font-weight: 700; color: var(--hl); }
 .orb[data-state="muted"] .orb-core::before,
 .orb[data-state="muted"] .orb-core::after { animation-play-state: paused; }
 
+/* Unavailable voice stays visibly grey and still until it recovers. */
+.orb[data-state="error"] { filter: grayscale(1); transform: scale(.9); }
+.orb[data-state="error"]::before { opacity: .15; animation: none; }
+.orb[data-state="error"] .orb-core,
+.orb[data-state="error"] .orb-core::before,
+.orb[data-state="error"] .orb-core::after { animation: none; }
+
 /* ---------- Chat ---------- */
 .chat { padding: 2rem 0 3rem; }
 .messages { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1.75rem; }
@@ -336,6 +344,8 @@ h1 #greeting { font-weight: 700; color: var(--hl); }
 }
 
 .msg-error .text { padding: .9rem 1.2rem; background: var(--muted-bg); border-left: 4px solid var(--sh); border-radius: 8px; }
+.response-status { margin: .75rem 0 0; font-size: .9rem; color: var(--ink-soft); }
+.retry-response { margin-top: .75rem; }
 
 .msg-actions { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .75rem; }
 .chip {
@@ -378,6 +388,13 @@ h1 #greeting { font-weight: 700; color: var(--hl); }
   padding: .9rem max(var(--page-gutter), var(--safe-right)) calc(.65rem + var(--safe-bottom)) max(var(--page-gutter), var(--safe-left));
   background: linear-gradient(to top, var(--bg) 75%, rgba(255, 255, 255, 0));
 }
+.jump-latest {
+  position: absolute; left: 50%; bottom: calc(100% + .35rem); transform: translateX(-50%);
+  max-width: calc(100% - 2 * var(--page-gutter)); min-height: 48px; padding: .45rem 1rem;
+  box-shadow: var(--shadow); font-size: .9rem;
+}
+.jump-latest:active { transform: translateX(-50%) scale(.97); }
+#stop-response-btn { padding-inline: 1rem; }
 .composer {
   max-width: var(--maxw); margin: 0 auto;
   display: flex; align-items: flex-end; gap: .35rem;
@@ -454,6 +471,7 @@ h1 #greeting { font-weight: 700; color: var(--hl); }
   max-height: 22dvh; overflow-y: auto;
 }
 .voice-controls { display: flex; flex-wrap: wrap; justify-content: center; gap: .75rem; }
+.voice-error { width: 100%; margin: 0 0 1.25rem; padding: .85rem 1rem; border-radius: var(--radius); background: var(--muted-bg); color: var(--sh); font-size: .95rem; }
 .voice-reply-form { display: flex; width: 100%; gap: .5rem; margin-top: 1.25rem; }
 .voice-reply-form input { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); padding: .75rem; color: var(--ink); font: inherit; }
 .voice-follow-up { width: 100%; margin-top: 1rem; }
@@ -503,6 +521,10 @@ h1 #greeting { font-weight: 700; color: var(--hl); }
 }
 .mem-list li span { flex: 1 1 10rem; min-width: 0; }
 .mem-empty { color: var(--ink-soft); }
+.memory-feedback { color: var(--ink-soft); }
+.memory-feedback:empty { display: none; }
+.memory-undo { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; margin-top: 1rem; padding: .75rem; border-radius: var(--radius); background: var(--muted-bg); }
+.memory-undo p { margin: 0; flex: 1 1 8rem; }
 
 /* ---------- Toast ---------- */
 .toast {

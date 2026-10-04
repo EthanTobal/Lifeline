@@ -1,7 +1,7 @@
 /* =========================================================
    Lifeline — front end
-   Real OpenRouter calls when an API key is set (gear button);
-   otherwise a local mock so the demo still works.
+   Lifeline backend for chat, voice transcripts, and needs assessments.
+   Scripted replies are available only in the explicit Test panel.
    ========================================================= */
 (() => {
   "use strict";
@@ -19,6 +19,9 @@
     form: $("#composer"),
     input: $("#message-input"),
     send: $("#send-btn"),
+    stop: $("#stop-response-btn"),
+    latest: $("#jump-latest-btn"),
+    continueChat: $("#continue-chat-btn"),
     newChat: $("#new-chat-btn"),
     brand: $("#brand-home"),
     voice: $("#voice"),
@@ -148,14 +151,13 @@
   const escapeMarkdown = (value) => String(value).replace(/[\\`*_{}\[\]()<>#+.!|~-]/g, "\\$&");
 
   function summaryReply() {
-    const memories = OpenRouter.getMemories().map((m) => m.text);
     const shared = userMessages.filter((message) => !/summary|summari[sz]e|artifact|my information/i.test(message));
-    const facts = [...new Set([...memories, ...shared])];
+    const facts = [...new Set(shared)];
     return {
       markdown: "Here is a **summary of your information**. Open the document to review it, or select Print to print it or save it as a PDF.",
       artifacts: [{ title: "Your information summary", markdown:
         "## Information you shared\n\n" + (facts.length ? facts.map((fact) => "- " + escapeMarkdown(fact)).join("\n") : "No personal information has been provided yet.") +
-        "\n\n## Details to confirm\n\nOnly information shared above is known. Other personal and policy details: **Not provided**.\n\n> This summary reflects your conversation and saved memories. Confirm important policy details with your adviser." }],
+        "\n\n## Details to confirm\n\nOnly information shared above is known. Other personal and policy details: **Not provided**.\n\n> This summary reflects your conversation. Confirm important policy details with your adviser." }],
     };
   }
 
@@ -197,18 +199,31 @@
     el.home.hidden = true;
     el.chat.hidden = false;
     el.newChat.hidden = false;
+    el.continueChat.hidden = true;
   }
   function showHome() {
     closeDocumentViewer(false, true);
     LifelineSpeech.cancel();
     if (!el.voice.hidden) closeVoice();
+    if (busy) stopResponse();
+    el.chat.hidden = true;
+    el.home.hidden = false;
+    el.newChat.hidden = !el.messages.children.length;
+    el.continueChat.hidden = !el.messages.children.length;
+    el.latest.hidden = true;
+    scrollTo({ top: 0, behavior: "instant" });
+    el.continueChat.hidden ? el.input.focus() : el.continueChat.focus();
+  }
+  function newChat() {
+    closeDocumentViewer(false, true);
+    if (!el.voice.hidden) closeVoice();
     activeResponse?.abort();
     activeResponse = null;
+    activeTurn = null;
     busy = false;
     updateSend();
     stopThinking();
-    conversationHistory = [];
-    conversationModel = "";
+    backend.reset();
     currentFollowUp = null;
     workspaceContent.length = 0;
     selectedDocument = 0;
@@ -218,14 +233,36 @@
     renderVoiceFollowUp();
     userMessages.length = 0;
     el.messages.innerHTML = "";
-    el.chat.hidden = true;
-    el.newChat.hidden = true;
-    el.home.hidden = false;
+    el.input.value = "";
+    autoGrow();
+    followingLatest = true;
+    showHome();
     el.home.style.animation = "none"; void el.home.offsetWidth; el.home.style.animation = "";
-    scrollTo({ top: 0 });
-    el.input.focus();
   }
-  const scrollDown = () => scrollTo({ top: document.body.scrollHeight, behavior: reduceMotion ? "auto" : "smooth" });
+  let followingLatest = true;
+  const nearLatest = () => {
+    const page = document.scrollingElement || document.documentElement;
+    return page.scrollHeight - window.innerHeight - window.scrollY <= 96;
+  };
+  function updateLatest() {
+    el.latest.hidden = el.chat.hidden || followingLatest || nearLatest();
+  }
+  function scrollDown(force = false) {
+    if (el.chat.hidden || !el.voice.hidden) return;
+    if (force) followingLatest = true;
+    if (followingLatest) scrollTo({ top: (document.scrollingElement || document.documentElement).scrollHeight, behavior: "instant" });
+    updateLatest();
+  }
+  window.addEventListener("scroll", () => {
+    if (el.chat.hidden || !el.voice.hidden) return;
+    followingLatest = nearLatest();
+    updateLatest();
+  }, { passive: true });
+  window.addEventListener("wheel", (event) => {
+    if (event.deltaY < 0 && !el.chat.hidden && el.voice.hidden &&
+        !event.target.closest?.(".documents-panel, .dlg")) followingLatest = false;
+  }, { passive: true });
+  el.latest.addEventListener("click", () => scrollDown(true));
 
   function toast(msg) {
     $(".toast")?.remove();
@@ -263,7 +300,7 @@
     showChat();
     const { text } = makeMsg("user");
     LifelineContent.renderMarkdown(text, str);
-    scrollDown();
+    scrollDown(true);
   }
 
   /* ---------- Thinking indicator ---------- */
@@ -299,106 +336,231 @@
   }
 
   /* ---------- Streaming reply ---------- */
+  const backend = LifelineBackend.createClient();
   let busy = false;
-  let conversationHistory = [];
-  let conversationModel = "";
   let activeResponse = null;
+  let activeTurn = null;
 
-  function historyForModel(model) {
-    if (!conversationModel || conversationModel === model) return conversationHistory;
-    return conversationHistory.map(({ reasoning_details, ...message }) => message);
+  function markResponseEnded(message, label) {
+    if (!message) message = makeMsg("ai");
+    $(".orb", message.li).dataset.state = "idle";
+    const status = document.createElement("p");
+    status.className = "response-status";
+    status.setAttribute("role", "status");
+    status.textContent = label;
+    message.body.appendChild(status);
+    if (message.text.textContent.trim() && !$(".msg-actions", message.body)) addActions(message.body, message.text);
+    return message;
   }
 
-  async function respond(userText, override) {
+  function stopResponse() {
+    if (!activeResponse) return;
+    const turn = activeTurn;
+    activeResponse.abort();
+    activeResponse = null;
+    activeTurn = null;
+    stopThinking();
+    busy = false;
+    const message = markResponseEnded(turn?.message, "Response stopped. You can ask another question.");
+    updateSend();
+    scrollDown();
+    el.input.focus({ preventScroll: true });
+  }
+  el.stop.addEventListener("click", stopResponse);
+
+  async function respond(userText, override, updates = {}) {
     if (busy) return;
     busy = true; updateSend();
     const controller = new AbortController();
     activeResponse = controller;
+    activeTurn = { input: userText, override, message: null };
     const { signal } = controller;
 
-    if (OpenRouter.getKey() && !override) {
+    if (!override) {
       startThinking();
-      let created = false;
-      let aiMsg = null;
-      const ensureMessage = () => {
-        if (!created) {
-          stopThinking();
-          showChat();
-          aiMsg = makeMsg("ai");
-          $(".orb", aiMsg.li).dataset.state = "speaking";
-          created = true;
-        }
-        return aiMsg;
-      };
       try {
-        await OpenRouter.chatTurn({
-          input: userText,
-          history: historyForModel(OpenRouter.getModel()),
-          signal,
-          onTool(name, r) {
-            if (signal.aborted) return;
-            if (r.ok && (r.artifact || r.embed)) appendContent(ensureMessage().body, r);
-            else handleMemoryTool(name, r);
-          },
-          onText(full) {
-            if (signal.aborted) return;
-            LifelineContent.renderMarkdown(ensureMessage().text, full);
-            scrollDown();
-          },
-        }).then((res) => {
-          if (signal.aborted) return;
-          conversationHistory = res.history;
-          conversationModel = OpenRouter.getModel();
-          currentFollowUp = res.followUp || null;
-          if (aiMsg) {
-            $(".orb", aiMsg.li).dataset.state = "idle";
-            addActions(aiMsg.body, aiMsg.text);
-            if (res.followUp) addSuggestions(aiMsg.body, res.followUp.options, res.followUp.question);
-            scrollDown();
-          }
-        });
-      } catch (err) {
+        const data = await backend.turn({ message: userText, ...updates, signal });
+        if (signal.aborted) return;
+        stopThinking();
+        const message = makeMsg("ai");
+        activeTurn.message = message;
+        LifelineContent.renderMarkdown(message.text, data.assistant_message);
+        renderAssessment(message.body, data);
+        addActions(message.body, message.text);
+        scrollDown();
+      } catch (error) {
         if (!signal.aborted) {
           stopThinking();
-          if (aiMsg) $(".orb", aiMsg.li).dataset.state = "idle";
-          addError(err.message);
+          addError(error.message, () => respond(userText, override, updates));
+        }
+      } finally {
+        if (activeResponse === controller) {
+          busy = false; updateSend();
+          activeResponse = null;
+          activeTurn = null;
         }
       }
-      if (signal.aborted) return;
-      if (!created) stopThinking();
-      busy = false; updateSend();
-      activeResponse = null;
       return;
     }
 
-    /* ---- local mock fallback ---- */
+    /* ---- explicitly selected Test panel examples ---- */
     try {
       startThinking();
       await sleep(1500 + Math.random() * 1300);
       if (signal.aborted) return;
       stopThinking();
-      await streamReply(override || getMockReply(userText), signal);
+      await streamReply(override, signal);
     } catch (err) {
-      if (!signal.aborted) { stopThinking(); addError(err.message); }
+      if (!signal.aborted) {
+        stopThinking();
+        addError(err.message, () => respond(userText, override));
+      }
     } finally {
       if (activeResponse === controller) {
         busy = false; updateSend();
         activeResponse = null;
+        activeTurn = null;
       }
     }
   }
 
-  function addError(msg) {
+  function renderAssessment(body, data) {
+    $$(".assessment-editor", el.messages).forEach((form) => form.remove());
+    const currency = (value) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
+    const assumptionLabels = {
+      income_replacement_years: "Years of income to replace", education_per_child: "Education allowance per child",
+      final_expenses: "Final expenses", income_multiple_low: "Income comparison lower multiple",
+      income_multiple_high: "Income comparison upper multiple", hlv_discount_rate: "Future income discount rate",
+      hlv_income_growth: "Expected annual income growth", hlv_personal_consumption: "Personal spending share",
+      retirement_age: "Retirement age", max_coverage: "Maximum illustrative coverage",
+    };
+    if (data.assessment.status === "ready") {
+      const needs = data.needs_assessment, breakdown = needs.breakdown;
+      const lines = ["## Illustrative coverage gap", "", `**${currency(needs.illustrative_gap)}**`, "", escapeMarkdown(needs.disclaimer || data.disclaimer), "",
+        "| Need | Amount |", "| --- | ---: |",
+        ...breakdown.components.map((row) => `| ${escapeMarkdown(row.label)} | ${currency(row.amount)} |`),
+        `| **Total need** | **${currency(breakdown.gross_need)}** |`, "", "### Existing resources", "",
+        "| Resource | Amount |", "| --- | ---: |",
+        ...breakdown.offsets.map((row) => `| ${escapeMarkdown(row.label)} | ${currency(row.amount)} |`),
+        `| **Total resources** | **${currency(breakdown.total_offsets)}** |`, "", "### Assumptions", "",
+        ...Object.entries(data.assessment.assumptions).map(([key, value]) => {
+          const display = ["education_per_child", "final_expenses", "max_coverage"].includes(key) && Number.isFinite(value)
+            ? currency(value) : ["hlv_discount_rate", "hlv_income_growth", "hlv_personal_consumption"].includes(key) && Number.isFinite(value)
+              ? new Intl.NumberFormat("en-US", { style: "percent", maximumFractionDigits: 2 }).format(value) : value;
+          return `- ${escapeMarkdown(assumptionLabels[key] || key.replaceAll("_", " "))}: ${escapeMarkdown(display)}`;
+        }),
+      ];
+      const result = LifelineContent.validateArtifact({ title: "Your illustrative needs assessment", markdown: lines.join("\n") });
+      if (result.ok) {
+        appendContent(body, result);
+        const card = body.lastElementChild;
+        card.classList.add("needs-assessment-card");
+        $(".artifact-details", card).open = true;
+      }
+    }
+
+    // The API does not extract profile fields from free text. Collect explicit
+    // numbers, including zero, and send only edited fields to its calculator.
+    const editor = document.createElement("details");
+    editor.className = "assessment-editor artifact-card artifact-details";
+    editor.open = data.assessment.status === "collecting";
+    const summary = document.createElement("summary");
+    summary.textContent = data.assessment.status === "collecting" ? "Details for your estimate" : "Update your estimate";
+    editor.appendChild(summary);
+    const form = document.createElement("form");
+    form.className = "dlg-card";
+    const fields = [
+      ["annual_income", "Annual income ($)", "profile", 0.01],
+      ["num_children", "Number of children / dependents", "profile", 1],
+      ["mortgage_balance", "Mortgage balance ($)", "profile", 0.01],
+      ["non_mortgage_debt", "Other debts ($)", "profile", 0.01],
+      ["existing_coverage", "Existing life insurance ($)", "profile", 0.01],
+      ["liquid_savings", "Savings and investments ($)", "profile", 0.01],
+      ["income_replacement_years", "Years of income to replace", "assumptions", 1],
+      ["education_per_child", "Education allowance per child ($)", "assumptions", 0.01],
+      ["final_expenses", "Final expenses ($)", "assumptions", 0.01],
+    ];
+    for (const [key, title, group, step] of fields) {
+      const label = document.createElement("label");
+      label.className = "model-label";
+      label.textContent = title;
+      const input = document.createElement("input");
+      input.type = "number";
+      input.name = key;
+      input.min = "0";
+      input.step = String(step);
+      input.required = key === "annual_income";
+      input.value = data.assessment[group][key] ?? "";
+      label.appendChild(input);
+      form.appendChild(label);
+      if (data.assessment.field_help?.[key]) {
+        const help = document.createElement("p");
+        help.className = "dlg-note";
+        help.textContent = data.assessment.field_help[key];
+        form.appendChild(help);
+      }
+    }
+    const note = document.createElement("p");
+    note.className = "dlg-note";
+    note.textContent = "Optional details left blank use the service's assumptions. Review them with your estimate.";
+    form.appendChild(note);
+    const button = document.createElement("button");
+    button.type = "submit";
+    button.className = "btn btn-outline assessment-submit";
+    button.textContent = "Calculate estimate";
+    form.appendChild(button);
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (busy || !form.reportValidity()) return;
+      const profileUpdates = {}, assumptionUpdates = {};
+      for (const [key, , group] of fields) {
+        const value = form.elements.namedItem(key).value;
+        const previous = data.assessment[group][key];
+        if (value === "" || (previous !== null && previous !== undefined && previous !== "" && Number(value) === Number(previous))) continue;
+        const number = Number(value);
+        if (!Number.isFinite(number) || number < 0) return;
+        (group === "profile" ? profileUpdates : assumptionUpdates)[key] = number;
+      }
+      submit("Calculate my estimate using these details.", { profileUpdates, assumptionUpdates });
+    });
+    editor.appendChild(form);
+    body.appendChild(editor);
+  }
+
+  // Calculator UI can submit collected fields without owning chat transport.
+  document.addEventListener("lifeline:assessment-update", (event) => {
+    const { message = "Update my estimate.", profile_updates, assumption_updates } = event.detail || {};
+    if (typeof message !== "string") return;
+    submit(message, { profileUpdates: profile_updates, assumptionUpdates: assumption_updates });
+  });
+
+  function addError(msg, onRetry) {
     showChat();
-    const { li, text } = makeMsg("ai");
+    const { li, body, text } = makeMsg("ai");
     li.classList.add("msg-error");
+    $(".orb", li).dataset.state = "error";
     const p = document.createElement("p");
     p.textContent = msg || "Sorry, I'm having trouble connecting right now. Please try again in a moment — your message hasn't been lost.";
     text.appendChild(p);
     if (msg) {
       const retry = document.createElement("p");
-      retry.textContent = "Please check your OpenRouter API key and model in settings, then try again.";
+      retry.textContent = "Your message is still here. Retry when the service is available.";
       text.appendChild(retry);
+    }
+    if (onRetry) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "btn btn-outline retry-response";
+      button.textContent = "Retry response";
+      button.disabled = busy;
+      button.addEventListener("click", () => {
+        if (busy) return;
+        li.remove();
+        showChat();
+        scrollDown(true);
+        onRetry();
+      });
+      body.appendChild(button);
     }
     scrollDown();
   }
@@ -594,16 +756,10 @@
     el.vFollowUp.appendChild(row);
   }
 
-  function handleMemoryTool(name, result) {
-    if (!result.ok) { toast(result.error || "This action could not be completed"); return; }
-    if (!["save_memory", "forget_memory", "list_memories"].includes(name)) return;
-    toast(name === "save_memory" ? "Saved to memory" : name === "forget_memory" ? "Memory removed" : "Memories loaded");
-    renderMemories();
-  }
-
   async function streamReply(reply, signal) {
     showChat();
     const { li, body, text } = makeMsg("ai");
+    if (activeResponse?.signal === signal) activeTurn.message = { li, body, text };
     const orb = $(".orb", li);
     orb.dataset.state = "speaking";
 
@@ -677,13 +833,19 @@
   }
 
   /* ---------- Composer ---------- */
-  function updateSend() { el.send.disabled = busy || !el.input.value.trim(); }
+  function updateSend() {
+    el.send.disabled = busy || !el.input.value.trim();
+    el.send.hidden = busy;
+    el.stop.hidden = !busy;
+    $$(".retry-response").forEach((button) => { button.disabled = busy; });
+    $$(".assessment-submit").forEach((button) => { button.disabled = busy; });
+  }
   function autoGrow() {
     el.input.style.height = "auto";
     el.input.style.height = Math.min(el.input.scrollHeight, 200) + "px";
     updateSend();
   }
-  function submit(str) {
+  function submit(str, updates) {
     str = (str ?? el.input.value).trim();
     if (!str || busy) return;
     currentFollowUp = null;
@@ -691,7 +853,7 @@
     addUserMessage(str);
     el.input.value = "";
     autoGrow();
-    respond(str);
+    respond(str, undefined, updates);
   }
 
   el.input.addEventListener("input", autoGrow);
@@ -700,64 +862,75 @@
   });
   el.form.addEventListener("submit", (e) => { e.preventDefault(); submit(); });
   $$(".topic").forEach((t) => t.addEventListener("click", () => submit(t.dataset.prompt)));
-  el.newChat.addEventListener("click", showHome);
+  el.newChat.addEventListener("click", newChat);
   el.brand.addEventListener("click", (e) => { e.preventDefault(); showHome(); });
+  el.continueChat.addEventListener("click", () => {
+    showChat();
+    scrollDown(true);
+    el.input.focus({ preventScroll: true });
+  });
 
-  /* =========================================================
-     Voice mode
-     Browser speech recognition and readback with OpenRouter;
-     a simulated conversation is available in the local demo.
-     ========================================================= */
-  const VOICE_COPY = {
-    connecting: ["Connecting", "Allow microphone access to start talking."],
-    listening: ["Listening", "Go ahead, I'm listening."],
-    thinking:  ["Thinking", ""],
-    speaking:  ["Speaking", ""],
-    muted:     ["Microphone off", "Press Unmute when you're ready."],
-  };
-  let voiceRun = 0;
-  let levelRAF = 0;
-  let lastFocus = null;
-  let liveSession = null;
-  let voiceMessage = null;
+  /* ---------- Voice uses browser speech and the same backend session ---------- */
+  let recognition = null;
+  let voiceController = null;
   let voicePending = false;
-
-  function setLevel(v) { el.vOrb.style.setProperty("--level", v.toFixed(3)); }
-
-  /* Fake amplitude for the no-key demo */
-  function animateLevel() {
-    cancelAnimationFrame(levelRAF);
-    let cur = 0;
-    const tick = (t) => {
-      const s = el.vOrb.dataset.state;
-      let target = 0;
-      if (s === "speaking") target = .35 + .35 * Math.abs(Math.sin(t / 140) * Math.sin(t / 370 + 1));
-      else if (s === "listening" && el.vOrb.dataset.hearing === "1") target = .2 + .3 * Math.abs(Math.sin(t / 180) * Math.cos(t / 410));
-      else if (s === "listening") target = .04 + .03 * Math.sin(t / 900);
-      cur += (target - cur) * .18;
-      setLevel(reduceMotion ? 0 : cur);
-      levelRAF = requestAnimationFrame(tick);
-    };
-    levelRAF = requestAnimationFrame(tick);
-  }
-
+  let voiceRun = 0;
+  let lastFocus = null;
   function setVoiceState(state, text) {
     el.vOrb.dataset.state = state;
-    el.vOrb.dataset.hearing = "0";
-    el.vStatus.textContent = VOICE_COPY[state][0];
-    el.vText.textContent = text ?? VOICE_COPY[state][1];
+    el.vStatus.textContent = { listening: "Listening", thinking: "Thinking", speaking: "Speaking", muted: "Microphone off", error: "Voice unavailable" }[state];
+    el.vText.textContent = text || "";
   }
-
-  function openVoice(mock = false) {
-    if (busy) { toast("Please wait for the current reply to finish"); return; }
-    if (!el.voice.hidden) return;
-    voiceMessage = null;
+  function closeVoice() {
+    voiceRun++;
+    voiceController?.abort();
+    voiceController = null;
+    recognition?.abort();
+    recognition = null;
+    LifelineSpeech.cancel();
     voicePending = false;
-    el.vReplySend.disabled = false;
+    el.voice.hidden = true;
+    el.vCanvas.replaceChildren();
+    document.body.style.overflow = "";
+    lastFocus?.focus?.();
+  }
+  function listen() {
+    if (el.voice.hidden || voicePending || el.mute.getAttribute("aria-pressed") === "true") return;
+    try { recognition?.start(); setVoiceState("listening", "Go ahead, I'm listening."); }
+    catch (error) { $("#voice-input-status").textContent = error.message; }
+  }
+  async function voiceTurn(text) {
+    text = text.trim();
+    if (!text || voicePending || el.voice.hidden) return;
+    const run = voiceRun;
+    voicePending = true;
+    el.vReplySend.disabled = true;
+    recognition?.abort();
+    voiceController = new AbortController();
     el.vReply.value = "";
-    $("#voice-input-status").textContent = "";
-    $("#voice-output-status").textContent = "";
-    renderVoiceFollowUp();
+    addUserMessage(text);
+    setVoiceState("thinking", `You: “${text}”`);
+    try {
+      const data = await backend.turn({ message: text, signal: voiceController.signal });
+      if (run !== voiceRun || el.voice.hidden) return;
+      const message = makeMsg("ai");
+      LifelineContent.renderMarkdown(message.text, data.assistant_message);
+      renderAssessment(message.body, data);
+      addActions(message.body, message.text);
+      renderVoiceCanvas();
+      setVoiceState("speaking", data.assistant_message);
+      await LifelineSpeech.play(data.assistant_message);
+    } catch (error) {
+      if (error.name !== "AbortError" && run === voiceRun) {
+        setVoiceState("error", error.message);
+        $("#voice-input-status").textContent = error.message;
+      }
+    } finally {
+      if (run === voiceRun) { voicePending = false; el.vReplySend.disabled = false; listen(); }
+    }
+  }
+  function openVoice() {
+    if (!el.voice.hidden) return;
     lastFocus = document.activeElement;
     el.voice.hidden = false;
     renderVoiceCanvas();
@@ -765,170 +938,52 @@
     el.mute.setAttribute("aria-pressed", "false");
     $("span", el.mute).textContent = "Mute";
     el.endVoice.focus();
-    LifelineSpeech.cancel();
-
-    if (OpenRouter.getKey() && !mock) {
-      el.vOrb.dataset.state = "listening";
-      el.vStatus.textContent = "Connecting";
-      el.vText.textContent = "";
-      try {
-        liveSession = OpenRouter.startVoice({
-          onSpeechStatus(status) { $("#voice-output-status").textContent = status; },
-          onSpeechError(message) { $("#voice-output-status").textContent = message; },
-          onInputMode(mode, reason) {
-            $("#voice-input-status").textContent = mode === "audio"
-              ? (reason ? "Browser speech is unavailable. Using microphone audio instead." : "Using microphone audio.")
-              : "Using browser speech recognition.";
-          },
-          onState(s) {
-            voicePending = s === "thinking" || s === "connecting";
-            el.vReplySend.disabled = voicePending;
-            $$("button", el.vFollowUp).forEach((button) => { button.disabled = voicePending; });
-            if (el.mute.getAttribute("aria-pressed") === "true" && s === "listening") { setVoiceState("muted"); return; }
-            if (s === "connecting") { setVoiceState("connecting"); return; }
-            if (s === "muted") { setVoiceState("muted"); return; }
-            if (s === "speaking") { el.vOrb.dataset.state = "speaking"; el.vStatus.textContent = "Speaking"; }
-            else if (s === "listening") { el.vOrb.dataset.state = "listening"; el.vStatus.textContent = "Listening"; }
-            else if (s === "thinking") { el.vOrb.dataset.state = "thinking"; el.vStatus.textContent = "Thinking"; }
-          },
-          onLevel(value) { setLevel(value); },
-          onUserText(t) { el.vText.textContent = "“" + t + "”"; },
-          onUserTurn(t) {
-            currentFollowUp = null;
-            renderVoiceFollowUp();
-            $$(".suggestions", el.messages).forEach((row) => row.remove());
-            voiceMessage = null;
-            addUserMessage(t);
-          },
-          onModelText(t) {
-            el.vText.textContent = t;
-            if (!voiceMessage) voiceMessage = makeMsg("ai");
-            LifelineContent.renderMarkdown(voiceMessage.text, t);
-          },
-          onHistory(history) { conversationHistory = history; conversationModel = OpenRouter.getVoiceModel(); },
-          onTurnDone(user, model, followUp) {
-            voicePending = false;
-            el.vReplySend.disabled = false;
-            if (model) {
-              const message = voiceMessage || makeMsg("ai");
-              LifelineContent.renderMarkdown(message.text, model);
-              addActions(message.body, message.text);
-              if (followUp) addSuggestions(message.body, followUp.options, followUp.question);
-            }
-            currentFollowUp = followUp || null;
-            renderVoiceFollowUp();
-            if (user || model) el.vText.textContent = (user ? `You: “${user}”\n` : "") + (model || "");
-          },
-          onTool(name, result) {
-            if (result.ok && (result.artifact || result.embed)) {
-              showChat();
-              if (!voiceMessage) voiceMessage = makeMsg("ai");
-              appendContent(voiceMessage.body, result);
-            } else if (result.ok && result.followUp) {
-              currentFollowUp = result.followUp;
-              renderVoiceFollowUp();
-              $$("button", el.vFollowUp).forEach((button) => { button.disabled = true; });
-            } else handleMemoryTool(name, result);
-          },
-          onClose(msg) { closeVoice(); if (msg) toast(msg); },
-        }, historyForModel(OpenRouter.getVoiceModel()));
-      } catch (err) { closeVoice(); toast(err.message); }
+    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!Recognition) {
+      setVoiceState("error", "Speech recognition is unavailable here. Type your reply below.");
       return;
     }
-
-    // mock demo when no key
-    setVoiceState("listening");
-    animateLevel();
-    runVoiceDemo();
+    recognition = new Recognition();
+    recognition.lang = document.documentElement.lang || "en-US";
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.onresult = (event) => {
+      const results = Array.from(event.results);
+      const transcript = results.map((result) => result[0]?.transcript || "").join(" ").trim();
+      el.vText.textContent = transcript;
+      if (transcript && results.every((result) => result.isFinal)) voiceTurn(transcript);
+    };
+    recognition.onerror = (event) => {
+      if (event.error !== "aborted" && event.error !== "no-speech") {
+        setVoiceState("error", "Microphone unavailable. Type your reply below.");
+        $("#voice-input-status").textContent = event.error || "Speech recognition failed.";
+      }
+    };
+    recognition.onend = () => {
+      if (!voicePending && !el.voice.hidden && el.mute.getAttribute("aria-pressed") === "false")
+        setTimeout(listen, 250);
+    };
+    listen();
   }
-
-  function closeVoice() {
-    voiceRun++;
-    cancelAnimationFrame(levelRAF);
-    liveSession?.close();
-    liveSession = null;
-    LifelineSpeech.cancel();
-    voicePending = false;
-    setLevel(0);
-    el.voice.hidden = true;
-    el.vCanvas.replaceChildren();
-    document.body.style.overflow = "";
-    lastFocus?.focus?.();
-  }
-
-  function sendVoiceReply(text) {
-    text = text.trim();
-    if (!text || voicePending) return;
-    if (!liveSession) { closeVoice(); submit(text); return; }
-    liveSession.sendText(text);
-    el.vReply.value = "";
-  }
-  $("#voice-reply-form").addEventListener("submit", (event) => {
-    event.preventDefault();
-    sendVoiceReply(el.vReply.value);
-  });
-
-  async function runVoiceDemo() {
-    const id = ++voiceRun;
-    const alive = () => id === voiceRun && !el.voice.hidden;
-    const question = "How much would life insurance cost for someone my age?";
-    const answer = "It depends on a few things, like your age and health. I can work out a personal quote for you in just a few minutes.";
-
-    setVoiceState("listening");
-    await sleep(1400); if (!alive()) return;
-
-    el.vOrb.dataset.hearing = "1";
-    let said = "";
-    for (const w of question.split(" ")) {
-      if (!alive()) return;
-      said += (said ? " " : "") + w;
-      el.vText.textContent = `“${said}”`;
-      await sleep(240);
-    }
-    el.vOrb.dataset.hearing = "0";
-    await sleep(600); if (!alive()) return;
-
-    setVoiceState("thinking", `“${question}”`);
-    await sleep(2200); if (!alive()) return;
-
-    setVoiceState("speaking", "");
-    let spoken = "";
-    for (const w of answer.split(" ")) {
-      if (!alive()) return;
-      spoken += (spoken ? " " : "") + w;
-      el.vText.textContent = spoken;
-      await sleep(210);
-    }
-    await sleep(1200); if (!alive()) return;
-    setVoiceState("listening");
-  }
-
-  $("#voice-btn").addEventListener("click", () => openVoice());
-  $("#voice-cta").addEventListener("click", () => openVoice());
+  $("#voice-btn").addEventListener("click", openVoice);
+  $("#voice-cta").addEventListener("click", openVoice);
   el.endVoice.addEventListener("click", closeVoice);
+  $("#voice-reply-form").addEventListener("submit", (event) => { event.preventDefault(); voiceTurn(el.vReply.value); });
   el.mute.addEventListener("click", () => {
     const muted = el.mute.getAttribute("aria-pressed") !== "true";
     el.mute.setAttribute("aria-pressed", String(muted));
     $("span", el.mute).textContent = muted ? "Unmute" : "Mute";
-    liveSession?.setMuted(muted);
-    if (liveSession) {
-      el.vOrb.dataset.state = voicePending ? "thinking" : muted ? "muted" : "listening";
-      el.vStatus.textContent = voicePending ? "Thinking" : muted ? "Microphone off" : "Listening";
-      if (muted) el.vText.textContent = "Press Unmute when you're ready.";
-    } else {
-      voiceRun++;
-      setVoiceState(muted ? "muted" : "listening");
-    }
+    if (muted) { recognition?.abort(); setVoiceState("muted", "Press Unmute when you're ready."); }
+    else listen();
   });
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !el.voice.hidden) closeVoice(); });
-  el.voice.addEventListener("keydown", (e) => {
-    if (e.key !== "Tab") return;
-    const f = $$("button, input, select, summary, a[href], iframe, [tabindex='0']", el.voice)
-      .filter((node) => !node.disabled && !node.closest("[hidden]") &&
-        (!node.closest("details:not([open])") || node.tagName === "SUMMARY"));
-    const first = f[0], last = f[f.length - 1];
-    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !el.voice.hidden) closeVoice(); });
+  el.voice.addEventListener("keydown", (event) => {
+    if (event.key !== "Tab") return;
+    const focusable = $$("button, input, select, summary, a[href], iframe, [tabindex='0']", el.voice)
+      .filter((node) => !node.disabled && !node.closest("[hidden]"));
+    const first = focusable[0], last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   });
 
   /* ---------- Test panel ---------- */
@@ -943,13 +998,6 @@
   devBody.addEventListener("click", async (e) => {
     const a = e.target.closest("button")?.dataset.dev;
     if (!a) return;
-    const voiceMap = { "v-listen": "listening", "v-think": "thinking", "v-speak": "speaking" };
-    if (voiceMap[a]) {
-      if (el.voice.hidden) openVoice(true);
-      voiceRun++;
-      setVoiceState(voiceMap[a], a === "v-speak" ? "Here's what I found for you." : undefined);
-      return;
-    }
     switch (a) {
       case "user": addUserMessage(SAMPLES[Math.floor(Math.random() * SAMPLES.length)]); break;
       case "reply": respond("", DEFAULT_REPLY); break;
@@ -960,104 +1008,9 @@
       case "artifact": respond("", ARTIFACT_REPLY); break;
       case "embed": respond("", EMBED_REPLY); break;
       case "error": stopThinking(); addError(); break;
-      case "clear": showHome(); break;
-      case "v-auto": el.voice.hidden ? openVoice(true) : runVoiceDemo(); break;
+      case "clear": newChat(); break;
+
     }
   });
 
-  /* ---------- Settings & memories dialogs ---------- */
-  const settingsDlg = $("#settings-dlg"), memoriesDlg = $("#memories-dlg");
-  const keyInput = $("#key-input"), modelInput = $("#model-input");
-
-  function openDlg(d) { d.hidden = false; }
-  function closeDlg(d) {
-    d.hidden = true;
-    if (d === settingsDlg) { LifelineSpeech.cancel(); $("#speech-test-status").textContent = ""; }
-  }
-
-  $("#settings-btn").addEventListener("click", () => {
-    keyInput.value = OpenRouter.getKey();
-    modelInput.value = OpenRouter.getModel();
-    $("#voice-model-input").value = localStorage.getItem("openrouter-voice-model") || "";
-    $("#voice-input-mode").value = OpenRouter.getVoiceInput();
-    $("#transcription-model-input").value = localStorage.getItem("openrouter-transcription-model") || "";
-    const speech = LifelineSpeech.getSettings();
-    $("#speech-output").value = speech.output;
-    $("#tts-model-input").value = speech.model;
-    $("#tts-voice-input").value = speech.voice;
-    openDlg(settingsDlg);
-    keyInput.focus();
-  });
-  $("#key-save").addEventListener("click", () => {
-    const k = keyInput.value.trim(), model = modelInput.value.trim();
-    if (!el.voice.hidden) closeVoice();
-    if (model !== OpenRouter.getModel()) conversationHistory = conversationHistory.map(({ reasoning_details, ...message }) => message);
-    OpenRouter.setKey(k);
-    OpenRouter.setModel(model);
-    OpenRouter.setVoiceModel($("#voice-model-input").value);
-    OpenRouter.setVoiceInput($("#voice-input-mode").value);
-    OpenRouter.setTranscriptionModel($("#transcription-model-input").value);
-    LifelineSpeech.setSettings({ output: $("#speech-output").value, model: $("#tts-model-input").value, voice: $("#tts-voice-input").value });
-    toast("OpenRouter settings saved in this browser");
-    closeDlg(settingsDlg);
-  });
-  $("#test-voice-btn").addEventListener("click", async () => {
-    const status = $("#speech-test-status"), button = $("#test-voice-btn");
-    button.disabled = true;
-    try {
-      const complete = await LifelineSpeech.play("Hello. I'm Lifeline, and my spoken replies are ready.", {
-        key: keyInput.value.trim(), output: $("#speech-output").value,
-        model: $("#tts-model-input").value.trim() || LifelineSpeech.getSettings().model,
-        voice: $("#tts-voice-input").value.trim() || LifelineSpeech.getSettings().voice,
-        onStatus: (message) => { status.textContent = message; },
-      });
-      if (complete) status.textContent = "Voice test complete.";
-    } catch (error) { status.textContent = error.message; }
-    finally { button.disabled = false; }
-  });
-  $("#memories-btn").addEventListener("click", () => { renderMemories(); openDlg(memoriesDlg); });
-  modelInput.setAttribute("list", "openrouter-models");
-  $("#load-models").addEventListener("click", async () => {
-    const button = $("#load-models"), status = $("#models-status");
-    button.disabled = true;
-    status.textContent = "Loading models…";
-    try {
-      const models = await OpenRouter.listModels();
-      const list = $("#openrouter-models");
-      list.replaceChildren();
-      for (const model of models) {
-        const option = document.createElement("option");
-        option.value = model.id;
-        option.label = model.name + (model.architecture.input_modalities?.includes("audio") ? " — audio input + tools" : " — tools");
-        list.appendChild(option);
-      }
-      status.textContent = `${models.length} models with tools loaded. Choose or enter a model ID above.`;
-    } catch (error) { status.textContent = error.message; }
-    finally { button.disabled = false; }
-  });
-  $$("[data-close]").forEach((b) => b.addEventListener("click", () => closeDlg(b.closest(".dlg"))));
-  [settingsDlg, memoriesDlg].forEach((d) =>
-    d.addEventListener("click", (e) => { if (e.target === d) closeDlg(d); }));
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") [settingsDlg, memoriesDlg].forEach(closeDlg);
-  });
-
-  function renderMemories() {
-    const mems = OpenRouter.getMemories();
-    const list = $("#mem-list");
-    list.innerHTML = "";
-    $("#mem-empty").style.display = mems.length ? "none" : "";
-    for (const m of mems) {
-      const li = document.createElement("li");
-      li.innerHTML = `<span></span><button class="chip" aria-label="Delete this memory">Delete</button>`;
-      li.querySelector("span").textContent = m.text;
-      li.querySelector("button").addEventListener("click", () => {
-        OpenRouter.setMemories(OpenRouter.getMemories().filter((x) => x.id !== m.id));
-        renderMemories();
-      });
-      list.appendChild(li);
-    }
-  }
-  $("#mem-clear").addEventListener("click", () => { OpenRouter.setMemories([]); renderMemories(); });
-  document.addEventListener("memories-changed", renderMemories);
 })();

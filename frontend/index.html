@@ -30,76 +30,12 @@
         <button class="ts ts-lg" data-size="large" aria-pressed="false" aria-label="Large text">A</button>
         <button class="ts ts-xl" data-size="xlarge" aria-pressed="false" aria-label="Extra large text">A</button>
       </div>
-      <button class="icon-btn" id="memories-btn" aria-label="View saved memories" title="Saved memories">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
-      </button>
-      <button class="icon-btn" id="settings-btn" aria-label="OpenRouter settings" title="OpenRouter settings">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9c.3.6.9 1 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></svg>
-      </button>
       <button class="btn btn-outline" id="new-chat-btn" aria-label="New chat" title="New chat" hidden>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
         <span>New chat</span>
       </button>
     </div>
   </header>
-
-  <!-- ============ DIALOGS ============ -->
-  <div class="dlg" id="settings-dlg" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
-    <div class="dlg-card">
-      <h2 id="settings-title">OpenRouter settings</h2>
-      <p class="dlg-note">This is a demo. Your key is stored only in this browser. Real apps should call the API from a secure server, never the browser.</p>
-      <label for="key-input">OpenRouter API key</label>
-      <input id="key-input" type="password" autocomplete="off" placeholder="Paste your key here" />
-      <label for="model-input" class="model-label">Model</label>
-      <input id="model-input" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="model-note" />
-      <p class="dlg-note model-note" id="model-note">Enter an OpenRouter model ID in provider/model format. Choose a model that supports tools for memories, documents and embeds. Leave the API key empty to use the demo.</p>
-      <label for="voice-model-input" class="model-label">Voice model (optional)</label>
-      <input id="voice-model-input" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" list="openrouter-models" aria-describedby="voice-model-note" placeholder="Use the same model as chat" />
-      <p class="dlg-note" id="voice-model-note">Use a model with tools, such as google/gemini-3.8-flash. Speech playback is configured below.</p>
-      <label for="voice-input-mode" class="model-label">Voice input</label>
-      <select id="voice-input-mode" aria-describedby="voice-input-note">
-        <option value="auto">Automatic — browser speech with microphone fallback</option>
-        <option value="audio">OpenRouter audio — use the microphone directly</option>
-      </select>
-      <p class="dlg-note" id="voice-input-note">Automatic switches to microphone audio if browser speech fails. Pause briefly after speaking to send your turn. Microphone access requires HTTPS or localhost.</p>
-      <label for="transcription-model-input" class="model-label">Speech transcription model (optional)</label>
-      <input id="transcription-model-input" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="transcription-model-note" placeholder="google/gemini-3.8-flash" />
-      <p class="dlg-note" id="transcription-model-note">Microphone audio uses google/gemini-3.8-flash by default to transcribe speech. You can choose another OpenRouter model with audio input and text output. Your voice model still answers questions and creates documents.</p>
-      <button type="button" class="btn btn-outline" id="load-models">Load available models</button>
-      <p class="dlg-note" id="models-status" role="status"></p>
-      <datalist id="openrouter-models"></datalist>
-      <label for="speech-output" class="model-label">Spoken replies</label>
-      <select id="speech-output" aria-describedby="speech-output-note">
-        <option value="auto">Automatic — OpenRouter speech when a key is provided</option>
-        <option value="browser">Browser voices only</option>
-      </select>
-      <p class="dlg-note" id="speech-output-note">Automatic uses your OpenRouter key for speech in voice mode and Read aloud. Without a key, it uses installed browser voices.</p>
-      <label for="tts-model-input" class="model-label">Speech model</label>
-      <input id="tts-model-input" autocomplete="off" autocapitalize="none" spellcheck="false" />
-      <label for="tts-voice-input" class="model-label">Speech voice</label>
-      <input id="tts-voice-input" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="tts-note" />
-      <p class="dlg-note" id="tts-note">The default Microsoft speech model uses en-US-Harper:MAI-Voice-2.1-Flash. Voice IDs must match the speech model.</p>
-      <button type="button" class="btn btn-outline" id="test-voice-btn">Test voice</button>
-      <p class="dlg-note" id="speech-test-status" role="status"></p>
-      <div class="dlg-actions">
-        <button class="btn btn-outline" data-close>Cancel</button>
-        <button class="btn btn-primary" id="key-save">Save settings</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="dlg" id="memories-dlg" role="dialog" aria-modal="true" aria-labelledby="memories-title" hidden>
-    <div class="dlg-card">
-      <h2 id="memories-title">What Lifeline remembers</h2>
-      <p class="dlg-note">I can remember important things you tell me so I can help you better next time. You can delete anything here.</p>
-      <ul class="mem-list" id="mem-list"></ul>
-      <p class="mem-empty" id="mem-empty">Nothing saved yet.</p>
-      <div class="dlg-actions">
-        <button class="btn btn-outline" data-close>Close</button>
-        <button class="btn btn-primary" id="mem-clear">Clear all</button>
-      </div>
-    </div>
-  </div>
 
   <!-- ============ MAIN ============ -->
   <div class="session-layout" id="session-layout">
@@ -116,6 +52,7 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg>
         Talk to Lifeline
       </button>
+      <button type="button" class="btn btn-outline continue-chat" id="continue-chat-btn" hidden>Continue conversation</button>
 
       <div class="topics" role="list">
         <button class="topic" role="listitem" data-prompt="I'd like to get a quote for life insurance.">
@@ -145,6 +82,7 @@
 
   <!-- ============ COMPOSER ============ -->
   <footer class="composer-wrap">
+    <button type="button" class="btn btn-outline jump-latest" id="jump-latest-btn" hidden>Jump to latest</button>
     <form class="composer" id="composer" autocomplete="off">
       <label for="message-input" class="sr-only">Type your question</label>
       <textarea id="message-input" rows="1" placeholder="Type your question…"></textarea>
@@ -155,6 +93,7 @@
         <span class="send-label">Send</span>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6" /></svg>
       </button>
+      <button type="button" class="btn btn-outline" id="stop-response-btn" hidden>Stop response</button>
     </form>
     <p class="fineprint">Private and secure · You can ask for a real person at any time</p>
   </footer>
@@ -196,8 +135,10 @@
       <p class="voice-transcript" id="voice-transcript" aria-live="polite">Go ahead, I'm listening.</p>
       <p class="dlg-note" id="voice-input-status" role="status"></p>
       <p class="dlg-note" id="voice-output-status" role="status"></p>
+      <p class="voice-error" id="voice-error" role="alert" hidden></p>
 
       <div class="voice-controls">
+        <button type="button" class="btn btn-outline btn-lg" id="retry-voice-btn" hidden>Retry voice</button>
         <button class="btn btn-outline btn-lg" id="mute-btn" aria-pressed="false">
           <svg viewBox="0 0 24 24" aria-hidden="true" class="ic-mic"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg>
           <svg viewBox="0 0 24 24" aria-hidden="true" class="ic-mic-off"><path d="M3 3l18 18M9 9v2a3 3 0 0 0 5 2.2M15 10V6a3 3 0 0 0-5.7-1.3M5 11a7 7 0 0 0 11.5 5.3M12 18v3" /></svg>
@@ -247,10 +188,10 @@
       </div>
       <div class="devpanel-group">
         <span>Voice</span>
-        <button data-dev="v-listen">Listening</button>
-        <button data-dev="v-think">Thinking</button>
-        <button data-dev="v-speak">Speaking</button>
-        <button data-dev="v-auto">Auto demo</button>
+
+
+
+
       </div>
     </div>
   </aside>
@@ -259,8 +200,7 @@
   <script src="vendor/purify.min.js"></script>
   <script src="content.js"></script>
   <script src="speech.js"></script>
-  <script src="voice-input.js"></script>
-  <script src="openrouter.js"></script>
+  <script src="backend-api.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
