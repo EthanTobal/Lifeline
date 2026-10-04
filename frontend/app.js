@@ -44,9 +44,9 @@
   let currentFollowUp = null;
   let selectedDocument = 0;
   let lastDocumentCount = 0;
+  let voiceWorkspaceOpen = false;
   let previewedDocument = null;
   let documentViewerFocus = null;
-  let documentViewerDismissed = false;
   let documentModalActive = false;
   let documentViewerOverflow = "";
   let documentViewerOpen = false;
@@ -261,7 +261,6 @@
     currentFollowUp = null;
     workspaceContent.length = 0;
     selectedDocument = 0;
-    documentViewerDismissed = false;
     renderDocuments();
     renderVoiceCanvas();
     renderVoiceFollowUp();
@@ -685,7 +684,6 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
   }
 
   function appendContent(body, result) {
-    const hadDocuments = sessionDocuments().length > 0;
     if (result.artifact) {
       const index = sessionDocuments().length;
       body.appendChild(LifelineContent.artifactCard(result.artifact, toast, () => openDocumentViewer(index)));
@@ -695,8 +693,6 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
       workspaceContent.push(result.artifact ? { artifact: result.artifact } : { embed: result.embed });
       renderVoiceCanvas();
       renderDocuments();
-      if (result.artifact && !hadDocuments && !documentViewerDismissed && !documentsMedia.matches && el.voice.hidden)
-        openDocumentViewer(0, false);
     }
     scrollDown();
   }
@@ -708,6 +704,7 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     const documents = sessionDocuments();
     const badge = $("#documents-count");
     badge.textContent = documents.length;
+    badge.hidden = documents.length === 0;
     if (documents.length > lastDocumentCount) {
       badge.classList.remove("badge-pop");
       void badge.offsetWidth;
@@ -756,6 +753,7 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     documentModalActive = modal;
     $("#conversation-pane").inert = modal;
     $(".topbar").inert = modal;
+    el.documentsToggle.inert = modal;
     $(".devpanel").inert = modal;
     $("#documents-backdrop").hidden = !modal && !(documentViewerClosing && documentsMedia.matches);
     el.documents.setAttribute("role", modal ? "dialog" : "region");
@@ -797,7 +795,6 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     const hadFocus = el.documents.contains(document.activeElement);
     documentViewerOpen = false;
     documentViewerClosing = !immediate && !matchMedia("(prefers-reduced-motion: reduce)").matches;
-    documentViewerDismissed = true;
     $("#session-layout").classList.remove("documents-open");
     el.documentsToggle.setAttribute("aria-expanded", "false");
     syncDocumentMode();
@@ -850,7 +847,11 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
   renderDocuments();
 
   function renderVoiceCanvas() {
-    $(".voice-canvas").hidden = !workspaceContent.length;
+    $(".voice-canvas").hidden = !voiceWorkspaceOpen;
+    const count = $("#voice-documents-count");
+    count.textContent = workspaceContent.length;
+    count.hidden = !workspaceContent.length;
+    $("#voice-documents-btn").setAttribute("aria-label", `Open documents and resources (${workspaceContent.length})`);
     el.vCanvasEmpty.hidden = workspaceContent.length > 0;
     if (el.voice.hidden || !workspaceContent.length) { el.vCanvas.replaceChildren(); return; }
     // Append new content without disturbing an open document, player or keyboard focus.
@@ -863,6 +864,20 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
       if (item.embed) el.vCanvas.appendChild(LifelineContent.embedCard(item.embed));
     }
   }
+
+  function setVoiceWorkspace(open) {
+    voiceWorkspaceOpen = open;
+    $("#voice-documents-btn").setAttribute("aria-expanded", String(open));
+    $("#voice-workspace-backdrop").hidden = !open;
+    el.voice.classList.toggle("workspace-open", open);
+    $(".voice-inner").inert = open;
+    $("#voice-documents-btn").inert = open;
+    renderVoiceCanvas();
+    (open ? $("#voice-workspace-close") : $("#voice-documents-btn")).focus({ preventScroll: true });
+  }
+  $("#voice-documents-btn").addEventListener("click", () => setVoiceWorkspace(!voiceWorkspaceOpen));
+  $("#voice-workspace-close").addEventListener("click", () => setVoiceWorkspace(false));
+  $("#voice-workspace-backdrop").addEventListener("click", () => setVoiceWorkspace(false));
 
   function renderVoiceFollowUp() {
     el.vFollowUp.replaceChildren();
@@ -1040,6 +1055,13 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     clearTimeout(voiceCloseTimer);
     el.voice.hidden = true;
     el.voice.classList.remove("is-opening", "is-closing");
+    voiceWorkspaceOpen = false;
+    $("#voice-workspace").hidden = true;
+    $("#voice-workspace-backdrop").hidden = true;
+    $("#voice-documents-btn").setAttribute("aria-expanded", "false");
+    el.voice.classList.remove("workspace-open");
+    $(".voice-inner").inert = false;
+    $("#voice-documents-btn").inert = false;
     el.vCanvas.replaceChildren();
     document.body.style.overflow = "";
     voiceClosing = false;
@@ -1210,10 +1232,15 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     listen();
     startVoiceMeter();
   });
-  document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !el.voice.hidden) closeVoice(); });
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || el.voice.hidden) return;
+    event.preventDefault();
+    if (voiceWorkspaceOpen) setVoiceWorkspace(false);
+    else closeVoice();
+  });
   el.voice.addEventListener("keydown", (event) => {
     if (event.key !== "Tab") return;
-    const focusable = $$("button, input, select, summary, a[href], iframe, [tabindex='0']", el.voice)
+    const focusable = $$("button, input, select, summary, a[href], iframe, [tabindex='0']", voiceWorkspaceOpen ? $("#voice-workspace") : el.voice)
       .filter((node) => !node.disabled && !node.closest("[hidden]"));
     const first = focusable[0], last = focusable[focusable.length - 1];
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }

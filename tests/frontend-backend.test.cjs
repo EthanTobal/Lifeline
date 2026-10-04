@@ -113,8 +113,14 @@ test('coverage overview and resource bars display backend amounts without changi
   assert.equal(doc.querySelector('#documents-count').textContent, '1');
   assert.ok(doc.querySelector('.document-choice .document-thumbnail'));
   doc.querySelector('#voice-btn').click();
+  assert.equal(doc.querySelector('.voice-canvas').hidden, true);
+  doc.querySelector('#voice-documents-btn').click();
   assert.equal(doc.querySelector('.voice-canvas').hidden, false);
   assert.ok(doc.querySelector('#voice-canvas-content .artifact-card'));
+  assert.equal(doc.querySelector('#voice-documents-btn').getAttribute('aria-expanded'), 'true');
+  doc.querySelector('#voice-workspace-close').click();
+  assert.equal(doc.querySelector('.voice-canvas').hidden, true);
+  assert.equal(doc.activeElement, doc.querySelector('#voice-documents-btn'));
 });
 
 test('volume monitor reacts to microphone samples and releases audio resources on abort', async (t) => {
@@ -194,4 +200,19 @@ test('voice mute and exit stop monitoring, and old recognition events cannot sub
   doc.querySelector('#brand-home').click();
   assert.equal(stopped, 3);
   assert.equal(doc.querySelector('#voice').hidden, true);
+});
+
+
+test('side document icon opens the viewer and restores focus when dismissed', (t) => {
+  const { doc } = boot(t);
+  const button = doc.querySelector('#documents-btn');
+  assert.equal(button.closest('.topbar'), null);
+  button.focus();
+  button.click();
+  assert.equal(doc.querySelector('#documents-panel').hidden, false);
+  assert.equal(button.getAttribute('aria-expanded'), 'true');
+  doc.querySelector('#documents-close').click();
+  assert.equal(doc.querySelector('#documents-panel').hidden, true);
+  assert.equal(button.getAttribute('aria-expanded'), 'false');
+  assert.equal(doc.activeElement, button);
 });

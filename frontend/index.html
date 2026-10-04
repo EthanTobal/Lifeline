@@ -19,12 +19,6 @@
       <span class="brand-name">Lincon Lifeline</span>
     </a>
 
-    <button type="button" class="btn btn-outline documents-toggle" id="documents-btn" aria-controls="documents-panel" aria-expanded="false">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5" /></svg>
-      <span class="documents-label">Documents</span>
-      <span class="documents-count" id="documents-count" aria-hidden="true">0</span>
-    </button>
-
     <div class="topbar-actions">
       <div class="text-size" role="group" aria-label="Text size">
         <button class="ts" data-size="normal" aria-pressed="true" aria-label="Normal text">A</button>
@@ -131,9 +125,18 @@
   </aside>
   </div>
   <div class="documents-backdrop" id="documents-backdrop" hidden></div>
+  <button type="button" class="icon-btn documents-toggle" id="documents-btn" aria-label="Open documents" title="Documents" aria-controls="documents-panel" aria-expanded="false">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5" /></svg>
+    <span class="documents-count" id="documents-count" aria-hidden="true" hidden>0</span>
+  </button>
 
   <!-- ============ VOICE MODE ============ -->
   <div class="voice" id="voice" role="dialog" aria-modal="true" aria-labelledby="voice-status" hidden>
+    <button type="button" class="icon-btn voice-documents-toggle" id="voice-documents-btn" aria-label="Open documents and resources" title="Documents and resources" aria-controls="voice-workspace" aria-expanded="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5" /></svg>
+      <span class="documents-count" id="voice-documents-count" aria-hidden="true" hidden>0</span>
+    </button>
+    <div class="voice-workspace-backdrop" id="voice-workspace-backdrop" aria-hidden="true" hidden></div>
     <div class="voice-layout">
     <div class="voice-inner">
       <div class="voice-orb-stage">
@@ -165,7 +168,10 @@
       </form>
       <div id="voice-follow-up" class="voice-follow-up" hidden></div>
     </div>
-    <aside class="voice-canvas" aria-labelledby="voice-canvas-title" hidden>
+    <aside class="voice-canvas" id="voice-workspace" aria-labelledby="voice-canvas-title" hidden>
+      <button type="button" class="icon-btn voice-workspace-close" id="voice-workspace-close" aria-label="Close documents and resources" title="Close documents">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+      </button>
       <div class="voice-canvas-heading">
         <span class="content-label">Your workspace</span>
         <h2 id="voice-canvas-title">Documents &amp; resources</h2>
