@@ -30,6 +30,7 @@ zp = os.path.join(root, 'lambda_pkg.zip')
 if os.path.exists(zp):
     os.remove(zp)
 z = zipfile.ZipFile(zp, 'w', zipfile.ZIP_DEFLATED)
+# 1. The application code (app/*.py).
 for d, _, fs in os.walk(app):
     if '__pycache__' in d:
         continue
@@ -37,8 +38,32 @@ for d, _, fs in os.walk(app):
         if f.endswith('.py'):
             full = os.path.join(d, f)
             z.write(full, os.path.relpath(full, root).replace(os.sep, '/'))
+# 2. The demo data JSON (backend/data/*.json). The product matcher's catalog
+#    fallback and the policy-record lookup read these at runtime; without them
+#    in the package, those features go inert in Lambda. Shipped at 'data/' so
+#    the modules' _BACKEND_DIR/data path resolves (zip root is the function
+#    root, i.e. the parent of app/).
+data = os.path.join(root, 'data')
+if os.path.isdir(data):
+    for d, _, fs in os.walk(data):
+        for f in fs:
+            if f.endswith('.json'):
+                full = os.path.join(d, f)
+                z.write(full, os.path.relpath(full, root).replace(os.sep, '/'))
+# 3. The policy service (services/*.py) the matcher prefers over the fallback.
+services = os.path.join(root, 'services')
+if os.path.isdir(services):
+    for d, _, fs in os.walk(services):
+        if '__pycache__' in d:
+            continue
+        for f in fs:
+            if f.endswith('.py'):
+                full = os.path.join(d, f)
+                z.write(full, os.path.relpath(full, root).replace(os.sep, '/'))
 z.close()
-print('packaged', os.path.getsize(zp), 'bytes')
+names = zipfile.ZipFile(zp).namelist()
+print('packaged', os.path.getsize(zp), 'bytes,', len(names), 'files')
+print('  data:', [n for n in names if n.startswith('data/')])
 "@
 $py | py -
 
