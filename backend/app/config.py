@@ -19,7 +19,7 @@ except Exception:  # dotenv not installed is fine; real env vars still work
 
 
 @dataclass(frozen=True)
-class Config:
+class Config: 
     """Resolved backend configuration.
 
     `bedrock_enabled` lets the rest of the app degrade gracefully: when the

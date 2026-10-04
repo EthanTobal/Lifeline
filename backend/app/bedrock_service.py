@@ -18,10 +18,13 @@ Guardrails baked in:
 """
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, asdict
 from typing import Any
 
 from .config import Config, load_config
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -137,11 +140,21 @@ class BedrockService:
             )
         except Exception:
             # Offline / creds / permissions: degrade to no sources.
+            logger.exception("Bedrock KB retrieve() failed for query=%r", query)
             return []
 
         sources: list[Source] = []
+        seen_content: set[str] = set()
         for item in resp.get("retrievalResults", []):
             content = (item.get("content") or {}).get("text", "")
+            # Overlapping KB chunks can come back as near-duplicates, which
+            # over-represents that passage in the prompt and biases the model
+            # toward echoing it back almost verbatim. Keep the first (highest
+            # scoring) occurrence of each distinct chunk only.
+            dedup_key = " ".join(content.split()).lower()
+            if dedup_key and dedup_key in seen_content:
+                continue
+            seen_content.add(dedup_key)
             loc = item.get("location") or {}
             # location shape varies by data-source type; stringify defensively
             location = (
@@ -265,4 +278,6 @@ class BedrockService:
             parts = resp.get("output", {}).get("message", {}).get("content", [])
             return "".join(p.get("text", "") for p in parts).strip()
         except Exception:
+            logger.exception("Bedrock converse() failed for modelId=%r",
+                             self.config.model_id)
             return ""

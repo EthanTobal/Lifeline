@@ -88,6 +88,7 @@ def _scan_amounts(text: str) -> list[_Amount]:
         if match.group(2) is None and number < _MIN_PLAIN_AMOUNT:
             continue
         out.append(_Amount(number, match.start(), match.end()))
+    out.extend(_scan_word_amounts(text))
     return out
 
 
@@ -95,6 +96,101 @@ def find_amounts(text: str) -> list[float]:
     """Backwards-compatible: just the amount values (smallest-to-largest order
     is not guaranteed; callers that need positions use _scan_amounts)."""
     return [a.value for a in _scan_amounts(text)]
+
+
+# --------------------------------------------------------------------------
+# Spelled-out money amounts ("ninety thousand dollars", "a hundred and
+# twenty thousand"). Voice transcription in particular tends to produce
+# words rather than digits, and without this the extractor silently returns
+# no update for the turn -- which, combined with a static fallback prompt,
+# makes the assistant ask the exact same question again verbatim.
+# --------------------------------------------------------------------------
+
+_WORD_ONES = {
+    "zero": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
+    "seven": 7, "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12,
+    "thirteen": 13, "fourteen": 14, "fifteen": 15, "sixteen": 16,
+    "seventeen": 17, "eighteen": 18, "nineteen": 19,
+}
+_WORD_TENS = {
+    "twenty": 20, "thirty": 30, "forty": 40, "fifty": 50, "sixty": 60,
+    "seventy": 70, "eighty": 80, "ninety": 90,
+}
+_WORD_SCALES = {"thousand": 1_000, "million": 1_000_000, "grand": 1_000}
+
+_WORD_NUM_TOKEN = (
+    r"(?:a|an|and|zero|one|two|three|four|five|six|seven|eight|nine|ten|"
+    r"eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|"
+    r"nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|"
+    r"hundred|thousand|million|grand)"
+)
+_WORD_AMOUNT_RE = re.compile(
+    rf"\b{_WORD_NUM_TOKEN}(?:[\s-]+{_WORD_NUM_TOKEN})*\b", re.IGNORECASE
+)
+
+
+def _words_to_number(phrase: str) -> float | None:
+    """Parse a spelled-out number phrase. Returns None unless it reads as a
+    real amount (mirrors the digit path: needs a scale word, or to resolve to
+    at least `_MIN_PLAIN_AMOUNT`), so bare small words like "two" or "a" in
+    unrelated sentences are never mistaken for money."""
+    tokens = phrase.lower().replace("-", " ").split()
+    total = 0.0
+    current = 0.0
+    saw_quantifier = False
+    saw_large_scale = False
+    i = 0
+    while i < len(tokens):
+        tok = tokens[i]
+        if tok in ("a", "an"):
+            # Only a numeral when it introduces a scale ("a hundred", "a
+            # thousand"/"a million"/"a grand"). A trailing "a" that belongs to
+            # the rest of the sentence ("...a year") is not part of the
+            # amount, so stop here rather than miscounting it as +1.
+            nxt = tokens[i + 1] if i + 1 < len(tokens) else None
+            if nxt == "hundred" or nxt in _WORD_SCALES:
+                current += 1
+                saw_quantifier = True
+            else:
+                break
+        elif tok == "and":
+            pass
+        elif tok in _WORD_ONES:
+            current += _WORD_ONES[tok]
+            saw_quantifier = True
+        elif tok in _WORD_TENS:
+            current += _WORD_TENS[tok]
+            saw_quantifier = True
+        elif tok == "hundred":
+            if not saw_quantifier:
+                return None
+            current = (current or 1) * 100
+        elif tok in _WORD_SCALES:
+            if not saw_quantifier:
+                # A bare "thousand"/"million" with no quantifier before it is
+                # not a standalone amount -- it's almost always the tail of a
+                # digit+word amount ("90 thousand") already handled elsewhere.
+                return None
+            total += (current or 1) * _WORD_SCALES[tok]
+            current = 0
+            saw_large_scale = True
+        i += 1
+    total += current
+    if not saw_quantifier:
+        return None
+    if not saw_large_scale and total < _MIN_PLAIN_AMOUNT:
+        return None
+    return total
+
+
+def _scan_word_amounts(text: str) -> list[_Amount]:
+    out: list[_Amount] = []
+    for match in _WORD_AMOUNT_RE.finditer(text):
+        value = _words_to_number(match.group(0))
+        if value is None:
+            continue
+        out.append(_Amount(value, match.start(), match.end()))
+    return out
 
 
 # --------------------------------------------------------------------------
