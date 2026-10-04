@@ -6,46 +6,93 @@
     "None of these are actual Lincoln Financial products, quotes, offers, premiums,",
     "guarantees, eligibility rules, underwriting requirements, or recommendations.",
     "",
-    "Primary source of truth for wording: the Markdown files in knowledge/demo-policies/.",
-    "This file adds no premiums, coverage limits, rates, eligibility criteria, or",
-    "underwriting requirements, because the source files contain none.",
+    "This is PRODUCT catalog data only. It is deliberately kept separate from any",
+    "individual customer's policy records and from the customer assessment profile.",
+    "A customer's own coverage lives in their session/assessment, never here.",
     "",
-    "This catalog is deliberately separate from knowledge/lincoln-documents/ and must",
-    "never be mixed into the Lincoln RAG corpus or the Bedrock Knowledge Base.",
+    "SOURCING RULE: every factual claim in an entry cites a source in its own",
+    "'sources' list (a repo document + section, or an official URL). Anything the",
+    "source material does not state is recorded as the string \"unknown\" -- it is",
+    "never invented. Fields currently \"unknown\" for every entry (eligibility,",
+    "availability, real costs/premiums, optional riders) are listed in",
+    "docs/CATALOG_MISSING_SOURCES.md for the team to supply official material.",
     "",
-    "document.s3_bucket / document.s3_key are stored as separate values on purpose.",
-    "No URLs are fabricated and no credentials live here; a backend component may",
-    "later exchange the bucket/key pair for a temporary presigned S3 URL."
+    "This catalog must never be merged into knowledge/lincoln-documents/, the",
+    "Lincoln RAG corpus, or the Bedrock Knowledge Base.",
+    "",
+    "document.s3_bucket / document.s3_key are stored separately on purpose; a",
+    "backend component may later exchange them for a temporary presigned S3 URL.",
+    "No credentials or fabricated URLs live here."
   ],
 
+  "schema_version": "2",
+
   "_field_notes": {
-    "relative_cost": "Null for the two permanent-life demos: the source files state no relative cost for them, and none has been invented.",
-    "coverage_period": "Permanent-life demos are described as 'may provide lifetime coverage depending on how the policy is maintained' rather than as unconditionally lasting for life.",
-    "matching_tags": "Normalised to snake_case so they can be used as structured filter values."
+    "insurer": "The fictional demo issuer. NOT Lincoln Financial. The demo corpus aligns at a high level with Lincoln educational material but names no real issuer, so the issuer of these fictional products is recorded as the demo brand 'LifeLine (fictional demo issuer)'.",
+    "benefits": "Only benefits explicitly documented in the source markdown. No benefit is inferred.",
+    "coverage_durations": "Durations the source file states. Permanent demos say 'may provide lifetime coverage depending on how the policy is maintained' rather than guaranteeing lifetime cover.",
+    "eligibility": "The source demo files contain NO eligibility or underwriting rules, so this is \"unknown\" for every entry by design (never invented).",
+    "availability": "The source demo files state no state/channel availability, so this is \"unknown\" for every entry.",
+    "costs": "The source demo files contain NO premiums or dollar figures. 'relative_cost' is a qualitative framing only where the source states one; 'premium_detail' is \"unknown\" everywhere because no real pricing exists.",
+    "optional_riders": "The source demo files document NO riders. Recorded as \"unknown\" for every entry. Any future rider MUST be marked optional:true and carry its own source.",
+    "sources": "Each source has type (repo_document|official_url), ref (path or URL), section, and the list of entry fields it supports."
   },
 
   "source_documents": [
+    "knowledge/demo-policies/README.md",
     "knowledge/demo-policies/lifeline-term-20.md",
     "knowledge/demo-policies/lifeline-term-30.md",
     "knowledge/demo-policies/lifeline-indexed-protection.md",
-    "knowledge/demo-policies/lifeline-variable-protection.md"
+    "knowledge/demo-policies/lifeline-variable-protection.md",
+    "knowledge/demo-policies/policy-matching-rules.md"
   ],
 
   "policies": [
     {
       "id": "lifeline-term-20",
       "display_name": "LifeLine Term 20",
+      "insurer": "LifeLine (fictional demo issuer)",
       "insurance_type": "term",
+      "policy_type": "Term life insurance",
       "is_demo_product": true,
       "actual_lincoln_product": false,
       "demo_disclaimer": "Hackathon Demo — Not an actual Lincoln Financial product or quote.",
+
+      "plain_language": "Straightforward life insurance that covers you for a set period of 20 years. If something happens to you during those years, your family receives the payout. It is meant for needs that have an end date, like replacing your income or paying off a mortgage while the kids are young. It costs less than lifetime coverage, but it does not build any savings and the cover stops when the 20 years are up.",
+      "description": "A demo term structure illustrating straightforward protection for a defined 20-year period. It is intended to demonstrate scenarios involving time-bound financial responsibilities such as income replacement, a mortgage, debts, or supporting dependents while they are younger.",
+
+      "benefits": [
+        "Fixed death benefit for the defined 20-year period.",
+        "Premium is fixed during the demo term.",
+        "Generally lower relative cost than permanent coverage.",
+        "Simple, defined protection aligned to time-bound obligations."
+      ],
+
       "coverage_period": "20 years",
+      "coverage_durations": ["20 years"],
       "premium_structure": "Fixed during the demo term",
       "death_benefit": "Fixed",
       "cash_value": "None",
       "relative_cost": "Generally lower relative cost than permanent coverage",
-      "description": "A demo term structure illustrating straightforward protection for a defined 20-year period. It is intended to demonstrate scenarios involving time-bound financial responsibilities such as income replacement, a mortgage, debts, or supporting dependents while they are younger.",
+
+      "eligibility": "unknown",
+      "availability": "unknown",
+
+      "limitations": [
+        "Coverage is temporary and ends after the 20-year term.",
+        "The policy does not build cash value."
+      ],
+      "risks": [
+        "If protection is still needed after 20 years, the coverage will have ended."
+      ],
+      "costs": {
+        "relative_cost": "Generally lower relative cost than permanent coverage",
+        "premium_detail": "unknown"
+      },
+      "optional_riders": "unknown",
+
       "tradeoffs": "A defined term can align with temporary obligations and may have a lower relative cost than permanent coverage. The tradeoff is that coverage ends after the defined period and the policy does not build cash value.",
+
       "matching_tags": [
         "temporary_coverage",
         "income_replacement",
@@ -53,6 +100,22 @@
         "dependents",
         "simplicity"
       ],
+
+      "sources": [
+        {
+          "type": "repo_document",
+          "ref": "knowledge/demo-policies/lifeline-term-20.md",
+          "section": "Illustrative characteristics; Demo purpose; Tradeoffs LifeLine may explain",
+          "supports": ["plain_language", "description", "benefits", "coverage_durations", "premium_structure", "death_benefit", "cash_value", "relative_cost", "limitations", "risks", "costs.relative_cost", "tradeoffs", "matching_tags"]
+        },
+        {
+          "type": "repo_document",
+          "ref": "knowledge/demo-policies/README.md",
+          "section": "Important; Application rule",
+          "supports": ["insurer", "is_demo_product", "actual_lincoln_product", "demo_disclaimer", "policy_type"]
+        }
+      ],
+
       "document": {
         "available": true,
         "title": "LifeLine Term 20 Demo Policy",
@@ -64,23 +127,70 @@
     {
       "id": "lifeline-term-30",
       "display_name": "LifeLine Term 30",
+      "insurer": "LifeLine (fictional demo issuer)",
       "insurance_type": "term",
+      "policy_type": "Term life insurance",
       "is_demo_product": true,
       "actual_lincoln_product": false,
       "demo_disclaimer": "Hackathon Demo — Not an actual Lincoln Financial product or quote.",
+
+      "plain_language": "The same kind of straightforward life insurance as the 20-year version, but it covers you for 30 years instead. It suits longer time-bound needs, like a mortgage with many years left or young children who will depend on you for a long time. Like all term cover, it costs less than lifetime coverage, builds no savings, and ends when the 30 years are over.",
+      "description": "A demo term structure illustrating straightforward protection for a longer defined period of 30 years. It can be used in the demo when time-bound obligations extend further into the future.",
+
+      "benefits": [
+        "Fixed death benefit for the defined 30-year period.",
+        "Premium is fixed during the demo term.",
+        "Generally lower relative cost than permanent coverage.",
+        "Keeps the protection period in place longer than a shorter term."
+      ],
+
       "coverage_period": "30 years",
+      "coverage_durations": ["30 years"],
       "premium_structure": "Fixed during the demo term",
       "death_benefit": "Fixed",
       "cash_value": "None",
       "relative_cost": "Generally lower relative cost than permanent coverage",
-      "description": "A demo term structure illustrating straightforward protection for a longer defined period of 30 years. It can be used in the demo when time-bound obligations extend further into the future.",
+
+      "eligibility": "unknown",
+      "availability": "unknown",
+
+      "limitations": [
+        "Coverage is temporary and ends after the 30-year term.",
+        "The policy does not build cash value."
+      ],
+      "risks": [
+        "If protection is still needed after 30 years, the coverage will have ended."
+      ],
+      "costs": {
+        "relative_cost": "Generally lower relative cost than permanent coverage",
+        "premium_detail": "unknown"
+      },
+      "optional_riders": "unknown",
+
       "tradeoffs": "Compared with a shorter term example, a longer term keeps the illustrative protection period in place longer. It remains temporary coverage and does not provide cash-value growth.",
+
       "matching_tags": [
         "longer_temporary_coverage",
         "income_replacement",
         "mortgage",
         "dependents"
       ],
+
+      "sources": [
+        {
+          "type": "repo_document",
+          "ref": "knowledge/demo-policies/lifeline-term-30.md",
+          "section": "Illustrative characteristics; Demo purpose; Tradeoffs LifeLine may explain",
+          "supports": ["plain_language", "description", "benefits", "coverage_durations", "premium_structure", "death_benefit", "cash_value", "relative_cost", "limitations", "risks", "costs.relative_cost", "tradeoffs", "matching_tags"]
+        },
+        {
+          "type": "repo_document",
+          "ref": "knowledge/demo-policies/README.md",
+          "section": "Important; Application rule",
+          "supports": ["insurer", "is_demo_product", "actual_lincoln_product", "demo_disclaimer", "policy_type"]
+        }
+      ],
+
       "document": {
         "available": true,
         "title": "LifeLine Term 30 Demo Policy",
@@ -92,17 +202,49 @@
     {
       "id": "lifeline-indexed-protection",
       "display_name": "LifeLine Indexed Protection",
+      "insurer": "LifeLine (fictional demo issuer)",
       "insurance_type": "indexed_universal_life",
+      "policy_type": "Indexed universal life (IUL)",
       "is_demo_product": true,
       "actual_lincoln_product": false,
       "demo_disclaimer": "Hackathon Demo — Not an actual Lincoln Financial product or quote.",
+
+      "plain_language": "A more flexible kind of life insurance meant to last much longer, potentially for life, as long as it is kept up. On top of the payout for your family, it can build up a cash value over time, and that growth is linked to how a market index performs. It is not money invested directly in the market, and the growth is not guaranteed. It is more complicated than plain term insurance.",
+      "description": "A demo permanent life structure illustrating longer-term protection with flexible characteristics and potential cash value. Cash-value interest may be associated with an index methodology; this is not a direct investment in an index. More complex than term coverage.",
+
+      "benefits": [
+        "Longer-term protection that may last a lifetime depending on how the policy is maintained.",
+        "Flexible premium structure.",
+        "Potential cash-value growth linked to an index methodology (not guaranteed)."
+      ],
+
       "coverage_period": "Longer-term; may provide lifetime coverage depending on how the policy is maintained",
+      "coverage_durations": ["Longer-term; may provide lifetime coverage depending on how the policy is maintained"],
       "premium_structure": "Flexible",
       "death_benefit": "May vary based on policy structure",
       "cash_value": "Potential cash value; growth may be associated with an index methodology. Growth is not guaranteed.",
       "relative_cost": null,
-      "description": "A demo permanent life structure illustrating longer-term protection with flexible characteristics and potential cash value. Cash-value interest may be associated with an index methodology; this is not a direct investment in an index. More complex than term coverage.",
+
+      "eligibility": "unknown",
+      "availability": "unknown",
+
+      "limitations": [
+        "More complex than straightforward term coverage.",
+        "Lifetime coverage is not unconditional; it depends on how the policy is maintained.",
+        "Cash-value growth is not guaranteed.",
+        "Index-linked growth is not a direct investment in an index."
+      ],
+      "risks": [
+        "Cash-value growth is index-linked and not guaranteed; it may underperform expectations."
+      ],
+      "costs": {
+        "relative_cost": "unknown",
+        "premium_detail": "unknown"
+      },
+      "optional_riders": "unknown",
+
       "tradeoffs": "Adds potential cash-value features and greater flexibility compared with term insurance, while also introducing more complexity. Cash-value growth should never be described as guaranteed.",
+
       "matching_tags": [
         "permanent_coverage",
         "cash_value",
@@ -110,6 +252,22 @@
         "flexibility",
         "long_term"
       ],
+
+      "sources": [
+        {
+          "type": "repo_document",
+          "ref": "knowledge/demo-policies/lifeline-indexed-protection.md",
+          "section": "Illustrative characteristics; Demo purpose; Tradeoffs LifeLine may explain; Guardrails",
+          "supports": ["plain_language", "description", "benefits", "coverage_durations", "premium_structure", "death_benefit", "cash_value", "limitations", "risks", "tradeoffs", "matching_tags"]
+        },
+        {
+          "type": "repo_document",
+          "ref": "knowledge/demo-policies/README.md",
+          "section": "Important; Application rule",
+          "supports": ["insurer", "is_demo_product", "actual_lincoln_product", "demo_disclaimer", "policy_type"]
+        }
+      ],
+
       "document": {
         "available": true,
         "title": "LifeLine Indexed Protection Demo Policy",
@@ -121,17 +279,49 @@
     {
       "id": "lifeline-variable-protection",
       "display_name": "LifeLine Variable Protection",
+      "insurer": "LifeLine (fictional demo issuer)",
       "insurance_type": "variable_universal_life",
+      "policy_type": "Variable universal life (VUL)",
       "is_demo_product": true,
       "actual_lincoln_product": false,
       "demo_disclaimer": "Hackathon Demo — Not an actual Lincoln Financial product or quote.",
+
+      "plain_language": "A flexible life insurance meant to last a long time, potentially for life, that can also build cash value. Here the cash value is tied to investment options you choose, so it can grow more but can also go down with the market. It offers more growth potential than the index-linked version, but with more ups and downs, more expenses, and more risk. Growth is not guaranteed.",
+      "description": "A demo permanent life structure illustrating longer-term protection with flexible characteristics and potential cash value based on investment options. Carries greater exposure to market movement and risk.",
+
+      "benefits": [
+        "Longer-term protection that may last a lifetime depending on how the policy is maintained.",
+        "Flexible premium structure.",
+        "Potential cash-value growth based on investment options (not guaranteed)."
+      ],
+
       "coverage_period": "Longer-term; may provide lifetime coverage depending on how the policy is maintained",
+      "coverage_durations": ["Longer-term; may provide lifetime coverage depending on how the policy is maintained"],
       "premium_structure": "Flexible",
       "death_benefit": "May vary based on policy structure",
       "cash_value": "Potential cash value based on investment options; growth is not guaranteed.",
       "relative_cost": null,
-      "description": "A demo permanent life structure illustrating longer-term protection with flexible characteristics and potential cash value based on investment options. Carries greater exposure to market movement and risk.",
+
+      "eligibility": "unknown",
+      "availability": "unknown",
+
+      "limitations": [
+        "Greater exposure to market movement than index-linked or term structures.",
+        "Cash value can fluctuate and growth is not guaranteed.",
+        "Can involve greater variability, expenses, and risk."
+      ],
+      "risks": [
+        "Cash value is tied to investment options and can fall as well as rise with the market.",
+        "Higher expenses and variability than simpler structures."
+      ],
+      "costs": {
+        "relative_cost": "unknown",
+        "premium_detail": "unknown"
+      },
+      "optional_riders": "unknown",
+
       "tradeoffs": "Greater growth potential alongside greater exposure to market movement. Cash value can fluctuate and growth is not guaranteed.",
+
       "matching_tags": [
         "permanent_coverage",
         "cash_value",
@@ -139,6 +329,22 @@
         "flexibility",
         "long_term"
       ],
+
+      "sources": [
+        {
+          "type": "repo_document",
+          "ref": "knowledge/demo-policies/lifeline-variable-protection.md",
+          "section": "Illustrative characteristics; Demo purpose; Tradeoffs LifeLine may explain; Guardrails",
+          "supports": ["plain_language", "description", "benefits", "coverage_durations", "premium_structure", "death_benefit", "cash_value", "limitations", "risks", "tradeoffs", "matching_tags"]
+        },
+        {
+          "type": "repo_document",
+          "ref": "knowledge/demo-policies/README.md",
+          "section": "Important; Application rule",
+          "supports": ["insurer", "is_demo_product", "actual_lincoln_product", "demo_disclaimer", "policy_type"]
+        }
+      ],
+
       "document": {
         "available": true,
         "title": "LifeLine Variable Protection Demo Policy",

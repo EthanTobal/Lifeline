@@ -232,5 +232,107 @@ class TestNoFabricatedFinancials(unittest.TestCase):
                                  f"{policy['id']} contains fabricated pricing")
 
 
+class TestStructuredCatalogSchema(unittest.TestCase):
+    """The enriched catalog schema: every entry carries the structured fields
+    a recommendation/comparison layer needs, every factual claim is sourced,
+    and anything undocumented is explicitly 'unknown' rather than invented."""
+
+    STRUCTURED_FIELDS = (
+        "insurer", "policy_type", "plain_language", "benefits",
+        "coverage_durations", "eligibility", "availability", "limitations",
+        "risks", "costs", "optional_riders", "sources",
+    )
+
+    def test_every_entry_retrievable_by_id_with_full_schema(self):
+        for policy_id in EXPECTED_IDS:
+            policy = policy_service.get_policy(policy_id)
+            self.assertIsNotNone(policy, f"{policy_id} not retrievable by ID")
+            for field in self.STRUCTURED_FIELDS:
+                self.assertIn(field, policy,
+                              f"{policy_id} missing structured field {field}")
+
+    def test_identity_fields_present(self):
+        for policy in policy_service.get_all_policies():
+            self.assertTrue(policy["id"])
+            self.assertTrue(policy["display_name"])
+            self.assertTrue(policy["insurer"])
+            self.assertTrue(policy["policy_type"])
+
+    def test_insurer_is_not_a_real_company(self):
+        for policy in policy_service.get_all_policies():
+            self.assertNotIn("lincoln", policy["insurer"].lower(),
+                             f"{policy['id']} must not name Lincoln as issuer")
+
+    def test_every_policy_cites_at_least_one_source_with_a_ref(self):
+        for policy in policy_service.get_all_policies():
+            sources = policy_service.get_policy_sources(policy["id"])
+            self.assertTrue(sources, f"{policy['id']} must cite a source")
+            for source in sources:
+                self.assertTrue(source.get("ref"),
+                                f"{policy['id']} source missing 'ref'")
+
+    def test_source_refs_point_at_real_repo_documents(self):
+        for policy in policy_service.get_all_policies():
+            for source in policy_service.get_policy_sources(policy["id"]):
+                if source.get("type") == "repo_document":
+                    path = os.path.join(REPO_ROOT, source["ref"])
+                    self.assertTrue(os.path.exists(path),
+                                    f"{policy['id']} cites missing doc {source['ref']}")
+
+    def test_undocumented_details_are_explicit_unknown_not_invented(self):
+        # The source demo files document no eligibility, availability, real
+        # premiums, or riders -- these must read 'unknown', never a guess.
+        for policy in policy_service.get_all_policies():
+            self.assertEqual(policy["eligibility"], "unknown")
+            self.assertEqual(policy["availability"], "unknown")
+            self.assertEqual(policy["optional_riders"], "unknown")
+            self.assertEqual(policy["costs"]["premium_detail"], "unknown")
+
+    def test_unknown_fields_helper_reports_the_unknowns(self):
+        for policy in policy_service.get_all_policies():
+            unknown = policy_service.unknown_fields(policy)
+            for expected in ("eligibility", "availability", "optional_riders",
+                             "costs.premium_detail"):
+                self.assertIn(expected, unknown,
+                              f"{policy['id']} should flag {expected} unknown")
+
+    def test_benefits_and_limitations_are_nonempty_lists(self):
+        for policy in policy_service.get_all_policies():
+            self.assertIsInstance(policy["benefits"], list)
+            self.assertTrue(policy["benefits"], f"{policy['id']} has no benefits")
+            self.assertIsInstance(policy["limitations"], list)
+            self.assertTrue(policy["limitations"],
+                            f"{policy['id']} has no limitations")
+
+    def test_coverage_durations_is_a_nonempty_list(self):
+        for policy in policy_service.get_all_policies():
+            self.assertIsInstance(policy["coverage_durations"], list)
+            self.assertTrue(policy["coverage_durations"])
+
+
+class TestCatalogCustomerSeparation(unittest.TestCase):
+    """Product catalog data must stay separate from any individual customer's
+    policy records and from the assessment profile."""
+
+    def test_catalog_has_no_customer_record_fields(self):
+        customer_fields = (
+            "customer_id", "customer", "owner", "policy_number", "annual_income",
+            "mortgage_balance", "beneficiary", "ssn", "profile", "session_id",
+        )
+        for policy in policy_service.get_all_policies():
+            keys = {k.lower() for k in policy.keys()}
+            for forbidden in customer_fields:
+                self.assertNotIn(forbidden, keys,
+                                 f"{policy['id']} leaks a customer field {forbidden}")
+
+    def test_catalog_module_does_not_import_customer_models(self):
+        # The retrieval layer must not reach into the customer assessment layer.
+        import inspect
+        src = inspect.getsource(policy_service)
+        self.assertNotIn("from app.models", src)
+        self.assertNotIn("import models", src)
+        self.assertNotIn("Assessment", src)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

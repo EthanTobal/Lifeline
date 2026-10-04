@@ -47,12 +47,30 @@ class PolicyServiceError(RuntimeError):
     """Raised when the policy catalog cannot be loaded or violates its contract."""
 
 
-def _validate(policy: dict[str, Any]) -> None:
-    """Enforce the demo-product safety contract.
+# Fields every catalog entry must declare. Each must be present; where the
+# source material documents nothing, the value is the string "unknown" (never
+# omitted and never invented). This is what lets the app assert that every
+# factual claim either has content or is explicitly marked unknown.
+REQUIRED_FIELDS = (
+    "id", "display_name", "insurer", "insurance_type", "policy_type",
+    "plain_language", "benefits", "coverage_durations",
+    "eligibility", "availability", "limitations", "risks", "costs",
+    "optional_riders", "sources",
+)
 
-    These flags are the guardrail that stops fictional demo policies from ever
-    being presented as real Lincoln Financial products, so a wrong value is a
-    bug worth failing loudly on rather than silently tolerating.
+# The sentinel used for anything the source documents do not state.
+UNKNOWN = "unknown"
+
+
+def _validate(policy: dict[str, Any]) -> None:
+    """Enforce the demo-product safety contract AND the catalog schema.
+
+    The demo flags are the guardrail that stops fictional demo policies from
+    ever being presented as real Lincoln Financial products. The schema checks
+    guarantee that every entry carries the required structured fields and at
+    least one source, so callers can trust that each factual claim is sourced
+    or explicitly marked ``"unknown"``. A violation is a bug worth failing
+    loudly on rather than silently tolerating.
     """
     policy_id = policy.get("id", "<unknown>")
     if policy.get("is_demo_product") is not True:
@@ -64,6 +82,23 @@ def _validate(policy: dict[str, Any]) -> None:
     if policy.get("demo_disclaimer") != REQUIRED_DISCLAIMER:
         raise PolicyServiceError(
             f"policy {policy_id!r} must carry the required demo disclaimer")
+
+    # Every required field must be present (content or the explicit "unknown").
+    for field in REQUIRED_FIELDS:
+        if field not in policy:
+            raise PolicyServiceError(
+                f"policy {policy_id!r} is missing required field {field!r}")
+
+    # Factual claims must be sourced: a non-empty 'sources' list, each with a
+    # ref. This is the check behind "its factual claims have sources".
+    sources = policy.get("sources")
+    if not isinstance(sources, list) or not sources:
+        raise PolicyServiceError(
+            f"policy {policy_id!r} must cite at least one source")
+    for source in sources:
+        if not isinstance(source, dict) or not source.get("ref"):
+            raise PolicyServiceError(
+                f"policy {policy_id!r} has a source with no 'ref'")
 
 
 @lru_cache(maxsize=1)
@@ -155,6 +190,37 @@ def get_document_location(policy_id: str) -> dict[str, str] | None:
     if not bucket or not key:
         return None
     return {"s3_bucket": bucket, "s3_key": key}
+
+
+def get_policy_sources(policy_id: str) -> list[dict[str, Any]]:
+    """Return the source citations backing a policy's factual claims.
+
+    Each source is ``{type, ref, section, supports}``. Returns an empty list
+    when the policy is unknown. Lets a caller show "where this came from".
+    """
+    policy = get_policy(policy_id)
+    if policy is None:
+        return []
+    return list(policy.get("sources", []))
+
+
+def unknown_fields(policy: dict[str, Any]) -> list[str]:
+    """Return the names of fields explicitly marked ``"unknown"`` for a policy.
+
+    These are facts the source material does not document (e.g. eligibility,
+    availability, real premiums, optional riders). Surfacing them makes it
+    clear what is genuinely undocumented versus simply absent, and feeds the
+    team's list of missing source material.
+    """
+    unknown: list[str] = []
+    for key, value in policy.items():
+        if value == UNKNOWN:
+            unknown.append(key)
+        elif isinstance(value, dict):
+            for sub_key, sub_value in value.items():
+                if sub_value == UNKNOWN:
+                    unknown.append(f"{key}.{sub_key}")
+    return sorted(unknown)
 
 
 def get_all_tags() -> list[str]:
