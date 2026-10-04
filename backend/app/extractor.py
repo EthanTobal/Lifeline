@@ -609,6 +609,19 @@ _APPROVAL_INTENT = re.compile(
     r"\b(am i (?:approved|qualified)|will (?:you|lincoln) approve|do i qualify|"
     r"underwrit\w*|am i eligible)\b", re.IGNORECASE)
 
+# Unambiguous "start/continue the needs assessment" phrases. These are checked
+# BEFORE the educational pattern because some (e.g. "how much do I need")
+# otherwise look like a "how much ..." education question, yet in a life-
+# insurance assessment they plainly mean "help me work out my coverage".
+_ASSESSMENT_STRONG_INTENT = re.compile(
+    r"\b(estimate my coverage|estimate my cover\b|estimate my needs|"
+    r"coverage estimate|needs assessment|needs analysis|"
+    r"how much (?:do|should) i (?:need|have|get)|"
+    r"figure out how much|work out how much|"
+    r"get started|getting started|new to this|"
+    r"(?:no idea|not sure) where (?:to|do i) start|where (?:to|do i) start)\b",
+    re.IGNORECASE)
+
 
 # Topics LifeLine does not cover. These are recognised so the assistant can
 # state its scope plainly instead of starting a life-insurance assessment.
@@ -667,6 +680,9 @@ def classify_intent(message: str) -> str:
         return "approval"
     if _RECOMMENDATION_INTENT.search(text):
         return "recommendation"
+    # Strong assessment phrases win over the broad educational pattern.
+    if _ASSESSMENT_STRONG_INTENT.search(text):
+        return "assessment"
     if _EDUCATIONAL_INTENT.search(text):
         return "educational"
     if _ASSESSMENT_INTENT.search(text):
