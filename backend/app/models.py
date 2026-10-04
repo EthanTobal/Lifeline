@@ -141,6 +141,28 @@ class Assessment:
         """Edit the stored assumptions (explicit + editable, per the brief)."""
         self.assumptions = resolve_assumptions({**self._assumption_overrides(), **(overrides or {})})
 
+    # ---- conversation state (persisted in context) ----
+    def mark_started(self) -> None:
+        """Record that the user has entered an assessment (so we don't start
+        collecting financial details off a general/educational question)."""
+        self.context["_assessment_started"] = True
+
+    @property
+    def started(self) -> bool:
+        return bool(self.context.get("_assessment_started"))
+
+    def set_last_asked(self, field_key: str | None) -> None:
+        """Remember which field the assistant just asked about, so the next
+        message's bare answer can be attributed to it."""
+        if field_key:
+            self.context["_last_asked_field"] = field_key
+        else:
+            self.context.pop("_last_asked_field", None)
+
+    @property
+    def last_asked_field(self) -> str | None:
+        return self.context.get("_last_asked_field")
+
     def _assumption_overrides(self) -> dict:
         # current assumptions expressed as overrides (so edits merge, not reset)
         return {k: v for k, v in self.assumptions.items()}
@@ -203,7 +225,9 @@ class Assessment:
             "next_field_why": next_field["why"] if next_field else None,
             "known_summary": self.known_summary(),
             "profile": dict(self.profile),
-            "context": dict(self.context),
+            # Hide internal conversation-state keys (prefixed with "_") from the
+            # customer-facing contract.
+            "context": {k: v for k, v in self.context.items() if not k.startswith("_")},
             "assumptions": dict(self.assumptions),
             "field_help": {f["key"]: f["why"] for f in PROFILE_FIELDS},
         }

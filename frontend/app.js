@@ -39,6 +39,7 @@
     documentsToggle: $("#documents-btn"),
     documentsList: $("#documents-list"),
     documentContent: $("#document-content"),
+    composerSuggestions: $("#composer-suggestions"),
   };
   const workspaceContent = [];
   let currentFollowUp = null;
@@ -266,6 +267,7 @@
     renderVoiceFollowUp();
     userMessages.length = 0;
     el.messages.innerHTML = "";
+    clearComposerSuggestions();
     el.input.value = "";
     autoGrow();
     followingLatest = true;
@@ -381,6 +383,10 @@
   let busy = false;
   let activeResponse = null;
   let activeTurn = null;
+  // The latest coverage estimate shown in the chat. Save/Print act on this.
+  // A document is only created when the user explicitly saves/prints — a
+  // recalculation just updates this value and the inline chat card.
+  let currentEstimate = null;
 
   function markResponseEnded(message, label) {
     if (!message) message = makeMsg("ai");
@@ -429,6 +435,7 @@
         revealResponse(message.text);
         renderAssessment(message.body, data);
         addActions(message.body, message.text);
+        renderComposerSuggestions(suggestionsForTurn(data));
         scrollDown();
       } catch (error) {
         if (!signal.aborted) {
@@ -502,95 +509,61 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
         `- **${escapeMarkdown(row.label)}: ${currency(row.amount)}**` +
         (row.detail ? `\n  - ${escapeMarkdown(row.detail)}` : "");
       const lines = [
-        "## Illustrative coverage gap", "",
+        "## Your coverage estimate", "",
+        "**Estimated additional coverage**", "",
         `**${currency(needs.illustrative_gap)}**`, "",
-        escapeMarkdown(needs.disclaimer || data.disclaimer), "",
+        "A planning estimate based on your details and the assumptions shown.", "",
         "### What builds this up", "",
         ...breakdown.components.map(componentLine), "",
-        `**Gross illustrative need: ${currency(breakdown.gross_need)}**`, "",
+        `**Total needs: ${currency(breakdown.gross_need)}**`, "",
         "### What you already have", "",
         ...breakdown.offsets.map((row) => `- **${escapeMarkdown(row.label)}: −${currency(row.amount)}**`),
         "",
-        `**Total resources: ${currency(breakdown.total_offsets)}**`, "",
-        "### Assumptions behind these figures", "",
+        `**Resources you already have: ${currency(breakdown.total_offsets)}**`, "",
+        "### Assumptions used", "",
         ...assumptionLines,
         "",
-        "> These are estimates, not facts. Open “Update your estimate” "
-        + "below to change the years of income replaced, the education "
-        + "allowance per child, or final expenses, and the backend will "
-        + "recalculate.",
+        "> These are estimates, not facts. Just tell me in the chat if "
+        + "anything changes — your income, dependents, debts, coverage, or "
+        + "savings — and I'll recalculate. You can save or print this estimate "
+        + "any time with the buttons below.",
       ];
-      const result = LifelineContent.validateArtifact({ title: "Your illustrative needs assessment", markdown: lines.join("\n") });
-      if (result.ok) {
-        appendContent(body, result);
-        const card = body.lastElementChild;
-        card.classList.add("needs-assessment-card");
-        const overview = document.createElement("section");
-        overview.className = "estimate-overview";
-        const label = document.createElement("p");
-        label.className = "content-label";
-        label.textContent = "Illustrative coverage gap";
-        const amount = document.createElement("p");
-        amount.className = "estimate-amount";
-        amount.textContent = currency(needs.illustrative_gap);
-        const disclaimer = document.createElement("p");
-        disclaimer.className = "estimate-disclaimer";
-        disclaimer.textContent = needs.disclaimer || data.disclaimer;
-        overview.append(label, amount, disclaimer);
-        const comparison = document.createElement("div");
-        comparison.className = "estimate-comparison";
-        comparison.setAttribute("aria-label", "Illustrative need compared with existing resources");
-        const max = Math.max(breakdown.gross_need, breakdown.total_offsets, 1);
-        for (const [title, value, kind] of [["Total illustrative need", breakdown.gross_need, "need"], ["Existing resources", breakdown.total_offsets, "resources"]]) {
-          const row = document.createElement("div");
-          row.className = `estimate-row estimate-${kind}`;
-          const caption = document.createElement("p");
-          const name = document.createElement("span"), total = document.createElement("strong");
-          name.textContent = title;
-          total.textContent = currency(value);
-          caption.append(name, total);
-          const track = document.createElement("div"), bar = document.createElement("span");
-          track.className = "estimate-track";
-          track.setAttribute("aria-hidden", "true");
-          bar.style.width = `${value / max * 100}%`;
-          track.append(bar);
-          row.append(caption, track);
-          comparison.append(row);
-        }
-        overview.append(comparison);
-        const components = document.createElement("dl");
-        components.className = "estimate-components";
-        for (const row of breakdown.components) {
-          const item = document.createElement("div"), title = document.createElement("dt"), value = document.createElement("dd");
-          title.textContent = row.label;
-          value.textContent = currency(row.amount);
-          item.append(title, value);
-          components.append(item);
-        }
-        overview.append(components);
-        card.insertBefore(overview, $(".artifact-details", card));
-        $(".artifact-details", card).open = false;
-      }
+      const markdown = lines.join("\n");
+      // Remember the current estimate so Save / Print act on exactly this one.
+      currentEstimate = { title: "Your coverage estimate", markdown };
+
+      // Render the estimate INLINE in the chat. It is NOT a document: a
+      // recalculation just shows the new numbers here. A document is only
+      // created when the user explicitly chooses Save or Print below.
+      const card = document.createElement("article");
+      card.className = "artifact-card needs-assessment-card";
+      LifelineContent.renderMarkdown(card, markdown);
+      card.appendChild(buildEstimateActions(currentEstimate));
+      body.appendChild(card);
+      // Human-in-the-loop: securely send details to a licensed advisor.
+      body.appendChild(buildReviewAction());
+      scrollDown();
     }
 
-    // The backend also extracts facts from free text, but a customer editing
-    // numbers here means exactly these values. Send only the edited fields and
-    // let the backend calculator recompute -- this UI never does the maths.
+    // Collection is CONVERSATION-ONLY: the backend extracts every fact from
+    // what the customer says, so no data-entry form is shown while collecting.
+    // The chat itself asks for anything still missing, one thing at a time.
+    //
+    // Once an estimate is ready we offer a small, OPTIONAL refinement for just
+    // the three assumptions the estimate card references (years of income to
+    // replace, education allowance, final expenses). The six profile inputs
+    // are intentionally gone — those come from the conversation.
+    if (data.assessment.status !== "ready") return;
+
     const editor = document.createElement("details");
     editor.className = "assessment-editor artifact-card artifact-details";
-    editor.open = data.assessment.status === "collecting";
+    editor.open = false;  // tucked away; the conversation is the main path
     const summary = document.createElement("summary");
-    summary.textContent = data.assessment.status === "collecting" ? "Details for your estimate" : "Update your estimate";
+    summary.textContent = "Adjust the assumptions (optional)";
     editor.appendChild(summary);
     const form = document.createElement("form");
     form.className = "dlg-card";
     const fields = [
-      ["annual_income", "Annual income ($)", "profile", 0.01],
-      ["num_children", "Number of children / dependents", "profile", 1],
-      ["mortgage_balance", "Mortgage balance ($)", "profile", 0.01],
-      ["non_mortgage_debt", "Other debts ($)", "profile", 0.01],
-      ["existing_coverage", "Existing life insurance ($)", "profile", 0.01],
-      ["liquid_savings", "Savings and investments ($)", "profile", 0.01],
       ["income_replacement_years", "Years of income to replace", "assumptions", 1],
       ["education_per_child", "Education allowance per child ($)", "assumptions", 0.01],
       ["final_expenses", "Final expenses ($)", "assumptions", 0.01],
@@ -606,7 +579,6 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
       input.name = key;
       input.min = "0";
       input.step = String(step);
-      input.required = key === "annual_income";
       input.value = data.assessment[group][key] ?? "";
       label.appendChild(input);
       field.appendChild(label);
@@ -620,29 +592,137 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     }
     const note = document.createElement("p");
     note.className = "dlg-note";
-    note.textContent = "Optional details left blank use the service's assumptions. Review them with your estimate.";
+    note.textContent = "Change any of these and I'll recalculate. To change your "
+      + "income, dependents, debts, coverage, or savings, just tell me in the chat.";
     form.appendChild(note);
     const button = document.createElement("button");
     button.type = "submit";
     button.className = "btn btn-outline assessment-submit";
-    button.textContent = "Calculate estimate";
+    button.textContent = "Recalculate";
     form.appendChild(button);
     form.addEventListener("submit", (event) => {
       event.preventDefault();
       if (busy || !form.reportValidity()) return;
-      const profileUpdates = {}, assumptionUpdates = {};
+      const assumptionUpdates = {};
       for (const [key, , group] of fields) {
         const value = form.elements.namedItem(key).value;
         const previous = data.assessment[group][key];
         if (value === "" || (previous !== null && previous !== undefined && previous !== "" && Number(value) === Number(previous))) continue;
         const number = Number(value);
         if (!Number.isFinite(number) || number < 0) return;
-        (group === "profile" ? profileUpdates : assumptionUpdates)[key] = number;
+        assumptionUpdates[key] = number;
       }
-      submit("Calculate my estimate using these details.", { profileUpdates, assumptionUpdates });
+      submit("Please recalculate with these assumptions.", { assumptionUpdates });
     });
     editor.appendChild(form);
     body.appendChild(editor);
+  }
+
+  // Save / Print buttons for the inline coverage estimate. These are the ONLY
+  // way a document gets created — a recalculation never creates one.
+  function buildEstimateActions(estimate) {
+    const row = document.createElement("div");
+    row.className = "estimate-actions";
+    row.setAttribute("role", "group");
+    row.setAttribute("aria-label", "Estimate actions");
+
+    const save = document.createElement("button");
+    save.type = "button";
+    save.className = "btn btn-outline estimate-save";
+    save.textContent = "Save to documents";
+    save.addEventListener("click", () => saveCurrentEstimate(estimate, { open: true }));
+
+    const print = document.createElement("button");
+    print.type = "button";
+    print.className = "btn btn-outline estimate-print";
+    print.textContent = "Print / download";
+    print.addEventListener("click", () => {
+      // Printing also saves a copy so there's a durable record, then prints.
+      saveCurrentEstimate(estimate, { open: false });
+      try { LifelineContent.printArtifact(estimate); } catch (error) { toast(error.message); }
+    });
+
+    row.append(save, print);
+    return row;
+  }
+
+  // Create or UPDATE the single saved coverage-estimate document. Saving the
+  // same assessment again replaces the existing entry rather than adding a
+  // duplicate; genuinely different documents (different titles) stay separate.
+  function saveCurrentEstimate(estimate, { open = true } = {}) {
+    const validated = LifelineContent.validateArtifact(estimate);
+    if (!validated.ok) { toast(validated.error); return; }
+    const existing = workspaceContent.findIndex(
+      (item) => item.artifact && item.artifact.title === validated.artifact.title);
+    if (existing >= 0) {
+      workspaceContent[existing] = { artifact: validated.artifact };
+      toast("Updated your saved estimate");
+    } else {
+      workspaceContent.push({ artifact: validated.artifact });
+      toast("Saved to documents");
+    }
+    renderVoiceCanvas();
+    renderDocuments();
+    if (open && !documentsMedia.matches && el.voice.hidden) {
+      const index = workspaceContent.filter((i) => i.artifact).findIndex(
+        (i) => i.artifact.title === validated.artifact.title);
+      openDocumentViewer(index < 0 ? 0 : index, false);
+    }
+  }
+
+  // "Send to an advisor" — securely stores the collected assessment and
+  // notifies a licensed advisor for a precise, reviewed estimate. The details
+  // are already saved server-side; this flags them for human review and shows
+  // the customer a reference number.
+  function buildReviewAction() {
+    const wrap = document.createElement("div");
+    wrap.className = "review-action artifact-card";
+
+    const blurb = document.createElement("p");
+    blurb.className = "review-blurb";
+    blurb.textContent = "Want a precise figure? Send your details securely to a "
+      + "licensed advisor for review. Your information is stored securely, and "
+      + "you'll get a reference number to quote.";
+    wrap.appendChild(blurb);
+
+    const row = document.createElement("div");
+    row.className = "review-row";
+    const email = document.createElement("input");
+    email.type = "email";
+    email.placeholder = "Email for the advisor to reach you (optional)";
+    email.className = "review-email";
+    email.autocomplete = "email";
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn btn-primary review-submit";
+    btn.textContent = "Send to an advisor for review";
+    row.appendChild(email);
+    row.appendChild(btn);
+    wrap.appendChild(row);
+
+    const result = document.createElement("p");
+    result.className = "review-result";
+    result.hidden = true;
+    wrap.appendChild(result);
+
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      const original = btn.textContent;
+      btn.textContent = "Sending…";
+      try {
+        const data = await backend.submitForReview({ contact: email.value.trim() });
+        result.hidden = false;
+        result.textContent = `${data.message} (Reference: ${data.reference})`;
+        row.hidden = true;
+        toast("Sent to an advisor for review");
+      } catch (error) {
+        btn.disabled = false;
+        btn.textContent = original;
+        toast(error.message || "Could not send for review. Please try again.");
+      }
+    });
+
+    return wrap;
   }
 
   // Calculator UI can submit collected fields without owning chat transport.
@@ -977,6 +1057,80 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     body.appendChild(row);
   }
 
+  /* ---------- Contextual composer suggestions ----------
+     A short row of quick replies sits above the composer and updates after
+     every turn based on the backend's own state (status + which field it is
+     asking about next). The buttons never invent a dollar amount — they offer
+     intents like "I'm not sure" or "No savings set aside" and let the backend
+     extractor interpret them. Selecting one goes through submit(), the exact
+     same path as typing, so there is one pipeline for all input. */
+
+  // Per-field quick answers for the question currently being asked. Phrasing is
+  // plain-language and amount-free; the backend binds it to the asked field.
+  const FIELD_SUGGESTIONS = {
+    annual_income: ["I'm not sure", "Why do you need this?"],
+    num_children: ["No dependents", "Just my partner", "Why does this matter?"],
+    mortgage_balance: ["No mortgage", "I'm not sure", "Why do you need this?"],
+    non_mortgage_debt: ["No other debts", "I'm not sure"],
+    existing_coverage: ["No coverage yet", "Only through work", "Why does this matter?"],
+    liquid_savings: ["No savings set aside", "I'm not sure", "Why does this matter?"],
+  };
+
+  // Decide the suggestion row for a turn, straight from the response contract.
+  function suggestionsForTurn(data) {
+    const assessment = data?.assessment || {};
+    const status = assessment.status;
+
+    if (status === "collecting") {
+      const field = assessment.next_field;
+      const perField = FIELD_SUGGESTIONS[field] || [];
+      // Lead with the field-specific answers, then a general escape hatch.
+      return dedupeSuggestions([...perField, "Talk to a real person"]);
+    }
+
+    if (status === "ready") {
+      // An estimate is on screen: offer ways to understand or refine it,
+      // never a fabricated number.
+      return dedupeSuggestions([
+        "Explain this estimate",
+        "Change an assumption",
+        "Something has changed",
+      ]);
+    }
+
+    // Idle / general question with no assessment under way.
+    return dedupeSuggestions([
+      "Estimate my coverage",
+      "How does life insurance work?",
+      "Talk to a real person",
+    ]);
+  }
+
+  function dedupeSuggestions(list) {
+    return [...new Set(list.filter(Boolean))].slice(0, 4);
+  }
+
+  // Render (or clear) the contextual row above the composer.
+  function renderComposerSuggestions(list) {
+    const row = el.composerSuggestions;
+    row.replaceChildren();
+    if (!list || !list.length || el.chat.hidden) { row.hidden = true; return; }
+    for (const text of list) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "suggestion";
+      button.textContent = text;
+      button.addEventListener("click", () => submit(text));
+      row.appendChild(button);
+    }
+    row.hidden = false;
+  }
+
+  function clearComposerSuggestions() {
+    el.composerSuggestions.replaceChildren();
+    el.composerSuggestions.hidden = true;
+  }
+
   /* ---------- Composer ---------- */
   function updateSend() {
     el.form.classList.toggle("is-ready", !busy && !!el.input.value.trim());
@@ -996,6 +1150,7 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     if (!str || busy) return;
     currentFollowUp = null;
     $$(".suggestions", el.messages).forEach((s) => s.remove());
+    clearComposerSuggestions();
     addUserMessage(str);
     el.input.value = "";
     autoGrow();
@@ -1120,6 +1275,7 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
       revealResponse(message.text);
       renderAssessment(message.body, data);
       addActions(message.body, message.text);
+      renderComposerSuggestions(suggestionsForTurn(data));
       renderVoiceCanvas();
       setVoiceState("speaking", data.assistant_message);
       await LifelineSpeech.play(data.assistant_message);

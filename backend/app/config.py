@@ -32,6 +32,8 @@ class Config:
     knowledge_base_id: str
     model_id: str
     aws_profile: str
+    assessments_table: str   # DynamoDB table for durable, secure session storage
+    agent_review_topic_arn: str  # SNS topic for notifying a human advisor
 
     @property
     def bedrock_enabled(self) -> bool:
@@ -42,6 +44,16 @@ class Config:
         # Retrieval only needs the KB id; generation also needs the model.
         return bool(self.knowledge_base_id)
 
+    @property
+    def persistence_enabled(self) -> bool:
+        # When no table is configured the app falls back to in-memory sessions
+        # so tests and local dev keep working with no AWS.
+        return bool(self.assessments_table)
+
+    @property
+    def agent_review_enabled(self) -> bool:
+        return bool(self.agent_review_topic_arn)
+
 
 def load_config() -> Config:
     return Config(
@@ -49,4 +61,6 @@ def load_config() -> Config:
         knowledge_base_id=os.getenv("BEDROCK_KNOWLEDGE_BASE_ID", "").strip(),
         model_id=os.getenv("BEDROCK_MODEL_ID", "").strip(),
         aws_profile=os.getenv("AWS_PROFILE", "").strip(),
+        assessments_table=os.getenv("ASSESSMENTS_TABLE", "").strip(),
+        agent_review_topic_arn=os.getenv("AGENT_REVIEW_TOPIC_ARN", "").strip(),
     )

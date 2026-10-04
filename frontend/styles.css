@@ -384,6 +384,11 @@ h1 #greeting { font-weight: 700; color: var(--hl); }
   transition: background-color .2s, color .2s;
 }
 .suggestion:hover { background: var(--hl); color: var(--bg); }
+.suggestion:focus-visible { outline: none; box-shadow: var(--focus); }
+
+/* Save / Print actions beneath the inline coverage estimate */
+.estimate-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1rem; }
+.estimate-actions .btn { min-height: 48px; }
 
 /* thinking row: small orb + shimmering text */
 .thinking { align-items: center; }
@@ -412,6 +417,16 @@ h1 #greeting { font-weight: 700; color: var(--hl); }
   box-shadow: var(--shadow); font-size: .9rem;
 }
 .jump-latest:active { transform: translateX(-50%) scale(.97); }
+
+/* Contextual suggestion row directly above the composer. Buttons wrap on
+   small screens and route through the normal submit() pipeline, so they
+   behave exactly as if the customer had typed the text. */
+.composer-suggestions {
+  max-width: var(--maxw); margin: 0 auto .6rem;
+  display: flex; flex-wrap: wrap; gap: .5rem;
+}
+.composer-suggestions[hidden] { display: none; }
+.composer-suggestions .suggestion { margin-top: 0; }
 #stop-response-btn { padding-inline: 1rem; }
 .composer {
   max-width: var(--maxw); margin: 0 auto;
@@ -784,4 +799,44 @@ h1 #greeting { font-weight: 700; color: var(--hl); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
   .shimmer { color: var(--ink-soft); background: none; }
+}
+
+/* ============ Send-to-advisor review action ============ */
+.review-action {
+  margin-top: 12px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--hl-tint, #FFF1EB);
+}
+.review-action .review-blurb {
+  margin: 0 0 12px;
+  color: var(--ink);
+  font-size: .95em;
+  line-height: 1.5;
+}
+.review-action .review-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.review-action .review-email {
+  flex: 1 1 240px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font: inherit;
+}
+.review-action .review-submit { white-space: nowrap; }
+.review-action .review-result {
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  background: #EAF6EC;
+  border-left: 3px solid #2E7D44;
+  border-radius: var(--radius);
+  color: #1a3a24;
+  font-size: .95em;
+  line-height: 1.5;
 }

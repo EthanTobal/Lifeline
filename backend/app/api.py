@@ -5,7 +5,8 @@ without installing a web framework. For AWS, lambda_handler (below) wraps
 the same Orchestrator behind API Gateway — build now, deploy later.
 
 Endpoints:
-    POST /api/turn    body: {session_id?, message?, profile_updates?, assumption_updates?}
+    POST /api/turn           body: {session_id?, message?, profile_updates?, assumption_updates?}
+    POST /api/submit-review  body: {session_id?, contact?} -> {ok, reference, ...}
     POST /api/gemini-token   body: {} -> {token, model, expires_at}
     GET  /health
 """
@@ -42,6 +43,14 @@ def _handle_gemini_token(payload: dict) -> dict:
         return {"error": "unavailable", "detail": str(exc)}
 
 
+def _handle_submit(payload: dict) -> dict:
+    """Submit the collected assessment to a human advisor for review."""
+    return _orchestrator.submit_for_review(
+        session_id=payload.get("session_id"),
+        contact=payload.get("contact", ""),
+    )
+
+
 class Handler(BaseHTTPRequestHandler):
     def _send(self, code: int, body: dict) -> None:
         data = json.dumps(body).encode("utf-8")
@@ -64,7 +73,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send(404, {"error": "not found"})
 
     def do_POST(self):
-        if self.path not in ("/api/turn", "/api/gemini-token"):
+        if self.path not in ("/api/turn", "/api/gemini-token", "/api/submit-review"):
             self._send(404, {"error": "not found"})
             return
         try:
@@ -78,6 +87,8 @@ class Handler(BaseHTTPRequestHandler):
                 result = _handle_gemini_token(payload)
                 # 503, not 500: the backend is healthy, voice is just off.
                 self._send(200 if "error" not in result else 503, result)
+            elif self.path == "/api/submit-review":
+                self._send(200, _handle_submit(payload))
             else:
                 self._send(200, _handle_turn(payload))
         except Exception as exc:  # never leak a stack trace to the client
@@ -88,17 +99,30 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def lambda_handler(event, context=None):
-    """AWS Lambda entry point (API Gateway proxy integration). Wraps the same
-    Orchestrator, plus the Gemini Live token endpoint."""
+    """AWS Lambda entry point (API Gateway proxy integration). Routes by path
+    so /api/turn, /api/submit-review, and /api/gemini-token all hit the same
+    backend."""
     try:
         body = json.loads(event.get("body") or "{}")
     except (ValueError, json.JSONDecodeError):
-        return {"statusCode": 400, "body": json.dumps({"error": "invalid JSON body"})}
+        return {"statusCode": 400,
+                "headers": {"Content-Type": "application/json",
+                            "Access-Control-Allow-Origin": "*"},
+                "body": json.dumps({"error": "invalid JSON body"})}
 
-    path = (event.get("resource") or event.get("path") or "")
-    if path.endswith("/api/gemini-token"):
+    # Determine the path from the proxy event (HTTP API v2 or REST v1 shapes).
+    path = (event.get("rawPath")
+            or event.get("path")
+            or event.get("resource")
+            or (event.get("requestContext", {}).get("http", {}) or {}).get("path", "")
+            or "")
+    if path.endswith("/gemini-token"):
         result = _handle_gemini_token(body)
+        # 503, not 500: the backend is healthy, voice is just off.
         status = 200 if "error" not in result else 503
+    elif path.endswith("/submit-review"):
+        result = _handle_submit(body)
+        status = 200
     else:
         result = _handle_turn(body)
         status = 200

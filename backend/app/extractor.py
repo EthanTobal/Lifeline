@@ -1,10 +1,19 @@
-"""Deterministic natural-language -> profile_updates extraction.
+"""Natural-language -> profile_updates extraction.
 
 Turns what the customer actually said into structured calculator inputs so the
 guided assessment can progress without the customer knowing the schema.
 
 DESIGN RULES (deliberate, conservative):
   * Only a value the customer EXPLICITLY stated is ever recorded.
+  * Each money amount binds to the field whose keyword is NEAREST to it, so a
+    single sentence with several numbers maps each number to the right field.
+    We never take "the biggest number in the message" for a field.
+      - "I make $90k and owe $180k on the house, $100k cover through work"
+        -> income 90,000 ; mortgage 180,000 ; coverage 100,000 (not all 180k)
+  * A bare answer with no field keyword ("10k", "10k for family") attaches to
+    the field the assistant just asked about (`asked_field`).
+  * FUTURE GOALS are not current balances. "I want to save $10k" / "my goal is
+    to have $10k" is NOT recorded as current savings.
   * Nothing is inferred, guessed, or defaulted.
       - "I have a mortgage"           -> mortgage balance UNKNOWN (ask again)
       - "I have insurance at work"    -> coverage amount UNKNOWN (ask again)
@@ -15,7 +24,7 @@ DESIGN RULES (deliberate, conservative):
     authority for the assessment arithmetic.
   * Pure standard library, fully offline and unit-testable.
 
-Extraction is deliberately regex-based rather than model-based so it is
+Extraction is deliberately rule-based rather than model-based so it is
 deterministic, free, and cannot hallucinate a number.
 """
 from __future__ import annotations
@@ -57,9 +66,20 @@ def _to_number(value: str, suffix: str | None) -> float | None:
     return amount
 
 
-def find_amounts(text: str) -> list[float]:
-    """All monetary-looking numbers in the text, largest last."""
-    out: list[float] = []
+class _Amount:
+    """A money amount and where it sits in the text, so we can bind it to the
+    nearest field keyword rather than guessing with max()."""
+    __slots__ = ("value", "start", "end")
+
+    def __init__(self, value: float, start: int, end: int) -> None:
+        self.value = value
+        self.start = start
+        self.end = end
+
+
+def _scan_amounts(text: str) -> list[_Amount]:
+    """Every monetary-looking number in the text, with positions."""
+    out: list[_Amount] = []
     for match in _MONEY_RE.finditer(text):
         number = _to_number(match.group(1), match.group(2))
         if number is None:
@@ -67,8 +87,66 @@ def find_amounts(text: str) -> list[float]:
         # A bare "5" or "30" is not money unless an explicit suffix said so.
         if match.group(2) is None and number < _MIN_PLAIN_AMOUNT:
             continue
-        out.append(number)
+        out.append(_Amount(number, match.start(), match.end()))
     return out
+
+
+def find_amounts(text: str) -> list[float]:
+    """Backwards-compatible: just the amount values (smallest-to-largest order
+    is not guaranteed; callers that need positions use _scan_amounts)."""
+    return [a.value for a in _scan_amounts(text)]
+
+
+# --------------------------------------------------------------------------
+# Field keyword definitions. Each field lists the keywords that signal it.
+# An amount is attributed to the field whose keyword is closest to it.
+# --------------------------------------------------------------------------
+
+_FIELD_KEYWORDS: dict[str, list[str]] = {
+    "annual_income": [
+        r"income", r"earn\w*", r"make\b", r"makes\b", r"made\b", r"salary",
+        r"wages?", r"paycheck", r"paid\b", r"per year", r"a year", r"annually",
+    ],
+    "mortgage_balance": [r"mortgage", r"home loan", r"house loan", r"on the house",
+                         r"on the home", r"house\b", r"home\b"],
+    "non_mortgage_debt": [r"credit cards?", r"car loan", r"student loan",
+                          r"personal loan", r"loans?", r"debts?", r"owe", r"owing"],
+    "existing_coverage": [r"insurance", r"coverage", r"covered", r"cover\b",
+                          r"policy", r"policies", r"through work", r"at work",
+                          r"employer"],
+    "liquid_savings": [r"savings?", r"saved", r"set aside", r"put aside",
+                       r"investments?", r"invested", r"retirement", r"401k",
+                       r"403b", r"ira", r"pension", r"nest egg", r"in the bank"],
+}
+
+# Compile a single finder per field that yields keyword match positions.
+_FIELD_KEYWORD_RE: dict[str, re.Pattern] = {
+    field: re.compile("|".join(f"(?:{kw})" for kw in kws), re.IGNORECASE)
+    for field, kws in _FIELD_KEYWORDS.items()
+}
+
+# Plausibility clamps per field (reject parsing artefacts, never guess).
+_FIELD_CLAMP = {
+    "annual_income": (1_000, 10_000_000),
+    "mortgage_balance": (0, 50_000_000),
+    "non_mortgage_debt": (0, 50_000_000),
+    "existing_coverage": (0, 50_000_000),
+    "liquid_savings": (0, 100_000_000),
+}
+
+# Mortgage keywords win over the generic debt keywords when both are near the
+# same number (a mortgage figure must not also become "other debt").
+_DEBT_YIELDS_TO_MORTGAGE = True
+
+# Future-goal / hypothetical wording: when present, a money amount for savings
+# (or coverage) describes an intention, not a current balance, so we do not
+# record it. "I want to save 10k", "planning to put aside 10k", "hope to have".
+_FUTURE_GOAL_RE = re.compile(
+    r"\b(want to|wanna|hope to|hoping to|plan(?:ning)? to|planning on|"
+    r"aiming to|aim to|goal is|my goal|would like to|'?d like to|like to save|"
+    r"trying to|intend to|thinking about|thinking of|save up|build up to|"
+    r"get to)\b",
+    re.IGNORECASE)
 
 
 # --------------------------------------------------------------------------
@@ -101,23 +179,168 @@ def find_count(text: str) -> int | None:
 
 
 # --------------------------------------------------------------------------
-# Field-specific extraction. Each returns a value ONLY when stated.
+# Core: bind each amount to its nearest field keyword
 # --------------------------------------------------------------------------
 
-def _extract_income(text: str) -> float | None:
-    if not re.search(r"\b(income|earn|earns|earning|make|makes|made|salary|"
-                     r"wages?|paycheck|paid|per year|annually|a year)\b",
-                     text, re.IGNORECASE):
-        return None
-    amounts = find_amounts(text)
-    if not amounts:
-        return None
-    value = max(amounts)
-    # Plausibility guard: an income outside this range is a parsing artefact,
-    # not an income. Leave it out and let the assistant ask again.
-    if 1_000 <= value <= 10_000_000:
-        return value
-    return None
+def _nearest_field_for(amount: _Amount, keyword_hits: dict[str, list[int]]) -> str | None:
+    """Return the field whose keyword is closest to this amount, or None if no
+    field keyword is in the message at all."""
+    best_field = None
+    best_dist = None
+    for field, positions in keyword_hits.items():
+        for pos in positions:
+            # distance from the amount span to the keyword position
+            if pos < amount.start:
+                dist = amount.start - pos
+            elif pos > amount.end:
+                dist = pos - amount.end
+            else:
+                dist = 0
+            if best_dist is None or dist < best_dist:
+                best_dist = dist
+                best_field = field
+    return best_field
+
+
+def _collect_keyword_hits(text: str) -> dict[str, list[int]]:
+    hits: dict[str, list[int]] = {}
+    for field, pattern in _FIELD_KEYWORD_RE.items():
+        positions = [m.start() for m in pattern.finditer(text)]
+        if positions:
+            hits[field] = positions
+    return hits
+
+
+def _resolve_amount_field(field: str, text: str, amount: _Amount) -> str:
+    """Mortgage figures must not also be read as 'other debt'. If an amount was
+    attributed to non_mortgage_debt but a mortgage keyword sits right next to
+    it, hand it to mortgage instead."""
+    if field == "non_mortgage_debt" and _DEBT_YIELDS_TO_MORTGAGE:
+        window = text[max(0, amount.start - 25): amount.end + 25]
+        if re.search(r"\b(mortgage|home loan|house loan|on the house|on the home)\b",
+                     window, re.IGNORECASE):
+            return "mortgage_balance"
+    return field
+
+
+# --------------------------------------------------------------------------
+# Zero / unknown handling (explicit "none", "I don't know")
+# --------------------------------------------------------------------------
+
+_UNKNOWN_HINT = re.compile(
+    r"\b(no idea|don'?t know|do not know|dont know|not sure|unsure|unknown|"
+    r"not sure how much|no clue|how much is it|how much do i have|"
+    r"how much is my|how much is that)\b",
+    re.IGNORECASE)
+
+_NONE_SAVINGS = re.compile(
+    r"\b(no|none|nothing|zero)\b.{0,25}\b(sav|set aside|put aside|invest|retirement|401k|ira|nest egg)\w*\b"
+    r"|\b(sav\w*|set aside|put aside|invest\w*|retirement|401k|ira|nest egg)\b.{0,25}\b(no|none|nothing|zero)\b"
+    r"|\bnothing (?:saved|set aside|put aside)\b",
+    re.IGNORECASE)
+
+_NONE_DEBT = re.compile(
+    r"\b(no|zero|none|nothing)\b.{0,20}\b(debt|debts|loans?|owe)\b"
+    r"|\b(debt|debts|loans?)\b.{0,20}\b(no|zero|none|nothing|none left)\b"
+    r"|\bdebt[- ]?free\b|\bpaid off\b",
+    re.IGNORECASE)
+
+_NO_COVERAGE_RE = re.compile(
+    r"\b(?:no|zero|none|nothing|not any|never)\s+(?:\w+\s+){0,2}"
+    r"(?:life\s+|health\s+)?(?:insurance|coverage|cover|policy|policies)\b"
+    r"|\b(?:i\s+)?(?:don'?t|do not|dont|doesn'?t|does not)\s+"
+    r"(?:have|has|own|carry)\b.{0,25}?\b(?:insurance|coverage|cover|policy|policies)\b"
+    r"|\b(?:insurance|coverage|cover|policy|policies)\b\s*(?:is|are|=|:)?\s*"
+    r"(?:none|nothing|zero|nil)\b",
+    re.IGNORECASE)
+
+# Coverage that EXISTS but amount is unknown ("through work") -> stay unknown.
+_COVERAGE_UNKNOWN_AMOUNT = re.compile(
+    r"\b(through|via|with|from)\s+(?:my\s+|our\s+)?"
+    r"(work|employer|job|company|benefits)\b", re.IGNORECASE)
+
+
+def _clamp(field: str, value: float) -> float | None:
+    lo, hi = _FIELD_CLAMP.get(field, (0, 10**12))
+    return value if lo <= value <= hi else None
+
+
+# --------------------------------------------------------------------------
+# Public API
+# --------------------------------------------------------------------------
+
+def extract_profile_updates(message: str, asked_field: str | None = None) -> dict[str, Any]:
+    """Extract calculator inputs the customer explicitly stated.
+
+    `asked_field` is the field the assistant just asked about. A bare answer
+    with no field keyword of its own (e.g. "10k", "10k for family") is bound to
+    that field — so short, natural answers work without a magic phrase.
+
+    Returns only keys whose values were actually present. Absence is never
+    turned into 0, and never into a guess.
+    """
+    if not message or not isinstance(message, str) or not message.strip():
+        return {}
+    text = message.strip()
+    updates: dict[str, Any] = {}
+
+    # 1. Children count (independent of money).
+    count = find_count(text)
+    if count is not None:
+        updates["num_children"] = count
+
+    # 2. Age (independent of money).
+    age = _extract_age(text)
+    if age is not None:
+        updates["age"] = age
+
+    # 3. Money amounts, each bound to its nearest field keyword.
+    amounts = _scan_amounts(text)
+    keyword_hits = _collect_keyword_hits(text)
+    is_future_goal = bool(_FUTURE_GOAL_RE.search(text))
+
+    # Track the best (nearest) amount chosen per field, so repeated keywords
+    # don't double-count; each field gets exactly one value from this message.
+    chosen: dict[str, float] = {}
+    for amount in amounts:
+        field = _nearest_field_for(amount, keyword_hits)
+        if field is None:
+            # No field keyword anywhere near this number. If the assistant just
+            # asked about a specific field, attribute a bare answer to it.
+            if asked_field in _FIELD_CLAMP:
+                field = asked_field
+            else:
+                continue
+        field = _resolve_amount_field(field, text, amount)
+        # Future goals are not current balances (applies to savings/coverage).
+        if is_future_goal and field in ("liquid_savings", "existing_coverage"):
+            continue
+        clamped = _clamp(field, amount.value)
+        if clamped is None:
+            continue
+        # Keep the amount nearest its keyword; first assignment wins when a
+        # field already has a value from a closer keyword earlier in the loop.
+        if field not in chosen:
+            chosen[field] = clamped
+    updates.update(chosen)
+
+    # 4. Explicit zeros / "none" when no amount was captured for that field.
+    if "liquid_savings" not in updates and not is_future_goal and _NONE_SAVINGS.search(text):
+        updates["liquid_savings"] = 0.0
+    if "non_mortgage_debt" not in updates and _NONE_DEBT.search(text):
+        updates["non_mortgage_debt"] = 0.0
+    if "existing_coverage" not in updates:
+        # "through work" with no number -> leave unknown (ask again).
+        if _COVERAGE_UNKNOWN_AMOUNT.search(text) or _UNKNOWN_HINT.search(text):
+            pass
+        elif _NO_COVERAGE_RE.search(text):
+            updates["existing_coverage"] = 0.0
+
+    # 5. If the assistant asked about a field and the user clearly says they
+    #    don't know / have none, honor an explicit zero where that field allows
+    #    it, but never fabricate. (Handled above for savings/debt/coverage.)
+
+    return updates
 
 
 def _extract_age(text: str) -> float | None:
@@ -130,143 +353,17 @@ def _extract_age(text: str) -> float | None:
     return age if 18 <= age <= 100 else None
 
 
-def _extract_mortgage(text: str) -> float | None:
-    if not re.search(r"\b(mortgage|home loan|house loan)\b", text, re.IGNORECASE):
-        return None
-    amounts = find_amounts(text)
-    if not amounts:
-        return None
-    value = max(amounts)
-    return value if 0 <= value <= 50_000_000 else None
-
-
-def _extract_non_mortgage_debt(text: str) -> float | None:
-    mentions = re.search(
-        r"\b(credit card|car loan|student loan|personal loan|loan|loans|debt|debts|"
-        r"owe|owing|credit cards)\b", text, re.IGNORECASE)
-    if not mentions:
-        return None
-    # A mortgage number belongs to the mortgage field, not here.
-    if re.search(r"\b(mortgage|home loan|house loan)\b", text, re.IGNORECASE):
-        amounts = find_amounts(re.sub(r"\b(mortgage|home loan|house loan)\b", " ", text, flags=re.IGNORECASE))
-    else:
-        amounts = find_amounts(text)
-    if amounts:
-        value = max(amounts)
-        return value if 0 <= value <= 50_000_000 else None
-    if _UNKNOWN_HINT.search(text):
-        return None
-    if re.search(r"\b(no|zero|none|nothing)\b.{0,20}\b(debt|debts|loans?|owe)\b", text, re.IGNORECASE) \
-       or re.search(r"\b(debt|debts|loans?)\b.{0,20}\b(no|zero|none|nothing|none left)\b", text, re.IGNORECASE):
-        return 0.0
-    return None
-
-
-# A denial of cover/insurance only counts when it negates the noun itself.
-# The loose "insurance ... no" direction is unsafe: "I have insurance through
-# work but I have no idea how much" would read as zero, which is the opposite
-# of the truth.
-_NO_COVERAGE_RE = re.compile(
-    r"\b(?:no|zero|none|nothing|not any|never)\s+(?:\w+\s+){0,2}"
-    r"(?:life\s+|health\s+)?(?:insurance|coverage|cover|policy|policies)\b"
-    r"|\b(?:i\s+)?(?:don'?t|do not|dont|doesn'?t|does not)\s+"
-    r"(?:have|has|own|carry)\b.{0,25}?\b(?:insurance|coverage|cover|policy|policies)\b"
-    r"|\b(?:insurance|coverage|cover|policy|policies)\b\s*(?:is|are|=|:)?\s*"
-    r"(?:none|nothing|zero|nil)\b",
-    re.IGNORECASE)
-
-# The customer is saying the amount exists but is unknown to them. In that case
-# the field is still missing and we must ask again rather than record a zero.
-_UNKNOWN_HINT = re.compile(
-    r"\b(no idea|don'?t know|do not know|dont know|not sure|unsure|unknown|"
-    r"not sure how much|no clue|how much is it|how much do i have|"
-    r"how much is my|how much is that)\b",
-    re.IGNORECASE)
-
-
-def _extract_existing_coverage(text: str) -> float | None:
-    mentions = re.search(r"\b(insurance|coverage|cover|policy|policies|life insurance)\b",
-                         text, re.IGNORECASE)
-    if not mentions:
-        return None
-    amounts = find_amounts(text)
-    if amounts:
-        value = max(amounts)
-        return value if 0 <= value <= 50_000_000 else None
-    # "Insurance through work" / "via my employer": cover exists but the amount
-    # is not stated, so this stays unknown and gets asked again.
-    if re.search(r"\b(through|via|with|from)\s+(?:my\s+|our\s+)?"
-                 r"(work|employer|job|company|benefits)\b", text, re.IGNORECASE):
-        return None
-    if _UNKNOWN_HINT.search(text):
-        return None
-    if _NO_COVERAGE_RE.search(text):
-        return 0.0
-    return None
-
-
-def _extract_savings(text: str) -> float | None:
-    mentions = re.search(r"\b(savings?|saved|set aside|put aside|investments?|"
-                         r"retirement|401k|403b|ira|pension|cash)\b", text, re.IGNORECASE)
-    if not mentions:
-        return None
-    amounts = find_amounts(text)
-    if amounts:
-        value = max(amounts)
-        return value if 0 <= value <= 100_000_000 else None
-    if re.search(r"\b(no|none|nothing|zero)\b.{0,25}\b(sav|set aside|invest|retirement|401k|ira)\w*\b",
-                 text, re.IGNORECASE) \
-       or re.search(r"\b(sav\w*|set aside|invest\w*|retirement|401k|ira)\b.{0,25}\b(no|none|nothing|zero)\b",
-                    text, re.IGNORECASE):
-        return 0.0
-    return None
-
-
-def _extract_num_children(text: str) -> Any:
-    count = find_count(text)
-    return count if count is not None else None
-
-
-_EXTRACTORS = (
-    ("annual_income", _extract_income),
-    ("num_children", _extract_num_children),
-    ("age", _extract_age),
-    ("mortgage_balance", _extract_mortgage),
-    ("non_mortgage_debt", _extract_non_mortgage_debt),
-    ("existing_coverage", _extract_existing_coverage),
-    ("liquid_savings", _extract_savings),
-)
-
-
-def extract_profile_updates(message: str) -> dict[str, Any]:
-    """Extract calculator inputs the customer explicitly stated.
-
-    Returns only keys whose values were actually present in the text. A key is
-    absent when the customer did not state that value -- absence is never
-    turned into 0, and never into a guess.
-    """
-    if not message or not isinstance(message, str) or not message.strip():
-        return {}
-
-    updates: dict[str, Any] = {}
-    for key, extractor in _EXTRACTORS:
-        try:
-            value = extractor(message)
-        except Exception:
-            value = None  # an extractor bug must never break the turn
-        if value is not None:
-            updates[key] = value
-    return updates
-
-
 # --------------------------------------------------------------------------
 # Intent classification (deterministic, used only to route the turn)
 # --------------------------------------------------------------------------
 
 _ASSESSMENT_INTENT = re.compile(
     r"\b(i (?:need|want|am looking|am trying|would like|'m trying|'m looking)\b"
-    r"|help me (?:get|with|find)|where do (?:i|we) start|how do i start|"
-    r"get (?:a )?quote|get started|set up cover\w*|apply for)",
+    r"|help me (?:get|with|find)|where (?:do (?:i|we)|to) start|how do i start|"
+    r"get (?:a )?quote|get started|getting started|set up cover\w*|apply for|"
+    r"new to this|no idea where|not sure where (?:to|do i) start|"
+    r"how much (?:life )?insurance (?:do i|should i|would i)|"
+    r"assess|needs assessment|coverage estimate|estimate my)",
     re.IGNORECASE)
 
 _EDUCATIONAL_INTENT = re.compile(
@@ -290,7 +387,7 @@ _APPROVAL_INTENT = re.compile(
 
 
 def classify_intent(message: str) -> str:
-    """Route a turn: assessment | educational | pricing | recommendation | approval."""
+    """Route a turn: assessment | educational | pricing | recommendation | approval | none."""
     text = (message or "").strip()
     if not text:
         return "none"
