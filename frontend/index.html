@@ -167,6 +167,15 @@
     </div>
   </aside>
 
+  <script>
+    // Where the backend API lives.
+    // - Served from CloudFront (https): same origin, so leave base empty and
+    //   calls go to /api/turn on the same host (no CORS).
+    // - Opened as a local file (file://) or other host: fall back to the
+    //   live CloudFront URL so the demo still works.
+    window.LIFELINE_API_BASE =
+      location.protocol === "file:" ? "https://d3rlyqanqecvz3.cloudfront.net" : "";
+  </script>
   <script src="calculator.js"></script>
   <script src="gemini.js"></script>
   <script src="app.js"></script>

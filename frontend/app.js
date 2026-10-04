@@ -222,62 +222,72 @@
     thinking = null;
   }
 
+  /* ---------- Backend wiring ----------
+     The real brain lives in our AWS backend (API Gateway -> Lambda ->
+     Bedrock Knowledge Base + deterministic calculator). The frontend
+     POSTs each turn to /api/turn and renders the response.
+
+     API_BASE: when the page is served from CloudFront, the API lives at
+     the same origin under /api, so an empty base + "/api/turn" works and
+     avoids CORS. For local file testing, set window.LIFELINE_API_BASE to
+     the full CloudFront URL (e.g. "https://d3rlyqanqecvz3.cloudfront.net").
+  */
+  const API_BASE = (window.LIFELINE_API_BASE || "").replace(/\/$/, "");
+  const API_URL = API_BASE + "/api/turn";
+
   /* ---------- Streaming reply ---------- */
   let busy = false;
-  let lastInteractionId = null;
+  let lastInteractionId = null;   // kept for the voice (Gemini Live) path
+  let sessionId = null;           // backend conversation session
 
   async function respond(userText, override) {
     if (busy) return;
     busy = true; updateSend();
 
-    if (Gemini.getKey() && !override) {
+    // Dev-panel overrides (canned replies) still use the mock renderer.
+    if (override) {
       startThinking();
-      let created = false;
-      let aiMsg = null;
-      const shownTools = new Set();
-      try {
-        await Gemini.chatTurn({
-          input: userText,
-          previousId: lastInteractionId,
-          onTool(name, r) {
-            toast(name === "save_memory" ? "Saved to memory" :
-                  name === "forget_memory" ? "Memory removed" : "Memories loaded");
-            renderMemories();
-          },
-          onText(full) {
-            if (!created) {
-              stopThinking();
-              showChat();
-              aiMsg = makeMsg("ai");
-              $(".orb", aiMsg.li).dataset.state = "speaking";
-              created = true;
-            }
-            const p = aiMsg.text.querySelector("p") || aiMsg.text.appendChild(document.createElement("p"));
-            p.textContent = full;
-            scrollDown();
-          },
-        }).then((res) => {
-          lastInteractionId = res.interactionId || lastInteractionId;
-          if (aiMsg) {
-            $(".orb", aiMsg.li).dataset.state = "idle";
-            addActions(aiMsg.body, aiMsg.text);
-            scrollDown();
-          }
-        });
-      } catch (err) {
-        stopThinking();
-        addError(err.message);
-      }
-      if (!created) stopThinking();
+      await sleep(600);
+      stopThinking();
+      await streamReply(override);
       busy = false; updateSend();
       return;
     }
 
-    /* ---- local mock fallback ---- */
     startThinking();
-    await sleep(1500 + Math.random() * 1300);
-    stopThinking();
-    await streamReply(override || getMockReply(userText));
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: sessionId, message: userText }),
+      });
+      if (!res.ok) throw new Error("Server returned " + res.status);
+      const data = await res.json();
+      sessionId = data.session_id || sessionId;
+
+      stopThinking();
+      showChat();
+
+      // Render the assistant's plain-language message.
+      const aiMsg = makeMsg("ai");
+      $(".orb", aiMsg.li).dataset.state = "speaking";
+      await typeInto(aiMsg.text.appendChild(document.createElement("p")),
+                     data.assistant_message || "I'm sorry, I didn't catch that. Could you say it another way?");
+      $(".orb", aiMsg.li).dataset.state = "idle";
+      addActions(aiMsg.body, aiMsg.text);
+
+      // If the backend produced a full needs assessment, show the result
+      // card (same card the calculator tool used to drive).
+      const na = data.needs_assessment;
+      if (na && na.illustrative_gap != null && typeof Life !== "undefined") {
+        document.dispatchEvent(new CustomEvent("coverage-result-backend", { detail: data }));
+      }
+      scrollDown();
+    } catch (err) {
+      stopThinking();
+      // Graceful fallback so a demo never dies on a network hiccup.
+      addError("I'm having trouble reaching the server right now (" + err.message + ").");
+    }
     busy = false; updateSend();
   }
 
@@ -655,6 +665,59 @@
       const ok = Life.printSummary(summary);
       if (!ok) toast("Please allow pop-ups to print your summary");
     });
+
+    const body = document.createElement("div");
+    body.className = "msg-body";
+    body.appendChild(card);
+    li.appendChild(body);
+    el.messages.appendChild(li);
+    scrollDown();
+  });
+
+  /* ---------- Coverage result card (backend) ----------
+     Same card, but driven by the backend's /api/turn response shape
+     (data.needs_assessment). Numbers come from the deterministic Python
+     calculator server-side; Life.USD here is only for formatting. */
+  document.addEventListener("coverage-result-backend", (e) => {
+    const data = e.detail || {};
+    const na = data.needs_assessment;
+    if (!na || na.illustrative_gap == null) return;
+    const bd = na.breakdown || {};
+    const fmt = (typeof Life !== "undefined")
+      ? Life.USD
+      : (x) => "$" + Math.round(Number(x) || 0).toLocaleString("en-US");
+    showChat();
+
+    const li = document.createElement("li");
+    li.className = "msg msg-ai";
+    li.appendChild(smallOrb("idle"));
+
+    const card = document.createElement("div");
+    card.className = "coverage-card";
+
+    const rows = (bd.components || [])
+      .map((b) => `<div class="cc-row"><span>${b.label}<small>${b.detail || ""}</small></span><b>${fmt(b.amount)}</b></div>`)
+      .join("");
+    const offsets = (bd.offsets || [])
+      .filter((o) => o.amount > 0)
+      .map((o) => `<div class="cc-row cc-sub"><span>Less: ${o.label}</span><b>−${fmt(o.amount)}</b></div>`)
+      .join("");
+    const prem = bd.premium_estimate;
+    const premium = prem && prem.monthly
+      ? `<p class="cc-premium">Rough cost: about <b>${fmt(prem.monthly)}/month</b> for term coverage (an estimate, not a quote).</p>`
+      : "";
+    const flags = (bd.flags || []).map((f) => `<p class="cc-flag">${f}</p>`).join("");
+    const sanity = bd.sanity_check;
+    const cross = sanity
+      ? `<p class="cc-cross">Quick cross-check (10–15× income): ${fmt(sanity.low)} – ${fmt(sanity.high)}</p>`
+      : "";
+
+    card.innerHTML =
+      `<p class="cc-label">Estimated coverage you may need</p>` +
+      `<p class="cc-total">${fmt(na.illustrative_gap)}</p>` +
+      `<div class="cc-breakdown">${rows}${offsets}</div>` +
+      premium + flags + cross +
+      `<p class="cc-fine">${na.disclaimer || data.disclaimer || ""}</p>`;
 
     const body = document.createElement("div");
     body.className = "msg-body";
