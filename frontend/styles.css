@@ -154,32 +154,6 @@ h1 {
 h1 #greeting { font-weight: 700; color: var(--hl); }
 .lead { margin: 0 0 2.25rem; font-size: 1.1rem; color: var(--ink-soft); }
 
-.topics {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: .75rem;
-  width: 100%; margin-top: 2.75rem;
-}
-.topic {
-  display: flex; align-items: center; justify-content: space-between; gap: .75rem;
-  min-width: 0; min-height: 68px; padding: .75rem 1.25rem;
-  background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius);
-  font-size: 1.02rem; font-weight: 500; text-align: left; color: var(--ink);
-  transition: border-color .25s, background-color .25s, box-shadow .25s, transform .3s var(--ease);
-  animation: rise .6s var(--ease) both;
-}
-.topic:nth-child(1) { animation-delay: .1s; }
-.topic:nth-child(2) { animation-delay: .15s; }
-.topic:nth-child(3) { animation-delay: .2s; }
-.topic:nth-child(4) { animation-delay: .25s; }
-.topic > svg { color: var(--hl); transition: transform .2s var(--ease); }
-.topic:hover { border-color: var(--hl); background: var(--hl-tint-2); box-shadow: 0 8px 24px rgba(101,0,48,.09); transform: translateY(-3px); }
-.topic:hover > svg { transform: translateX(3px); }
-.topic { animation-fill-mode: backwards; }
-.topic:active { transform: translateY(0) scale(.985); }
-.topic-icon { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; border-radius: 14px; background: var(--hl-tint); color: var(--sh); transition: background .25s, transform .3s var(--ease); }
-.topic-icon svg { width: 24px; height: 24px; }
-.topic-label { flex: 1; }
-.topic:hover .topic-icon { background: var(--hl-tint); transform: rotate(-4deg); }
-
 /* ---------- Opening path choice ---------- */
 .path-choice {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
@@ -453,16 +427,17 @@ h1 #greeting { font-weight: 700; color: var(--hl); }
 }
 .jump-latest:active { transform: translateX(-50%) scale(.97); }
 
-/* Contextual suggestion row directly above the composer. Buttons wrap on
-   small screens and route through the normal submit() pipeline, so they
-   behave exactly as if the customer had typed the text. */
+/* Keep quick replies centered on one line, with horizontal scrolling when
+   they exceed the available width. Auto margins keep both ends reachable. */
 .composer-suggestions {
   width: 100%; max-width: var(--composer-maxw); margin: 0 auto .6rem;
-  display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem;
-  box-sizing: border-box; min-width: 0;
+  display: flex; flex-wrap: nowrap; gap: .5rem;
+  box-sizing: border-box; min-width: 0; overflow-x: auto; padding: .25rem;
 }
 .composer-suggestions[hidden] { display: none; }
-.composer-suggestions .suggestion { margin-top: 0; }
+.composer-suggestions .suggestion { flex: 0 0 auto; max-width: none; margin-top: 0; white-space: nowrap; }
+.composer-suggestions .suggestion:first-child { margin-left: auto; }
+.composer-suggestions .suggestion:last-child { margin-right: auto; }
 #stop-response-btn { padding-inline: 1rem; }
 .composer {
   max-width: var(--composer-maxw); margin: 0 auto;
@@ -789,8 +764,6 @@ h1 #greeting { font-weight: 700; color: var(--hl); }
   .home .orb-hero { --size: 96px; }
   .hero-orb-button { margin-bottom: 1.25rem; }
   .lead { margin-bottom: 1.5rem; }
-  .topics { margin-top: 1.75rem; }
-  .topic { padding-inline: .85rem; }
   .btn-xl { padding-inline: 1.25rem; }
   .chat { padding: 1.25rem 0 1.5rem; }
   .msg { gap: .5rem; }

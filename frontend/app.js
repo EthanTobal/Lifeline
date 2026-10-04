@@ -245,6 +245,7 @@
     LifelineSpeech.cancel();
     if (!el.voice.hidden) closeVoice(true);
     if (busy) stopResponse();
+    clearComposerSuggestions();
     el.chat.hidden = true;
     el.home.hidden = false;
     el.newChat.hidden = !el.messages.children.length;
@@ -1347,7 +1348,6 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); submit(); }
   });
   el.form.addEventListener("submit", (e) => { e.preventDefault(); submit(); });
-  $$(".topic").forEach((t) => t.addEventListener("click", () => submit(t.dataset.prompt)));
   $$("[data-path]").forEach((b) => b.addEventListener("click", () => choosePath(b.dataset.path)));
   el.newChat.addEventListener("click", newChat);
   el.brand.addEventListener("click", (e) => { e.preventDefault(); showHome(); });
