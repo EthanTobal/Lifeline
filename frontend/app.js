@@ -336,7 +336,7 @@
   }
 
   /* ---------- Streaming reply ---------- */
-  const backend = LifelineBackend.createClient();
+  const backend = LifelineBackend.getSharedClient();
   let busy = false;
   let activeResponse = null;
   let activeTurn = null;
@@ -916,6 +916,8 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     voiceController = null;
     recognition?.abort();
     recognition = null;
+    // Gemini Live owns its own mic and playback; tear it down too.
+    if (window.LifelineVoice?.isActive()) LifelineVoice.stop();
     LifelineSpeech.cancel();
     voicePending = false;
     el.voice.hidden = true;
@@ -958,6 +960,33 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
       if (run === voiceRun) { voicePending = false; el.vReplySend.disabled = false; listen(); }
     }
   }
+  /* ---------- Gemini Live voice, falling back to browser speech ----------
+     Both transports use the SAME backend session, so a user can answer by
+     voice and then keep going in the text chat without losing the assessment. */
+  async function startGeminiVoice() {
+    if (!window.LifelineVoice) return false;
+    try {
+      await LifelineVoice.start({
+        onState: (state) => {
+          if (state === "connecting") setVoiceState("listening", "Connecting to the Lifeline voice service...");
+          else if (state === "listening") setVoiceState("listening", "Go ahead, I'm listening.");
+        },
+        onEvent: (event) => {
+          if (event.type === "assistant-speech" && event.text) {
+            setVoiceState("speaking", event.text);
+          } else if (event.type === "error") {
+            setVoiceState("error", event.message);
+          }
+        },
+      });
+      return true;
+    } catch (error) {
+      $("#voice-input-status").textContent = error.message;
+      setVoiceState("error", "Voice service unavailable. Falling back to browser speech.");
+      return false;
+    }
+  }
+
   function openVoice() {
     if (!el.voice.hidden) return;
     lastFocus = document.activeElement;
@@ -967,6 +996,13 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     el.mute.setAttribute("aria-pressed", "false");
     $("span", el.mute).textContent = "Mute";
     el.endVoice.focus();
+    // Prefer Gemini Live; fall back to the browser's own speech recognition.
+    startGeminiVoice().then((started) => {
+      if (started || el.voice.hidden) return;
+      startBrowserVoice();
+    });
+  }
+  function startBrowserVoice() {
     const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!Recognition) {
       setVoiceState("error", "Speech recognition is unavailable here. Type your reply below.");
