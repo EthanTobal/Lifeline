@@ -137,6 +137,9 @@ class Assessment:
         for key, value in (data or {}).items():
             if key in _ALL_PROFILE_KEYS:
                 self.profile[key] = value
+                # A real value supersedes a prior skip: the field is answered.
+                if _has_value(value):
+                    self.unskip_field(key)
             elif key in _ALL_CONTEXT_KEYS:
                 self.context[key] = value
             # unknown keys are intentionally dropped
@@ -167,12 +170,82 @@ class Assessment:
     def last_asked_field(self) -> str | None:
         return self.context.get("_last_asked_field")
 
+    # ---- conversation path ----
+    # Which journey the customer chose on the homepage:
+    #   "coverage" -> new-customer needs assessment (financial intake)
+    #   "policy"   -> help understanding an existing policy (NO intake)
+    #   "general"  -> just asking questions (NO intake unless they opt in)
+    # Stored so the path survives turns, can be switched, and resets on a new
+    # chat (a fresh session has no path).
+    _VALID_PATHS = ("coverage", "policy", "general")
+
+    def set_path(self, path: str | None) -> None:
+        if path in self._VALID_PATHS:
+            self.context["_path"] = path
+        elif path is None:
+            self.context.pop("_path", None)
+
+    @property
+    def path(self) -> str | None:
+        return self.context.get("_path")
+
+    def skip_field(self, field_key: str) -> None:
+        """Mark a required field as skipped: the customer could not or chose
+        not to answer. The field stays UNKNOWN (no value is stored, never 0),
+        but it is removed from the asking rotation so the assistant does not
+        repeat the same question forever."""
+        if not field_key:
+            return
+        skipped = set(self.context.get("_skipped_fields", []))
+        skipped.add(field_key)
+        self.context["_skipped_fields"] = sorted(skipped)
+
+    def unskip_field(self, field_key: str) -> None:
+        """Clear a skip, e.g. the customer later volunteers the value."""
+        skipped = set(self.context.get("_skipped_fields", []))
+        skipped.discard(field_key)
+        if skipped:
+            self.context["_skipped_fields"] = sorted(skipped)
+        else:
+            self.context.pop("_skipped_fields", None)
+
+    @property
+    def skipped_fields(self) -> set[str]:
+        return set(self.context.get("_skipped_fields", []))
+
+    def note_unclear(self, field_key: str) -> int:
+        """Record that a reply about `field_key` could not be understood, and
+        return how many consecutive unclear replies we've now had for it. Used
+        to escalate from the same question to a clarification with a Skip
+        option, instead of repeating identical wording."""
+        counts = dict(self.context.get("_unclear_counts", {}))
+        counts[field_key] = counts.get(field_key, 0) + 1
+        self.context["_unclear_counts"] = counts
+        return counts[field_key]
+
+    def clear_unclear(self, field_key: str) -> None:
+        counts = dict(self.context.get("_unclear_counts", {}))
+        if counts.pop(field_key, None) is not None:
+            if counts:
+                self.context["_unclear_counts"] = counts
+            else:
+                self.context.pop("_unclear_counts", None)
+
     def _assumption_overrides(self) -> dict:
         # current assumptions expressed as overrides (so edits merge, not reset)
         return {k: v for k, v in self.assumptions.items()}
 
     # ---- status ----
     def missing_fields(self) -> list[str]:
+        """Required fields still PENDING a question. Skipped fields are not
+        pending (we won't re-ask them) even though they remain unknown."""
+        skipped = self.skipped_fields
+        return [k for k in _REQUIRED_KEYS
+                if not _has_value(self.profile.get(k)) and k not in skipped]
+
+    def unanswered_required(self) -> list[str]:
+        """Required fields with no real value, INCLUDING skipped ones. These
+        are treated as 0 by the calculator but shown as unknown to the user."""
         return [k for k in _REQUIRED_KEYS if not _has_value(self.profile.get(k))]
 
     def next_field(self) -> dict | None:

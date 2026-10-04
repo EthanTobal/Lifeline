@@ -896,3 +896,218 @@ def test_regression_identical_inputs_give_identical_results():
     first = run_script()
     second = run_script()
     assert json.dumps(first, sort_keys=True) == json.dumps(second, sort_keys=True)
+
+
+# ================================================================
+# Repeated-question bug: spoken amounts mis-binding, skip/unsure
+# path, and bare "none" to the asked field. These are the cases
+# that made the assistant ask the same question after an answer.
+# ================================================================
+
+from app.extractor import wants_to_skip
+
+
+def test_spoken_amount_binds_to_the_asked_field():
+    """Voice/spelled-out answers must register, or the field stays missing and
+    the same question repeats. "ninety thousand" to the income question is
+    income, not nothing."""
+    assert extract_profile_updates("ninety thousand", asked_field="annual_income") == {
+        "annual_income": 90000.0}
+    assert extract_profile_updates("a hundred thousand", asked_field="existing_coverage") == {
+        "existing_coverage": 100000.0}
+    assert extract_profile_updates("ten thousand", asked_field="liquid_savings") == {
+        "liquid_savings": 10000.0}
+
+
+def test_spoken_multi_amount_sentence_binds_each_to_the_right_field():
+    """Root-cause regression: a spelled-out multi-fact sentence must map each
+    amount to the field nearest its own keyword, not drift across 'and' into a
+    neighbouring field. Before the fix this returned income as debt."""
+    got = extract_profile_updates(
+        "I earn ninety thousand and owe fifty thousand on the house")
+    assert got == {"annual_income": 90000.0, "mortgage_balance": 50000.0}
+    # the spelled-out amounts are never summed into one 140,000 figure
+    assert 140000.0 not in got.values()
+
+
+def test_bare_none_answer_to_asked_field_is_zero():
+    """A one-word "none"/"nothing"/"no" answered to the field in play is an
+    explicit zero for THAT field, so it is answered and never re-asked."""
+    assert extract_profile_updates("none", asked_field="non_mortgage_debt") == {
+        "non_mortgage_debt": 0.0}
+    assert extract_profile_updates("nothing", asked_field="liquid_savings") == {
+        "liquid_savings": 0.0}
+    assert extract_profile_updates("no", asked_field="existing_coverage") == {
+        "existing_coverage": 0.0}
+    # income never auto-zeros from a bare "none" (not a sensible income answer)
+    assert extract_profile_updates("none", asked_field="annual_income") == {}
+
+
+def test_skip_vs_uncertainty_are_distinguished_and_never_zero():
+    """Explicit "skip"/"pass" is an immediate skip. "I'm not sure"/"no idea"
+    is uncertainty (clarify first). Neither is ever recorded as a zero."""
+    from app.extractor import is_uncertain
+    for explicit in ("skip", "skip it", "pass", "move on", "prefer not to say"):
+        assert wants_to_skip(explicit), explicit
+        assert extract_profile_updates(explicit, asked_field="mortgage_balance") == {}
+    for uncertain in ("I'm not sure", "I don't know", "no idea", "no clue"):
+        assert is_uncertain(uncertain), uncertain
+        assert not wants_to_skip(uncertain), uncertain
+        assert extract_profile_updates(uncertain, asked_field="mortgage_balance") == {}
+    # A real answer is neither skip nor uncertainty.
+    assert not wants_to_skip("20000") and not is_uncertain("20000")
+    assert not wants_to_skip("none")
+
+
+def test_explicit_skip_advances_without_repeating_and_stays_unknown():
+    """The headline fix: an explicit "skip" advances to the next field (not the
+    same one again) and leaves the skipped field unknown, not zero."""
+    orch, sid, _ = _conversation(["I make $90,000 and have two kids"])
+    asked = orch.store.get_or_create(sid)[1].last_asked_field
+    assert asked == "mortgage_balance"
+
+    resp = orch.handle_turn(session_id=sid, message="skip")
+    # advanced past mortgage
+    assert resp["assessment"]["next_field"] == "non_mortgage_debt"
+    assert resp["assessment"]["next_field"] != "mortgage_balance"
+    # mortgage is skipped and UNKNOWN -- not stored as 0
+    assert "mortgage_balance" in resp["assessment"]["skipped_fields"]
+    assert "mortgage_balance" not in resp["assessment"]["profile"]
+    assert resp["skipped"] == "mortgage_balance"
+
+
+def test_uncertainty_clarifies_first_then_skips_on_persistence():
+    """"I'm not sure" clarifies first (field stays pending), and only skips if
+    the uncertainty repeats -- never an instant skip, never a repeated verbatim
+    question."""
+    orch, sid, _ = _conversation(["I make $90,000 and have two kids"])
+    assert orch.store.get_or_create(sid)[1].last_asked_field == "mortgage_balance"
+
+    first = orch.handle_turn(session_id=sid, message="I'm not sure")
+    # still on mortgage, but with a reworded clarification offering a skip
+    assert first["assessment"]["next_field"] == "mortgage_balance"
+    assert "mortgage_balance" not in first["assessment"]["skipped_fields"]
+    assert "skip" in first["assistant_message"].lower()
+
+    second = orch.handle_turn(session_id=sid, message="honestly no idea")
+    # persistent uncertainty now skips and advances, still unknown (not 0)
+    assert "mortgage_balance" in second["assessment"]["skipped_fields"]
+    assert "mortgage_balance" not in second["assessment"]["profile"]
+    assert second["assessment"]["next_field"] == "non_mortgage_debt"
+
+
+def test_skipped_field_does_not_block_a_ready_estimate():
+    """Once every other required field is answered, a skipped field must not
+    keep the assessment stuck in 'collecting'. The calculator treats the
+    skipped value as 0 but the profile keeps it unknown."""
+    orch, sid, _ = _conversation(["I make $80,000, no kids"])
+    # Skip mortgage, then answer the rest.
+    orch.handle_turn(session_id=sid, message="skip")                  # mortgage skipped
+    orch.handle_turn(session_id=sid, message="no other debts")        # debt 0
+    orch.handle_turn(session_id=sid, message="no life insurance")     # coverage 0
+    resp = orch.handle_turn(session_id=sid, message="nothing saved")  # savings 0
+    assert resp["assessment"]["status"] == "ready"
+    assert "mortgage_balance" in resp["assessment"]["skipped_fields"]
+    assert "mortgage_balance" not in resp["assessment"]["profile"]  # unknown, not 0
+    # calculator treated the unknown mortgage as 0: gross = 80k*10 + 15k final
+    assert resp["needs_assessment"]["breakdown"]["gross_need"] == 815_000
+
+
+def test_later_value_unskips_a_skipped_field():
+    """If the customer skips a field but volunteers the value later, it is
+    recorded and the skip is cleared."""
+    orch, sid, _ = _conversation(["I make $90,000 and have two kids"])
+    orch.handle_turn(session_id=sid, message="skip")  # skip mortgage
+    resp = orch.handle_turn(session_id=sid, message="actually my mortgage is 200k")
+    assert resp["assessment"]["profile"]["mortgage_balance"] == 200000.0
+    assert "mortgage_balance" not in resp["assessment"]["skipped_fields"]
+
+
+def test_unclear_answer_escalates_instead_of_repeating_verbatim():
+    """A second unintelligible reply to the same question triggers a reworded
+    clarification that offers a Skip option -- never the identical prompt on a
+    loop."""
+    orch, sid, _ = _conversation(["estimate my coverage"])
+    first = orch.handle_turn(session_id=sid, message="hmm")
+    second = orch.handle_turn(session_id=sid, message="uhh what")
+    assert second["assessment"]["next_field"] == "annual_income"
+    reply = second["assistant_message"].lower()
+    assert "didn't quite catch" in reply or "did not quite catch" in reply
+    assert "skip" in reply  # an explicit way out is offered
+
+
+def test_general_question_still_does_not_start_intake():
+    """Guardrail preserved: a general question on a fresh session stays idle
+    and extracts nothing."""
+    orch = Orchestrator(store=SessionStore())
+    resp = orch.handle_turn(message="what is term life insurance?")
+    assert resp["assessment"]["status"] == "idle"
+    assert resp["extracted"] == {}
+    assert resp["intent"] == "educational"
+
+
+# ================================================================
+# Homepage opening choice: conversation "path" routing.
+#   coverage -> starts the needs assessment
+#   policy   -> existing-policy help, NEVER new-customer intake
+#   general  -> idle, just answering questions
+# ================================================================
+
+
+def test_coverage_path_starts_the_assessment():
+    """Choosing "I'm looking for coverage" begins collection immediately,
+    even before the customer has stated any financial fact."""
+    orch = Orchestrator(store=SessionStore())
+    resp = orch.handle_turn(message="I'd like to look at coverage.", path="coverage")
+    assert resp["path"] == "coverage"
+    assert resp["assessment"]["status"] == "collecting"
+    assert resp["assessment"]["next_field"] == "annual_income"
+
+
+def test_policy_path_never_starts_financial_intake():
+    """The headline requirement: an existing-policy user is NOT asked
+    new-customer financial questions, even if they mention amounts."""
+    orch = Orchestrator(store=SessionStore())
+    sid = orch.handle_turn(message="I already have a policy.", path="policy")["session_id"]
+    assert orch.handle_turn(session_id=sid, message="help me understand it",
+                            )["assessment"]["status"] == "idle"
+    # Mentioning a dollar figure must NOT flip it into collection.
+    resp = orch.handle_turn(session_id=sid,
+                            message="my policy is for $100,000, what does that mean?")
+    assert resp["path"] == "policy"
+    assert resp["assessment"]["status"] == "idle"
+    assert resp["assessment"]["next_field"] is None
+    assert resp["mode"] == "policy"
+    # and no new-customer financial field was populated as if starting intake
+    assert resp["assessment"]["profile"].get("annual_income") in (None,)
+
+
+def test_general_path_stays_idle_until_opt_in():
+    """"Just ask a question" answers without starting intake."""
+    orch = Orchestrator(store=SessionStore())
+    resp = orch.handle_turn(message="what is a beneficiary?", path="general")
+    assert resp["path"] == "general"
+    assert resp["assessment"]["status"] == "idle"
+
+
+def test_path_persists_across_turns_and_can_switch():
+    """The chosen path sticks for the conversation, and the user can switch
+    into the coverage path later (which then starts the assessment)."""
+    orch = Orchestrator(store=SessionStore())
+    first = orch.handle_turn(message="I already have a policy.", path="policy")
+    sid = first["session_id"]
+    # persists without re-sending path
+    assert orch.handle_turn(session_id=sid, message="what does term mean?")["path"] == "policy"
+    # switch to coverage -> assessment starts
+    switched = orch.handle_turn(session_id=sid,
+                                message="actually I want to look at new coverage",
+                                path="coverage")
+    assert switched["path"] == "coverage"
+    assert switched["assessment"]["status"] == "collecting"
+
+
+def test_new_session_has_no_path():
+    """A fresh session (new chat) carries no path until one is chosen."""
+    orch = Orchestrator(store=SessionStore())
+    resp = orch.handle_turn(message="hello")
+    assert resp["path"] is None

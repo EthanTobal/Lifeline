@@ -171,6 +171,11 @@ def _words_to_number(phrase: str) -> float | None:
                 # not a standalone amount -- it's almost always the tail of a
                 # digit+word amount ("90 thousand") already handled elsewhere.
                 return None
+            if saw_large_scale:
+                # A second large scale ("ninety thousand ... fifty thousand")
+                # means two separate amounts, not one sum. Stop at the first;
+                # the scanner emits each number group as its own _Amount.
+                return None
             total += (current or 1) * _WORD_SCALES[tok]
             current = 0
             saw_large_scale = True
@@ -183,14 +188,54 @@ def _words_to_number(phrase: str) -> float | None:
     return total
 
 
+# Tokens that may appear inside a spelled-out amount but are not themselves
+# the number ("and", "a", "an"). They must never widen an amount's recorded
+# span, or the amount drifts toward a neighbouring field's keyword and binds
+# to the wrong field (the "ninety thousand and owe fifty thousand" bug).
+_CONNECTIVE_WORDS = {"and", "a", "an"}
+_WORD_TOKEN_RE = re.compile(r"[a-z]+", re.IGNORECASE)
+
+
 def _scan_word_amounts(text: str) -> list[_Amount]:
+    """Emit one _Amount per spelled-out number group.
+
+    A single regex run like "ninety thousand and fifty thousand" is SPLIT at
+    each large-scale boundary into separate amounts, and each amount's span is
+    tightened to the number words themselves (leading/trailing "and"/"a"/"an"
+    are excluded) so nearest-keyword binding stays accurate.
+    """
     out: list[_Amount] = []
     for match in _WORD_AMOUNT_RE.finditer(text):
-        value = _words_to_number(match.group(0))
-        if value is None:
-            continue
-        out.append(_Amount(value, match.start(), match.end()))
+        # Walk the individual word tokens inside this run, accumulating a group
+        # and closing it at each large scale word (thousand/million/grand).
+        group: list[tuple[str, int, int]] = []  # (word, start, end)
+        for m in _WORD_TOKEN_RE.finditer(match.group(0)):
+            word = m.group(0).lower()
+            abs_start = match.start() + m.start()
+            abs_end = match.start() + m.end()
+            group.append((word, abs_start, abs_end))
+            if word in _WORD_SCALES:
+                _emit_group(group, out)
+                group = []
+        _emit_group(group, out)
     return out
+
+
+def _emit_group(group: list[tuple[str, int, int]], out: list[_Amount]) -> None:
+    if not group:
+        return
+    phrase = " ".join(w for w, _, _ in group)
+    value = _words_to_number(phrase)
+    if value is None:
+        return
+    # Tighten the span to exclude leading/trailing connective words so the
+    # amount sits exactly over its own number, not a neighbouring keyword.
+    numeric = [(w, s, e) for (w, s, e) in group if w not in _CONNECTIVE_WORDS]
+    if not numeric:
+        return
+    start = numeric[0][1]
+    end = numeric[-1][2]
+    out.append(_Amount(value, start, end))
 
 
 # --------------------------------------------------------------------------
@@ -432,11 +477,67 @@ def extract_profile_updates(message: str, asked_field: str | None = None) -> dic
         elif _NO_COVERAGE_RE.search(text):
             updates["existing_coverage"] = 0.0
 
-    # 5. If the assistant asked about a field and the user clearly says they
-    #    don't know / have none, honor an explicit zero where that field allows
-    #    it, but never fabricate. (Handled above for savings/debt/coverage.)
+    # 5. Bare "none"/"nothing"/"zero" answered DIRECTLY to the field we just
+    #    asked about. "What other debts do you have?" -> "none" means 0 for
+    #    that field, even though the word carries no field keyword of its own.
+    #    Only for zero-allowing money fields, only when the user did not also
+    #    state an unknown/skip (handled separately) or a future goal.
+    if (asked_field in _ZERO_ALLOWED_FIELDS
+            and asked_field not in updates
+            and not is_future_goal
+            and not _UNKNOWN_HINT.search(text)
+            and _BARE_NONE_RE.fullmatch(text.strip().rstrip(".!"))):
+        updates[asked_field] = 0.0
 
     return updates
+
+
+# Required money fields where an explicit zero is a legitimate answer. Income
+# is deliberately excluded: "I earn nothing" is not a normal assessment input.
+_ZERO_ALLOWED_FIELDS = {
+    "mortgage_balance", "non_mortgage_debt", "existing_coverage", "liquid_savings",
+}
+
+# A short, standalone "no / none / nothing / zero / nope" reply.
+_BARE_NONE_RE = re.compile(
+    r"(?:no|none|nope|nothing|zero|nil|n/?a|not any|i have none|i have nothing)",
+    re.IGNORECASE)
+
+# An EXPLICIT instruction to skip: the user is choosing to move on. We honor
+# this immediately (field stays UNKNOWN, never zero).
+_EXPLICIT_SKIP_RE = re.compile(
+    r"\b(skip(?:\s+(?:it|this|that|the question))?|pass|move on|"
+    r"next question|rather not say|prefer not to say|prefer not)\b",
+    re.IGNORECASE)
+
+# Softer UNCERTAINTY: "I don't know", "no idea", "not sure". On its own this is
+# not an instruction to skip -- the user may just need the question reworded or
+# a rough estimate. We clarify first and only skip if it persists.
+_UNCERTAIN_RE = re.compile(
+    r"\b(i don'?t know|dont know|do not know|not sure|unsure|no idea|no clue|"
+    r"i'?m not sure|can'?t remember|cannot remember|don'?t remember|"
+    r"not now|maybe later)\b",
+    re.IGNORECASE)
+
+
+def wants_to_skip(message: str) -> bool:
+    """True when the reply EXPLICITLY asks to skip the question (not merely
+    expresses uncertainty). Used by the orchestrator to advance past a field,
+    leaving it UNKNOWN (never zero)."""
+    text = (message or "").strip()
+    if not text:
+        return False
+    return bool(_EXPLICIT_SKIP_RE.search(text))
+
+
+def is_uncertain(message: str) -> bool:
+    """True when the reply expresses not-knowing without explicitly skipping.
+    The orchestrator uses this to offer a clarification + skip option rather
+    than repeating the identical question."""
+    text = (message or "").strip()
+    if not text:
+        return False
+    return bool(_UNCERTAIN_RE.search(text))
 
 
 def _extract_age(text: str) -> float | None:

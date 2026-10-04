@@ -37,7 +37,7 @@ const LifelineBackend = (() => {
       sessionId = undefined;
       for (const controller of pending) controller.abort();
     }
-    async function turn({ message = "", profileUpdates, assumptionUpdates, signal } = {}) {
+    async function turn({ message = "", profileUpdates, assumptionUpdates, path, signal } = {}) {
       if (typeof message !== "string" || (profileUpdates !== undefined && !object(profileUpdates)) ||
           (assumptionUpdates !== undefined && !object(assumptionUpdates))) {
         throw new Error("Please provide valid assessment updates.");
@@ -58,6 +58,7 @@ const LifelineBackend = (() => {
             memories: typeof LifelineMemories !== "undefined" ? LifelineMemories.list().map((item) => item.text) : [],
             ...(profileUpdates !== undefined ? { profile_updates: profileUpdates } : {}),
             ...(assumptionUpdates !== undefined ? { assumption_updates: assumptionUpdates } : {}),
+            ...(path ? { path } : {}),
           }),
           signal: controller.signal,
         });

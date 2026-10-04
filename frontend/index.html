@@ -76,6 +76,26 @@
       </button>
       <button type="button" class="btn btn-outline continue-chat" id="continue-chat-btn" hidden>Continue conversation</button>
 
+      <!-- Opening choice: pick a path before the main chat. Not a form; each
+           button simply starts the matching conversation. -->
+      <div class="path-choice" role="group" aria-label="How can we help you today?">
+        <button type="button" class="path-card" id="path-coverage" data-path="coverage">
+          <span class="path-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-8 9-8 9s-8-4-8-9V7z"/><path d="M8 12l3 3 5-6"/></svg></span>
+          <span class="path-text">
+            <span class="path-title">I'm looking for coverage</span>
+            <span class="path-sub">Find out how much you may need</span>
+          </span>
+        </button>
+        <button type="button" class="path-card" id="path-policy" data-path="policy">
+          <span class="path-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 3H6v18h12V7zM14 3v4h4M9 11h6M9 15h6"/></svg></span>
+          <span class="path-text">
+            <span class="path-title">I already have a policy</span>
+            <span class="path-sub">Get help understanding it</span>
+          </span>
+        </button>
+      </div>
+      <button type="button" class="path-ask" id="path-general" data-path="general">Just ask a question</button>
+
       <div class="topics" role="list">
         <button class="topic" role="listitem" data-prompt="I'd like to get a quote for life insurance.">
           <span class="topic-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-8 9-8 9s-8-4-8-9V7z"/><path d="M8 12l3 3 5-6"/></svg></span>

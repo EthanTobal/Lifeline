@@ -247,6 +247,18 @@ class BedrockService:
                 "return to the pending assessment question below. Keep the whole "
                 "reply short."
             )
+        elif mode == "policy":
+            parts.append(
+                "TASK: This person already HAS a life insurance policy and wants help "
+                "understanding it — not a new quote or a needs assessment. Help them "
+                "make sense of their existing coverage in plain, reassuring words: "
+                "explain terms they ask about, what their policy features mean for "
+                "their family, and how to read it. Do NOT start a new-customer "
+                "assessment, do NOT ask for their income, debts, or savings, and do "
+                "NOT push them to get a quote. If they want specifics about their own "
+                "policy you cannot see, ask them to read out the relevant line or "
+                "offer to connect them to a licensed advisor."
+            )
         else:
             parts.append("TASK: Explain in plain, reassuring language.")
 

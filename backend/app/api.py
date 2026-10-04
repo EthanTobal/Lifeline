@@ -29,6 +29,7 @@ def _handle_turn(payload: dict) -> dict:
         profile_updates=payload.get("profile_updates"),
         assumption_updates=payload.get("assumption_updates"),
         memories=payload.get("memories"),
+        path=payload.get("path"),
     )
 
 

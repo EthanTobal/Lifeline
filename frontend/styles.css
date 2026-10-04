@@ -36,6 +36,7 @@
 
   --font: "Roboto", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
   --maxw: 1200px;
+  --composer-maxw: 960px;  /* composer + its suggestion row share one width */
   --topbar-height: 76px;
   --documents-width: clamp(360px, 38vw, 600px);
   --page-gutter: clamp(12px, 4vw, 2rem);
@@ -178,6 +179,40 @@ h1 #greeting { font-weight: 700; color: var(--hl); }
 .topic-icon svg { width: 24px; height: 24px; }
 .topic-label { flex: 1; }
 .topic:hover .topic-icon { background: var(--hl-tint); transform: rotate(-4deg); }
+
+/* ---------- Opening path choice ---------- */
+.path-choice {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+  gap: .75rem; width: 100%; margin-top: 2.25rem;
+}
+.path-card {
+  display: flex; align-items: center; gap: .9rem;
+  min-height: 80px; padding: 1rem 1.25rem;
+  background: var(--bg); border: 1.5px solid var(--line); border-radius: var(--radius-lg);
+  text-align: left; color: var(--ink);
+  transition: border-color .25s, background-color .25s, box-shadow .25s, transform .3s var(--ease);
+  animation: rise .6s var(--ease) both;
+}
+.path-card:nth-child(1) { animation-delay: .08s; }
+.path-card:nth-child(2) { animation-delay: .14s; }
+.path-card:hover { border-color: var(--hl); background: var(--hl-tint-2); box-shadow: 0 8px 24px rgba(101,0,48,.09); transform: translateY(-3px); }
+.path-card:active { transform: translateY(0) scale(.985); }
+.path-card:focus-visible { outline: none; box-shadow: var(--focus); }
+.path-icon { display: grid; place-items: center; width: 48px; height: 48px; flex-shrink: 0; border-radius: 14px; background: var(--hl-tint); color: var(--sh); transition: background .25s, transform .3s var(--ease); }
+.path-icon svg { width: 26px; height: 26px; }
+.path-card:hover .path-icon { transform: rotate(-4deg); }
+.path-text { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
+.path-title { font-size: 1.08rem; font-weight: 700; color: var(--sh); }
+.path-sub { font-size: .9rem; color: var(--ink-soft); }
+.path-ask {
+  margin: 1rem auto 0; padding: .5rem 1rem; min-height: 44px;
+  background: transparent; border: 0; border-radius: 999px;
+  color: var(--sh); font-weight: 500; font-size: .95rem;
+  text-decoration: underline; text-underline-offset: .2em; text-decoration-thickness: 1px;
+  transition: color .2s, background-color .2s;
+}
+.path-ask:hover { background: var(--muted-bg); text-decoration-color: var(--hl); }
+.path-ask:focus-visible { outline: none; box-shadow: var(--focus); }
 
 /* =========================================================
    THE ORB — one element, every state.
@@ -422,14 +457,15 @@ h1 #greeting { font-weight: 700; color: var(--hl); }
    small screens and route through the normal submit() pipeline, so they
    behave exactly as if the customer had typed the text. */
 .composer-suggestions {
-  max-width: var(--maxw); margin: 0 auto .6rem;
-  display: flex; flex-wrap: wrap; gap: .5rem;
+  width: 100%; max-width: var(--composer-maxw); margin: 0 auto .6rem;
+  display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem;
+  box-sizing: border-box; min-width: 0;
 }
 .composer-suggestions[hidden] { display: none; }
 .composer-suggestions .suggestion { margin-top: 0; }
 #stop-response-btn { padding-inline: 1rem; }
 .composer {
-  max-width: var(--maxw); margin: 0 auto;
+  max-width: var(--composer-maxw); margin: 0 auto;
   display: flex; align-items: flex-end; gap: .35rem;
   padding: .45rem .45rem .45rem .5rem;
   background: var(--bg); border: 1.5px solid var(--line); border-radius: 34px;
@@ -644,7 +680,7 @@ h1 #greeting { font-weight: 700; color: var(--hl); }
 .ts[aria-pressed="true"]:hover { background: transparent; }
 .badge-pop { animation: badge-pop .55s cubic-bezier(.22,1,.36,1); }
 @keyframes badge-pop { 0% { transform: scale(.6); } 55% { transform: scale(1.25); } 100% { transform: scale(1); } }
-.composer { max-width: 960px; border-color: var(--line); box-shadow: 0 3px 8px rgba(101,0,48,.04), 0 12px 36px rgba(101,0,48,.1); transition: border-color .3s, box-shadow .35s, transform .35s var(--ease); }
+.composer { max-width: var(--composer-maxw); border-color: var(--line); box-shadow: 0 3px 8px rgba(101,0,48,.04), 0 12px 36px rgba(101,0,48,.1); transition: border-color .3s, box-shadow .35s, transform .35s var(--ease); }
 .composer:focus-within { border-color: var(--hl-soft); box-shadow: 0 0 0 4px rgba(255,79,23,.07), 0 12px 36px rgba(101,0,48,.1); transform: translateY(-2px); }
 #send-btn { transition: background .25s, color .25s, box-shadow .3s, transform .35s var(--ease); }
 #send-btn svg { transition: transform .25s var(--ease); }

@@ -21,7 +21,8 @@ from dataclasses import dataclass, field
 from .calculator import run_needs_assessment, DISCLAIMER
 from .models import Assessment
 from .bedrock_service import BedrockService, Source
-from .extractor import extract_profile_updates, classify_intent
+from .extractor import (extract_profile_updates, classify_intent,
+                        wants_to_skip, is_uncertain)
 from .config import load_config
 from .store import build_store
 
@@ -47,9 +48,17 @@ class Orchestrator:
         profile_updates: dict | None = None,
         assumption_updates: dict | None = None,
         memories: list[str] | None = None,
+        path: str | None = None,
     ) -> dict:
         """One conversational turn. Returns the response contract dict."""
         session_id, assessment = self.store.get_or_create(session_id)
+
+        # The homepage sends which journey the customer chose, and they can
+        # switch it later. It persists on the session and resets with a new
+        # chat (a fresh session has no path).
+        if path is not None:
+            assessment.set_path(path)
+        active_path = assessment.path
         # Browser memories are customer-provided context, never calculator inputs.
         memory_context = []
         if isinstance(memories, list):
@@ -76,13 +85,58 @@ class Orchestrator:
         extracted = extract_profile_updates(message, asked_field=asked_field)
         if extracted:
             assessment.update(extracted)
+            # A clear answer resets any unclear-attempt counters for those fields.
+            for key in extracted:
+                assessment.clear_unclear(key)
+
+        # 1c. Skip / "I don't know" handling, and unclear-answer escalation.
+        #     If the user is answering the field we just asked about but gave
+        #     neither a usable value nor an explicit zero, we must NOT ask the
+        #     same question again verbatim forever. We either skip the field
+        #     (leaving it UNKNOWN, never zero) when they say so, or escalate to
+        #     a clarification that offers a Skip / Not-sure option.
+        skipped_now = None
+        clarify_field = None
+        if asked_field and asked_field not in extracted and intent not in (
+                "educational", "pricing", "recommendation", "approval"):
+            if wants_to_skip(message):
+                # Explicit "skip" / "move on": honor immediately. Field stays
+                # unknown (never zero) and we advance.
+                assessment.skip_field(asked_field)
+                skipped_now = asked_field
+                assessment.clear_unclear(asked_field)
+            elif is_uncertain(message):
+                # "I don't know" / "no idea": don't skip yet and don't repeat
+                # the identical question -- offer a reworded prompt with an
+                # explicit Skip option. If uncertainty persists, skip it.
+                attempts = assessment.note_unclear(asked_field)
+                if attempts >= 2:
+                    assessment.skip_field(asked_field)
+                    skipped_now = asked_field
+                    assessment.clear_unclear(asked_field)
+                else:
+                    clarify_field = asked_field
+            elif message.strip():
+                # The user said something, but we couldn't read an answer for
+                # the field in play. Count it; after one unclear reply we offer
+                # a clearer re-ask with an explicit skip option.
+                attempts = assessment.note_unclear(asked_field)
+                if attempts >= 2:
+                    clarify_field = asked_field
 
         # Decide whether we are in an assessment. We only collect financial
         # details once the user has entered one — by asking for an estimate,
         # by giving a financial fact, or by having started earlier. A purely
         # general or educational question on a fresh profile does NOT begin
         # collecting.
-        if intent == "assessment" or extracted or profile_updates:
+        #
+        # The "policy" path (help understanding an EXISTING policy) must never
+        # auto-start new-customer financial intake, even if the user mentions a
+        # number. Only an explicit switch to the coverage path (or the frontend
+        # sending profile_updates) begins collection.
+        if active_path == "policy":
+            pass  # existing-policy help: no financial intake
+        elif active_path == "coverage" or intent == "assessment" or extracted or profile_updates:
             assessment.mark_started()
 
         # 2. Deterministic calculation (only when we have the required inputs).
@@ -129,20 +183,42 @@ class Orchestrator:
             mode = "answering_then_resuming"
         elif collecting:
             mode = "collecting"
+        elif active_path == "policy":
+            # Helping someone understand an EXISTING policy: explain, don't
+            # collect, and don't push a new-customer assessment.
+            mode = "policy"
         else:
             mode = "explaining"
 
-        assistant_message = self.bedrock.generate_grounded_response(
-            query=message, context=calc_context, sources=sources, mode=mode,
-            next_field=next_field, known_summary=assessment.known_summary(),
-            guardrail=guardrail,
-            memories=memory_context,
-        )
+        # When we must clarify a repeatedly-unclear answer, the application
+        # owns the wording deterministically (offering a Skip option) rather
+        # than letting the model echo the same question again.
+        if clarify_field and next_field and next_field["key"] == clarify_field:
+            assistant_message = _clarify_prompt(next_field)
+        else:
+            assistant_message = self.bedrock.generate_grounded_response(
+                query=message, context=calc_context, sources=sources, mode=mode,
+                next_field=next_field, known_summary=assessment.known_summary(),
+                guardrail=guardrail,
+                memories=memory_context,
+            )
+            # If we just skipped a field, make sure the reply acknowledges it
+            # and moves on to the next question rather than silently jumping.
+            if skipped_now and next_field and not assistant_message:
+                pass  # handled by the fallback block below
 
         # 5. Deterministic fallbacks. These must produce a usable turn even when
         #    Bedrock is unconfigured or returns nothing.
         if not assistant_message:
-            if mode == "out_of_scope":
+            if skipped_now and next_field:
+                assistant_message = (
+                    "No problem, we can leave that one blank for now.\n\n"
+                    + _ask(next_field))
+            elif skipped_now and status == "ready":
+                assistant_message = (
+                    "No problem, we'll leave that blank. "
+                    + _ready_prompt(needs_block))
+            elif mode == "out_of_scope":
                 assistant_message = _out_of_scope_fallback(message)
             elif guardrail:
                 assistant_message = _guardrail_fallback(guardrail)
@@ -155,6 +231,8 @@ class Orchestrator:
                                      + "\n\n" + _ask(next_field))
             elif status == "ready":
                 assistant_message = calc_context or _ready_prompt(needs_block)
+            elif mode == "policy":
+                assistant_message = _policy_fallback(bool(message))
             else:
                 # Idle / general question with no estimate yet.
                 assistant_message = _general_fallback()
@@ -182,6 +260,7 @@ class Orchestrator:
             "assistant_message": assistant_message,
             "mode": mode,
             "intent": intent,
+            "path": active_path,
             "extracted": extracted,
             "assessment_started": assessment.started,
             "assessment": {
@@ -190,15 +269,23 @@ class Orchestrator:
                 "status": status if status == "idle" else assessment_block["status"],
                 "assessment_started": assessment.started,
                 "missing_fields": assessment_block["missing_fields"],
-                "next_field": assessment_block["next_field"],
-                "next_field_question": assessment_block["next_field_question"],
-                "next_field_why": assessment_block["next_field_why"],
+                # next_field is only meaningful while actively collecting; when
+                # idle/policy/ready there is no question pending, so report None
+                # rather than the raw first-missing field.
+                "next_field": next_field["key"] if next_field else None,
+                "next_field_question": next_field["question"] if next_field else None,
+                "next_field_why": next_field["why"] if next_field else None,
                 "known_summary": assessment_block["known_summary"],
                 "profile": assessment_block["profile"],
                 "context": assessment_block["context"],
                 "assumptions": assessment_block["assumptions"],
                 "field_help": assessment_block["field_help"],
+                # Any field being asked can be skipped; the frontend can show a
+                # "Skip / Not sure" quick reply. Skipped fields stay unknown.
+                "can_skip": bool(next_field),
+                "skipped_fields": sorted(assessment.skipped_fields),
             },
+            "skipped": skipped_now,
             "needs_assessment": needs_block,
             "sources": [s.to_dict() for s in sources],
             "disclaimer": DISCLAIMER,
@@ -320,10 +407,33 @@ def _ready_prompt(needs: dict | None = None) -> str:
     return message
 
 
+def _clarify_prompt(next_field: dict) -> str:
+    """Reword a field's question after a couple of unclear replies, and
+    explicitly offer a way out so the customer is never stuck on a loop."""
+    return (
+        f"Sorry, I didn't quite catch that. {next_field['question']}\n\n"
+        "A rough number is fine — or just say \"skip\" or \"I'm not sure\" and "
+        "we'll move on and leave it blank."
+    )
+
+
 def _general_fallback() -> str:
     return ("Happy to help. You can ask me about how life insurance works, or "
             "say \"estimate my coverage\" and I'll put together a quick coverage "
             "estimate with you — one question at a time.")
+
+
+def _policy_fallback(has_message: bool) -> str:
+    if not has_message:
+        return ("Of course — let's make sense of the policy you already have. "
+                "You can tell me what you'd like to understand (for example what "
+                "it covers, who receives the money, or what a term on it means), "
+                "or read out any line you're unsure about and I'll explain it in "
+                "plain words. I won't ask you to start a new quote.")
+    return ("Happy to help you understand your existing policy. Tell me which "
+            "part you'd like explained — what's covered, what you pay, who the "
+            "beneficiary is, or any wording that's unclear — and I'll put it in "
+            "plain words. You can ask for a real person at any time.")
 
 
 def _educational_fallback(assessment: Assessment) -> str:

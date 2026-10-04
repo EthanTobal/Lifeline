@@ -43,6 +43,10 @@
   };
   const workspaceContent = [];
   let currentFollowUp = null;
+  // Which journey the customer picked on the homepage: "coverage" | "policy"
+  // | "general". Stored for the whole conversation, sent to the backend on
+  // every turn, switchable mid-chat, and reset to null on a new chat.
+  let conversationPath = null;
   let selectedDocument = 0;
   let lastDocumentCount = 0;
   let voiceWorkspaceOpen = false;
@@ -268,6 +272,7 @@
     userMessages.length = 0;
     el.messages.innerHTML = "";
     clearComposerSuggestions();
+    conversationPath = null;  // new chat resets the chosen path
     el.input.value = "";
     autoGrow();
     followingLatest = true;
@@ -542,7 +547,7 @@
     if (!override) {
       startThinking();
       try {
-        const data = await backend.turn({ message: userText, ...updates, signal });
+        const data = await backend.turn({ message: userText, path: conversationPath || undefined, ...updates, signal });
         if (signal.aborted) return;
         stopThinking();
         const message = makeMsg("ai");
@@ -1196,12 +1201,19 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
   function suggestionsForTurn(data) {
     const assessment = data?.assessment || {};
     const status = assessment.status;
+    // Keep the client path in sync with whatever the backend reports (handles
+    // a server-side switch and lets switching work on later turns).
+    if (typeof data?.path === "string" || data?.path === null) {
+      conversationPath = data.path;
+    }
 
     if (status === "collecting") {
       const field = assessment.next_field;
       const perField = FIELD_SUGGESTIONS[field] || [];
-      // Lead with the field-specific answers, then a general escape hatch.
-      return dedupeSuggestions([...perField, "Talk to a real person"]);
+      const row = [...perField];
+      if (assessment.can_skip) row.push("Skip / not sure");
+      row.push("Talk to a real person");
+      return dedupeSuggestions(row);
     }
 
     if (status === "ready") {
@@ -1214,13 +1226,34 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
       ]);
     }
 
-    // Idle / general question with no assessment under way.
+    // Existing-policy path: help understanding, and a way to switch to a new
+    // coverage assessment if they decide they want one.
+    if (conversationPath === "policy") {
+      return dedupeSuggestions([
+        "What does my policy cover?",
+        "Explain a term from my policy",
+        "I'm looking for new coverage",
+        "Talk to a real person",
+      ]);
+    }
+
+    // Idle / general question with no assessment under way. Offer the two
+    // paths so the user can switch into either from here.
     return dedupeSuggestions([
       "Estimate my coverage",
+      "I already have a policy",
       "How does life insurance work?",
       "Talk to a real person",
     ]);
   }
+
+  // Suggestion chips that should switch the conversation path rather than send
+  // a plain message. Mapped to the opening lines so the backend re-routes.
+  const PATH_SWITCH_SUGGESTIONS = {
+    "Estimate my coverage": "coverage",
+    "I'm looking for new coverage": "coverage",
+    "I already have a policy": "policy",
+  };
 
   function dedupeSuggestions(list) {
     return [...new Set(list.filter(Boolean))].slice(0, 4);
@@ -1236,7 +1269,14 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
       button.type = "button";
       button.className = "suggestion";
       button.textContent = text;
-      button.addEventListener("click", () => submit(text));
+      const switchTo = PATH_SWITCH_SUGGESTIONS[text];
+      if (switchTo) {
+        button.addEventListener("click", () => switchPath(switchTo));
+      } else if (text === "Skip / not sure") {
+        button.addEventListener("click", () => submit("skip"));
+      } else {
+        button.addEventListener("click", () => submit(text));
+      }
       row.appendChild(button);
     }
     row.hidden = false;
@@ -1273,12 +1313,42 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     respond(str, undefined, updates);
   }
 
+  // Opening-choice messages. Each path starts the matching conversation by
+  // sending a natural opening line through the normal submit() pipeline, with
+  // the chosen path attached so the backend routes correctly (and, for the
+  // existing-policy path, never starts new-customer financial intake).
+  const PATH_OPENERS = {
+    coverage: "I'd like to figure out how much life insurance coverage I need.",
+    policy: "I already have a life insurance policy and I'd like help understanding it.",
+    general: "I just have a question about life insurance.",
+  };
+
+  function choosePath(path) {
+    if (!PATH_OPENERS[path] || busy) return;
+    conversationPath = path;
+    submit(PATH_OPENERS[path]);
+  }
+
+  // Mid-conversation switch: offer the other two paths as quick replies the
+  // first time the user is in a chat, rendered in-design via a small row.
+  function switchPath(path) {
+    if (!PATH_OPENERS[path] || busy) return;
+    conversationPath = path;
+    const label = {
+      coverage: "Actually, I'd like to look at new coverage.",
+      policy: "Actually, I'd like help with a policy I already have.",
+      general: "Actually, I just want to ask a question.",
+    }[path];
+    submit(label);
+  }
+
   el.input.addEventListener("input", autoGrow);
   el.input.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); submit(); }
   });
   el.form.addEventListener("submit", (e) => { e.preventDefault(); submit(); });
   $$(".topic").forEach((t) => t.addEventListener("click", () => submit(t.dataset.prompt)));
+  $$("[data-path]").forEach((b) => b.addEventListener("click", () => choosePath(b.dataset.path)));
   el.newChat.addEventListener("click", newChat);
   el.brand.addEventListener("click", (e) => { e.preventDefault(); showHome(); });
   el.continueChat.addEventListener("click", () => {
