@@ -85,6 +85,8 @@ Keep spoken responses conversational and concise.`;
   const INPUT_RATE = 16000;
   const OUTPUT_RATE = 24000;
   const SDK_URL = "https://cdn.jsdelivr.net/npm/@google/genai@latest/dist/index.umd.js";
+  // Mic RMS above this counts as the user starting to speak (barge-in).
+  const SPEECH_ONSET_RMS = 0.02;
 
   let session = null;    // { socket, stream, audioCtx, ... }
   let sdkPromise = null;
@@ -128,6 +130,35 @@ Keep spoken responses conversational and concise.`;
 
   function isActive() {
     return Boolean(session);
+  }
+
+  /* Is the assistant's audio currently playing locally? */
+  function isSpeaking() {
+    return Boolean(session && session.sources && session.sources.size > 0);
+  }
+
+  /* Mute/unmute the MICROPHONE only. The Live session stays open, so Gemini
+     keeps the conversation and can still be unmuted into. */
+  function setMuted(muted) {
+    if (!session) return false;
+    session.muted = Boolean(muted);
+    return session.muted;
+  }
+
+  function isMuted() {
+    return Boolean(session && session.muted);
+  }
+
+  /* Stop and empty any assistant audio queued locally. This is the playback
+     half of barge-in; the server tells us to do it via serverContent.interrupted,
+     and we also do it locally the moment the user starts talking so the
+     interruption feels immediate rather than round-tripped. */
+  function interruptPlayback() {
+    if (!session || !session.sources) return;
+    for (const source of session.sources) {
+      try { source.onended = null; source.stop(); } catch (_) { /* already ended */ }
+    }
+    session.sources.clear();
   }
 
   /* Start a voice session. Fails cleanly if no key is configured server-side. */
@@ -215,7 +246,12 @@ Keep spoken responses conversational and concise.`;
       if (inputText) onEvent?.({ type: "user-speech", text: inputText });
       const outputText = msg.outputTranscription?.text;
       if (outputText) onEvent?.({ type: "assistant-speech", text: outputText });
-      if (serverContent?.interrupted) onEvent?.({ type: "interrupted" });
+      // The Live API's supported interruption signal: the server says the turn was
+      // cut off, so drop whatever assistant audio we still have queued.
+      if (serverContent?.interrupted) {
+        interruptPlayback();
+        onEvent?.({ type: "interrupted" });
+      }
     };
 
     socket = await ai.live.connect({
@@ -246,10 +282,35 @@ Keep spoken responses conversational and concise.`;
     const processor = audioCtx.createScriptProcessor(4096, 1, 1);
     processor.onaudioprocess = (event) => {
       if (!session || !socket) return;
+      const samples = event.inputBuffer.getChannelData(0);
+
+      // Local barge-in: if the assistant is talking and the user starts
+      // speaking, silence the assistant now rather than waiting for the
+      // server round-trip. RMS is rate-independent, so this works whatever
+      // rate the AudioContext chose.
+      if (session.sources.size > 0) {
+        let sum = 0;
+        for (let i = 0; i < samples.length; i += 1) sum += samples[i] * samples[i];
+        if (Math.sqrt(sum / samples.length) > SPEECH_ONSET_RMS) {
+          session.voiceFrames = (session.voiceFrames || 0) + 1;
+          // Require a couple of consecutive frames so a single click or
+          // keyboard noise does not cut the assistant off.
+          if (session.voiceFrames >= 2) {
+            interruptPlayback();
+            session.voiceFrames = 0;
+          }
+        } else {
+          session.voiceFrames = 0;
+        }
+      }
+
+      // Muted: keep the session alive, just stop sending microphone audio.
+      if (session.muted) return;
+
       socket.sendRealtimeInput({
         audio: {
           // The Live API takes audio as base64, not raw bytes.
-          data: pcm16ToBase64(event.inputBuffer.getChannelData(0)),
+          data: pcm16ToBase64(samples),
           mimeType: `audio/pcm;rate=${INPUT_RATE}`,
         },
       });
@@ -262,7 +323,7 @@ Keep spoken responses conversational and concise.`;
     processor.connect(silent);
     silent.connect(audioCtx.destination);
 
-    session = { socket, stream, audioCtx, source, processor, silent, output: null };
+    session = { socket, stream, audioCtx, source, processor, silent, output: null, sources: new Set(), muted: false, voiceFrames: 0 };
     onState?.("listening");
     return session;
   }
@@ -286,6 +347,9 @@ Keep spoken responses conversational and concise.`;
     const source = session.output.createBufferSource();
     source.buffer = buffer;
     source.connect(session.output.destination);
+    // Track it so barge-in and End can silence audio that is already playing.
+    session.sources.add(source);
+    source.onended = () => session?.sources.delete(source);
     source.start();
   }
 
@@ -293,16 +357,26 @@ Keep spoken responses conversational and concise.`;
     if (!session) return;
     const current = session;
     session = null;
+    // Silence any assistant audio before releasing the contexts, otherwise the
+    // tail of the reply keeps playing over the closed session.
+    interruptPlayback();
     const quiet = (fn) => { try { fn(); } catch (_) { /* already torn down */ } };
+    quiet(() => current.processor.onaudioprocess = null);
     quiet(() => current.socket.close?.());
     quiet(() => current.processor.disconnect());
     quiet(() => current.source.disconnect());
     quiet(() => current.silent.disconnect());
     quiet(() => current.output?.close?.());
     try { await current.audioCtx.close(); } catch (_) { /* noop */ }
+    // Release the microphone so the browser's recording indicator goes out.
     current.stream.getTracks().forEach((track) => track.stop());
+    current.sources.clear();
     onState?.("idle");
   }
 
-  return { start, stop, isActive, playChunk, SYSTEM_INSTRUCTION, ASK_TOOL, INPUT_RATE };
+  return {
+    start, stop, isActive, playChunk, setMuted, isMuted,
+    interruptPlayback, isSpeaking,
+    SYSTEM_INSTRUCTION, ASK_TOOL, INPUT_RATE,
+  };
 })();

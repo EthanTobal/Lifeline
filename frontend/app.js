@@ -916,8 +916,13 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     voiceController = null;
     recognition?.abort();
     recognition = null;
-    // Gemini Live owns its own mic and playback; tear it down too.
+    // Gemini Live owns its own mic and playback; tear it down too. This
+    // silences queued assistant audio, stops the mic tracks, and releases the
+    // audio contexts so a new session can start cleanly.
     if (window.LifelineVoice?.isActive()) LifelineVoice.stop();
+    // Reset the controls so the next session opens unmuted.
+    el.mute.setAttribute("aria-pressed", "false");
+    $("span", el.mute).textContent = "Mute";
     LifelineSpeech.cancel();
     voicePending = false;
     el.voice.hidden = true;
@@ -1038,6 +1043,8 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     const muted = el.mute.getAttribute("aria-pressed") !== "true";
     el.mute.setAttribute("aria-pressed", String(muted));
     $("span", el.mute).textContent = muted ? "Unmute" : "Mute";
+    // Gemini Live: stop/resume sending mic audio without dropping the session.
+    if (window.LifelineVoice?.isActive()) LifelineVoice.setMuted(muted);
     if (muted) { recognition?.abort(); setVoiceState("muted", "Press Unmute when you're ready."); }
     else listen();
   });
