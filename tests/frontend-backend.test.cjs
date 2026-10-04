@@ -130,7 +130,7 @@ test('home orb opens voice, closing contracts it, and top-bar orb returns home',
   assert.equal(doc.querySelector('#voice').hidden, true);
 });
 
-test('coverage overview and resource bars display backend amounts without changing the estimate', async (t) => {
+test('coverage overview shows backend amounts and saves a document only on request', async (t) => {
   const { w, doc } = boot(t);
   w.fetch = async () => ({ ok: true, json: async () => ({ ...response('estimate', 'Your estimate is ready.'),
     assessment: { status: 'ready', missing_fields: [], profile: {}, assumptions: {} },
@@ -144,8 +144,22 @@ test('coverage overview and resource bars display backend amounts without changi
   assert.equal(doc.querySelector('.estimate-need strong').textContent, '$250,000');
   assert.equal(doc.querySelector('.estimate-resources strong').textContent, '$126,544');
   assert.equal(doc.querySelector('.estimate-need .estimate-track span').style.width, '100%');
+  assert.equal(doc.querySelector('#documents-count').textContent, '0');
+  assert.equal(doc.querySelectorAll('.document-choice').length, 0);
+  assert.equal(doc.querySelector('.estimate-saved').hidden, true);
+  doc.querySelector('.estimate-save').click();
   assert.equal(doc.querySelector('#documents-count').textContent, '1');
   assert.ok(doc.querySelector('.document-choice .document-thumbnail'));
+  assert.equal(doc.querySelector('.estimate-save').hidden, true);
+  assert.equal(doc.querySelector('.estimate-saved').hidden, false);
+  assert.equal(doc.querySelector('.estimate-saved').textContent, 'Saved');
+  assert.equal(doc.querySelector('.estimate-open').hidden, false);
+  assert.equal(doc.activeElement, doc.querySelector('.estimate-open'));
+  assert.equal(doc.querySelector('#documents-panel').hidden, true);
+  doc.querySelector('.estimate-open').click();
+  assert.equal(doc.querySelector('#documents-panel').hidden, false);
+  assert.ok(doc.querySelector('#document-content').textContent.includes('$123,456'));
+  doc.querySelector('#documents-close').click();
   doc.querySelector('#voice-btn').click();
   assert.equal(doc.querySelector('.voice-canvas').hidden, true);
   doc.querySelector('#voice-documents-btn').click();
@@ -155,6 +169,140 @@ test('coverage overview and resource bars display backend amounts without changi
   doc.querySelector('#voice-workspace-close').click();
   assert.equal(doc.querySelector('.voice-canvas').hidden, true);
   assert.equal(doc.activeElement, doc.querySelector('#voice-documents-btn'));
+});
+
+test('only the latest question is highlighted and home clears suggested replies', async (t) => {
+  const { w, doc } = boot(t);
+  let turn = 0;
+  w.fetch = async () => ({ ok: true, json: async () => response('question',
+    ++turn === 1 ? 'Here is some context.\n\n**What is your annual income?**' : 'Thanks.\n\nHow many children depend on you?') });
+  assert.equal(doc.querySelectorAll('#home .topic').length, 0);
+  assert.ok(doc.querySelector('#path-policy').compareDocumentPosition(doc.querySelector('#voice-cta')) & w.Node.DOCUMENT_POSITION_FOLLOWING);
+  const send = () => {
+    doc.querySelector('#message-input').value = 'Answer';
+    doc.querySelector('#composer').dispatchEvent(new w.Event('submit', { bubbles: true, cancelable: true }));
+  };
+  send();
+  await until(() => doc.querySelector('.current-question'));
+  assert.equal(doc.querySelector('.current-question').textContent, 'What is your annual income?');
+  send();
+  assert.equal(doc.querySelector('.current-question'), null);
+  await until(() => doc.querySelector('.current-question'));
+  assert.equal(doc.querySelectorAll('.current-question').length, 1);
+  assert.equal(doc.querySelector('.current-question').textContent, 'How many children depend on you?');
+  doc.querySelector('#brand-home').click();
+  assert.equal(doc.querySelector('.current-question'), null);
+  assert.equal(doc.querySelector('#composer-suggestions').children.length, 0);
+  assert.equal(doc.querySelector('#composer-suggestions-wrap').hidden, true);
+  doc.querySelector('#continue-chat-btn').click();
+  assert.equal(doc.querySelector('#composer-suggestions-wrap').hidden, true);
+});
+
+test('suggestion overflow control scrolls the row and disappears at the end', async (t) => {
+  const { w, doc } = boot(t);
+  const row = doc.querySelector('#composer-suggestions');
+  Object.defineProperties(row, { scrollWidth: { value: 800, configurable: true }, clientWidth: { value: 300, configurable: true } });
+  let scroll;
+  row.scrollBy = (options) => { scroll = options; };
+  doc.querySelector('#message-input').value = 'Hello';
+  doc.querySelector('#composer').dispatchEvent(new w.Event('submit', { bubbles: true, cancelable: true }));
+  await until(() => !row.hidden);
+  const more = doc.querySelector('#suggestions-more');
+  assert.equal(more.hidden, false);
+  more.click();
+  assert.equal(scroll.left, 200);
+  assert.equal(scroll.behavior, 'instant');
+  row.scrollLeft = 500;
+  row.dispatchEvent(new w.Event('scroll'));
+  assert.equal(more.hidden, true);
+  row.scrollLeft = 0;
+  Object.defineProperty(row, 'clientWidth', { value: 1000, configurable: true });
+  w.dispatchEvent(new w.Event('resize'));
+  assert.equal(more.hidden, true);
+});
+
+test('saving a recalculated estimate updates the saved copy and previous cards', async (t) => {
+  const { w, doc } = boot(t);
+  let gap = 100;
+  w.fetch = async () => ({ ok: true, json: async () => ({ ...response('save', 'Your estimate.'),
+    assessment: { status: 'ready', missing_fields: [], profile: {}, assumptions: {} },
+    needs_assessment: { illustrative_gap: gap, breakdown: { gross_need: gap, total_offsets: 0, components: [], offsets: [] } },
+  }) });
+  const send = () => {
+    doc.querySelector('#message-input').value = 'Calculate';
+    doc.querySelector('#composer').dispatchEvent(new w.Event('submit', { bubbles: true, cancelable: true }));
+  };
+  send();
+  await until(() => doc.querySelectorAll('.estimate-save').length === 1);
+  doc.querySelector('.estimate-save').click();
+  gap = 0;
+  send();
+  await until(() => doc.querySelectorAll('.estimate-save').length === 2);
+  const buttons = doc.querySelectorAll('.estimate-save');
+  assert.equal(buttons[0].hidden, true);
+  assert.equal(buttons[1].hidden, false);
+  assert.equal(doc.querySelectorAll('.estimate-amount')[1].textContent, '$0');
+  assert.equal(doc.querySelectorAll('.estimate-need .estimate-track span')[1].style.width, '0%');
+  buttons[1].click();
+  assert.equal(doc.querySelector('#documents-count').textContent, '1');
+  assert.equal(buttons[0].hidden, false);
+  assert.equal(buttons[1].hidden, true);
+  assert.equal(doc.querySelectorAll('.estimate-open')[0].hidden, true);
+  assert.ok(doc.querySelector('#document-content').textContent.includes('$0'));
+  let printed = 0;
+  w.print = () => { printed++; };
+  doc.querySelectorAll('.estimate-print')[0].click();
+  assert.equal(printed, 1);
+  assert.equal(doc.querySelector('#documents-count').textContent, '1');
+  assert.equal(buttons[0].hidden, true);
+  assert.equal(buttons[1].hidden, false);
+  assert.ok(doc.querySelector('#lifeline-print').textContent.includes('$100'));
+  w.dispatchEvent(new w.Event('afterprint'));
+  assert.equal(doc.querySelector('#lifeline-print'), null);
+});
+
+test('estimate improvements preserve product recommendations, no-need states, and comparisons', async (t) => {
+  const { w, doc } = boot(t);
+  let recommendation = {
+    product: { name: 'Example Term', policy_type: 'Term life', plain_language: 'Coverage for a fixed period.',
+      coverage_duration: '20 years', benefits: ['Fixed period of cover'], primary_limitation: 'Cover ends with the term.' },
+    match: { estimated_additional_coverage: 120000, reasons: ['Fits your stated goal'], assumptions: ['Assumed a 20-year need'] },
+    pricing: { message: 'Ask an advisor for a quote.' },
+  };
+  let comparison;
+  w.fetch = async () => ({ ok: true, json: async () => ({ ...response('recommendation', 'Here are your options.'),
+    assessment: { status: 'ready', missing_fields: [], profile: {}, assumptions: {} }, recommendation, comparison,
+    needs_assessment: { illustrative_gap: 123456, breakdown: { gross_need: 250000, total_offsets: 126544, components: [], offsets: [] } },
+  }) });
+  const send = () => {
+    doc.querySelector('#message-input').value = 'Options';
+    doc.querySelector('#composer').dispatchEvent(new w.Event('submit', { bubbles: true, cancelable: true }));
+  };
+  send();
+  await until(() => doc.querySelector('.estimate-amount'));
+  assert.equal(doc.querySelector('.estimate-amount').textContent, '$120,000');
+  assert.ok(doc.querySelector('.recommendation-intro').textContent.includes('Example Term'));
+  assert.ok(doc.querySelector('.recommendation-explanation').textContent.includes('Ask an advisor for a quote.'));
+  assert.equal(doc.querySelector('.recommendation-math').open, false);
+  doc.querySelector('.estimate-save').click();
+  doc.querySelector('.estimate-open').click();
+  assert.ok(doc.querySelector('#document-content').textContent.includes('Example Term'));
+  assert.ok(doc.querySelector('#document-content').textContent.includes('Total needs: $250,000'));
+  doc.querySelector('#documents-close').click();
+  comparison = { has_more: true };
+  send();
+  await until(() => doc.querySelector('#composer-suggestions').textContent.includes('Show me all my options'));
+  assert.equal(doc.querySelectorAll('.needs-assessment-card').length, 1);
+  comparison = undefined;
+  recommendation = { match: { no_additional_coverage: true, estimated_additional_coverage: 0 } };
+  send();
+  await until(() => doc.querySelectorAll('.estimate-amount').length === 2);
+  assert.equal(doc.querySelectorAll('.estimate-amount')[1].textContent, '$0');
+  assert.ok(doc.querySelectorAll('.recommendation-intro')[1].textContent.includes('You may already be well covered'));
+  recommendation = { match: { estimated_additional_coverage: 123456, unresolved_questions: ['How long do you want cover to last?'] } };
+  send();
+  await until(() => doc.querySelector('.current-question'));
+  assert.equal(doc.querySelector('.current-question').textContent.trim(), 'How long do you want cover to last?');
 });
 
 test('volume monitor reacts to microphone samples and releases audio resources on abort', async (t) => {

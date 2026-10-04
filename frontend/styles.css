@@ -157,7 +157,7 @@ h1 #greeting { font-weight: 700; color: var(--hl); }
 /* ---------- Opening path choice ---------- */
 .path-choice {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
-  gap: .75rem; width: 100%; margin-top: 2.25rem;
+  gap: .75rem; width: 100%; margin-top: .25rem;
 }
 .path-card {
   display: flex; align-items: center; gap: .9rem;
@@ -187,6 +187,7 @@ h1 #greeting { font-weight: 700; color: var(--hl); }
 }
 .path-ask:hover { background: var(--muted-bg); text-decoration-color: var(--hl); }
 .path-ask:focus-visible { outline: none; box-shadow: var(--focus); }
+.voice-choice-label { margin: 1.5rem 0 .5rem; color: var(--ink-soft); font-size: .9rem; }
 
 /* =========================================================
    THE ORB — one element, every state.
@@ -320,6 +321,12 @@ h1 #greeting { font-weight: 700; color: var(--hl); }
 .markdown-content h3 { font-size: 1.15em; }
 .markdown-content h4, .markdown-content h5, .markdown-content h6 { font-size: 1em; }
 .markdown-content p { margin: 0 0 .8rem; }
+.msg-ai .current-question {
+  margin-top: 1.25rem; padding: 1rem 1.15rem;
+  border-left: 4px solid var(--hl); border-radius: 0 var(--radius) var(--radius) 0;
+  background: var(--hl-tint-2); color: var(--sh); font-weight: 500; font-size: 1.08em;
+}
+.msg-ai .text ul.current-question, .msg-ai .text ol.current-question { padding-left: 2.25rem; }
 .markdown-content ul, .markdown-content ol { margin: .5rem 0 .9rem; padding-left: 1.5rem; }
 .markdown-content li { margin-bottom: .3rem; }
 .markdown-content li > p { margin: .25rem 0; }
@@ -396,8 +403,10 @@ h1 #greeting { font-weight: 700; color: var(--hl); }
 .suggestion:focus-visible { outline: none; box-shadow: var(--focus); }
 
 /* Save / Print actions beneath the inline coverage estimate */
-.estimate-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1rem; }
+.estimate-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: 1rem; }
 .estimate-actions .btn { min-height: 48px; }
+.estimate-saved { display: inline-flex; align-items: center; gap: .4rem; padding: .5rem; color: var(--sh); font-weight: 500; }
+.estimate-saved::before { content: "✓"; color: var(--hl); }
 
 /* Recommendation conclusion card: the product match leads, the worked math is
    tucked into an expandable section. Give the markdown headline room to breathe
@@ -442,8 +451,20 @@ h1 #greeting { font-weight: 700; color: var(--hl); }
 
 /* Keep quick replies centered on one line, with horizontal scrolling when
    they exceed the available width. Auto margins keep both ends reachable. */
+.composer-suggestions-wrap { position: relative; width: 100%; max-width: var(--composer-maxw); margin: 0 auto .6rem; }
+.composer-suggestions-wrap.has-more::after {
+  content: ""; position: absolute; right: 0; top: 0; bottom: 0; width: 4rem;
+  background: linear-gradient(to right, transparent, var(--bg) 55%); pointer-events: none;
+}
+.suggestions-more {
+  position: absolute; right: .25rem; top: .25rem; z-index: 1;
+  display: grid; place-items: center; width: 42px; min-height: 48px;
+  padding: 0; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--bg); color: var(--sh); box-shadow: 0 2px 8px rgba(101,0,48,.12);
+}
+.suggestions-more:hover { background: var(--hl-tint); }
 .composer-suggestions {
-  width: 100%; max-width: var(--composer-maxw); margin: 0 auto .6rem;
+  width: 100%; margin: 0;
   display: flex; flex-wrap: nowrap; gap: .5rem;
   box-sizing: border-box; min-width: 0; overflow-x: auto; padding: .25rem;
 }
@@ -695,6 +716,8 @@ h1 #greeting { font-weight: 700; color: var(--hl); }
 .document-toolbar h3 { font-weight: 700; font-size: 1.35rem; }
 .document-content { max-width: 70ch; margin-inline: auto; line-height: 1.75; }
 .estimate-overview { padding: clamp(1rem, 4vw, 1.75rem); background: var(--hl-tint-2); }
+.estimate-overview h2 { margin: 0 0 1rem; color: var(--sh); font-size: 1.3rem; }
+.recommendation-card > .estimate-note { padding: 0 1.25rem 1.25rem; }
 .estimate-overview > .content-label { margin: 0; }
 .estimate-amount { margin: .35rem 0 .65rem; color: var(--sh); font-size: clamp(2rem, 6vw, 3.2rem); font-weight: 700; letter-spacing: -.045em; line-height: 1.15; font-variant-numeric: tabular-nums; }
 .estimate-disclaimer { margin: 0; color: var(--ink-soft); font-size: .9rem; }
@@ -773,10 +796,15 @@ h1 #greeting { font-weight: 700; color: var(--hl); }
 }
 
 @media screen and (max-width: 30rem) {
-  .home { padding-top: 1.5rem; }
-  .home .orb-hero { --size: 96px; }
-  .hero-orb-button { margin-bottom: 1.25rem; }
-  .lead { margin-bottom: 1.5rem; }
+  .home { padding-top: .85rem; }
+  .home .orb-hero { --size: 72px; }
+  .hero-orb-button { margin-bottom: .85rem; }
+  .lead { margin-bottom: 1rem; font-size: 1rem; line-height: 1.45; }
+  .path-card { min-height: 72px; padding: .75rem .85rem; gap: .65rem; }
+  .path-title { font-size: 1rem; }
+  .path-sub { font-size: .85rem; }
+  .voice-choice-label { margin-top: 1rem; }
+  .estimate-overview h2, .recommendation-intro h2 { padding-right: 2rem; }
   .btn-xl { padding-inline: 1.25rem; }
   .chat { padding: 1.25rem 0 1.5rem; }
   .msg { gap: .5rem; }

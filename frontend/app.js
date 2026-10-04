@@ -40,6 +40,8 @@
     documentsList: $("#documents-list"),
     documentContent: $("#document-content"),
     composerSuggestions: $("#composer-suggestions"),
+    suggestionsWrap: $("#composer-suggestions-wrap"),
+    suggestionsMore: $("#suggestions-more"),
   };
   const workspaceContent = [];
   let currentFollowUp = null;
@@ -246,6 +248,7 @@
     if (!el.voice.hidden) closeVoice(true);
     if (busy) stopResponse();
     clearComposerSuggestions();
+    clearCurrentQuestion();
     el.chat.hidden = true;
     el.home.hidden = false;
     el.newChat.hidden = !el.messages.children.length;
@@ -461,11 +464,24 @@
   }
 
   function addUserMessage(str) {
+    clearCurrentQuestion();
     userMessages.push(str);
     showChat();
     const { text } = makeMsg("user");
     LifelineContent.renderMarkdown(text, str);
     scrollDown(true);
+  }
+
+  function clearCurrentQuestion() {
+    $$(".current-question", el.messages).forEach((question) => question.classList.remove("current-question"));
+  }
+
+  function highlightCurrentQuestion(text, data) {
+    clearCurrentQuestion();
+    if (data?.assessment?.status === "ready") return;
+    const question = [...text.children].reverse().find((node) =>
+      ["P", "UL", "OL"].includes(node.tagName) && /[?？][\s”’"')]*$/.test(node.textContent.trim()));
+    question?.classList.add("current-question");
   }
 
   /* ---------- Thinking indicator ---------- */
@@ -554,6 +570,7 @@
         const message = makeMsg("ai");
         activeTurn.message = message;
         LifelineContent.renderMarkdown(message.text, data.assistant_message);
+        highlightCurrentQuestion(message.text, data);
         revealResponse(message.text);
         renderAssessment(message.body, data);
         addActions(message.body, message.text);
@@ -766,28 +783,84 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
       // user explicitly chooses Save or Print below.
       const card = document.createElement("article");
       card.className = "artifact-card needs-assessment-card recommendation-card";
-      const headMarkdown = lines.join("\n").replace("<!--math-->", "").trimEnd();
-      LifelineContent.renderMarkdown(card, headMarkdown);
-
-      // Expandable detailed math — present whenever there is a breakdown.
-      if (Array.isArray(breakdown.components)) {
-        const mathDetails = document.createElement("details");
-        mathDetails.className = "artifact-details recommendation-math";
-        const mathSummary = document.createElement("summary");
-        mathSummary.textContent = "See how this coverage figure is worked out";
-        mathDetails.appendChild(mathSummary);
-        const mathBody = document.createElement("div");
-        LifelineContent.renderMarkdown(mathBody, mathBodyLines.join("\n"));
-        mathDetails.appendChild(mathBody);
-        card.appendChild(mathDetails);
+      const coverageIndex = lines.indexOf("**Estimated additional coverage**");
+      // Keep the product conclusion above the figure and its benefits below it.
+      // The saved copy continues to include the complete recommendation.
+      if (product || noNeed) {
+        const intro = document.createElement("div");
+        intro.className = "recommendation-intro";
+        const introLines = coverageIndex >= 0 ? lines.slice(0, coverageIndex) : lines;
+        LifelineContent.renderMarkdown(intro, introLines.join("\n").replace("<!--math-->", ""));
+        card.appendChild(intro);
       }
-
+      const overview = document.createElement("div");
+      overview.className = "estimate-overview";
+      const overviewHeading = document.createElement("h2");
+      overviewHeading.textContent = "Your coverage estimate";
+      const label = document.createElement("p");
+      label.className = "content-label";
+      label.textContent = "Estimated additional coverage";
+      const amount = document.createElement("p");
+      amount.className = "estimate-amount";
+      amount.textContent = currency(coverage);
+      const disclaimer = document.createElement("p");
+      disclaimer.className = "estimate-disclaimer";
+      disclaimer.textContent = "A planning estimate based on your details and the assumptions below, not a quote.";
+      if (!product && !noNeed) overview.appendChild(overviewHeading);
+      overview.append(label, amount, disclaimer);
+      const comparison = document.createElement("div");
+      comparison.className = "estimate-comparison";
+      const scale = Math.max(breakdown.gross_need, breakdown.total_offsets, 0);
+      for (const [name, value, className] of [
+        ["Total needs", breakdown.gross_need, "estimate-need"],
+        ["Existing resources", breakdown.total_offsets, "estimate-resources"],
+      ]) {
+        const row = document.createElement("div");
+        row.className = `estimate-row ${className}`;
+        const caption = document.createElement("p");
+        const rowLabel = document.createElement("span");
+        rowLabel.textContent = name;
+        const rowAmount = document.createElement("strong");
+        rowAmount.textContent = currency(value);
+        caption.append(rowLabel, rowAmount);
+        const track = document.createElement("div");
+        track.className = "estimate-track";
+        track.setAttribute("aria-hidden", "true");
+        const fill = document.createElement("span");
+        fill.style.width = `${scale > 0 ? Math.max(0, Math.min(100, value / scale * 100)) : 0}%`;
+        track.appendChild(fill);
+        row.append(caption, track);
+        comparison.appendChild(row);
+      }
+      overview.appendChild(comparison);
+      card.append(overview, buildEstimateActions(currentEstimate));
+      if (coverageIndex >= 0) {
+        const remaining = lines.slice(coverageIndex + 6).join("\n").replace("<!--math-->", "").trim();
+        if (remaining) {
+          const recommendationDetails = document.createElement("div");
+          recommendationDetails.className = "recommendation-explanation";
+          LifelineContent.renderMarkdown(recommendationDetails, remaining);
+          if (!product && match?.unresolved_questions?.length) {
+            clearCurrentQuestion();
+            $("blockquote", recommendationDetails)?.classList.add("current-question");
+          }
+          card.appendChild(recommendationDetails);
+        }
+      }
+      const mathDetails = document.createElement("details");
+      mathDetails.className = "artifact-details recommendation-math";
+      const mathSummary = document.createElement("summary");
+      mathSummary.textContent = "See how this coverage figure is worked out";
+      const mathBody = document.createElement("div");
+      LifelineContent.renderMarkdown(mathBody, mathBodyLines.join("\n"));
+      mathDetails.append(mathSummary, mathBody);
+      card.appendChild(mathDetails);
       const closingNote = document.createElement("div");
+      closingNote.className = "estimate-note";
       LifelineContent.renderMarkdown(closingNote, closing);
       card.appendChild(closingNote);
-
-      card.appendChild(buildEstimateActions(currentEstimate));
       body.appendChild(card);
+      updateEstimateSaveStates();
       // Human-in-the-loop: securely send details to a licensed advisor.
       body.appendChild(buildReviewAction());
       scrollDown();
@@ -878,7 +951,27 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     save.type = "button";
     save.className = "btn btn-outline estimate-save";
     save.textContent = "Save to documents";
-    save.addEventListener("click", () => saveCurrentEstimate(estimate, { open: true }));
+    save.estimate = estimate;
+    save.addEventListener("click", () => {
+      saveCurrentEstimate(estimate);
+      if (save.hidden) open.focus({ preventScroll: true });
+    });
+
+    const saved = document.createElement("span");
+    saved.className = "estimate-saved";
+    saved.setAttribute("role", "status");
+    saved.textContent = "Saved";
+    saved.hidden = true;
+
+    const open = document.createElement("button");
+    open.type = "button";
+    open.className = "btn btn-outline estimate-open";
+    open.textContent = "Open saved estimate";
+    open.hidden = true;
+    open.addEventListener("click", () => {
+      const index = sessionDocuments().findIndex((doc) => doc.title === estimate.title && doc.markdown === estimate.markdown);
+      if (index >= 0) openDocumentViewer(index);
+    });
 
     const print = document.createElement("button");
     print.type = "button";
@@ -886,18 +979,28 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     print.textContent = "Print / download";
     print.addEventListener("click", () => {
       // Printing also saves a copy so there's a durable record, then prints.
-      saveCurrentEstimate(estimate, { open: false });
+      saveCurrentEstimate(estimate);
       try { LifelineContent.printArtifact(estimate); } catch (error) { toast(error.message); }
     });
 
-    row.append(save, print);
+    row.append(save, saved, open, print);
     return row;
+  }
+
+  function updateEstimateSaveStates() {
+    const documents = sessionDocuments();
+    $$(".estimate-save", el.messages).forEach((button) => {
+      const saved = documents.some((doc) => doc.title === button.estimate.title && doc.markdown === button.estimate.markdown);
+      button.hidden = saved;
+      $(".estimate-saved", button.parentElement).hidden = !saved;
+      $(".estimate-open", button.parentElement).hidden = !saved;
+    });
   }
 
   // Create or UPDATE the single saved coverage-estimate document. Saving the
   // same assessment again replaces the existing entry rather than adding a
   // duplicate; genuinely different documents (different titles) stay separate.
-  function saveCurrentEstimate(estimate, { open = true } = {}) {
+  function saveCurrentEstimate(estimate) {
     const validated = LifelineContent.validateArtifact(estimate);
     if (!validated.ok) { toast(validated.error); return; }
     const existing = workspaceContent.findIndex(
@@ -911,11 +1014,7 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     }
     renderVoiceCanvas();
     renderDocuments();
-    if (open && !documentsMedia.matches && el.voice.hidden) {
-      const index = workspaceContent.filter((i) => i.artifact).findIndex(
-        (i) => i.artifact.title === validated.artifact.title);
-      openDocumentViewer(index < 0 ? 0 : index, false);
-    }
+    updateEstimateSaveStates();
   }
 
   // "Send to an advisor" — securely stores the collected assessment and
@@ -1400,7 +1499,7 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
   function renderComposerSuggestions(list) {
     const row = el.composerSuggestions;
     row.replaceChildren();
-    if (!list || !list.length || el.chat.hidden) { row.hidden = true; return; }
+    if (!list || !list.length || el.chat.hidden) { clearComposerSuggestions(); return; }
     for (const text of list) {
       const button = document.createElement("button");
       button.type = "button";
@@ -1417,12 +1516,32 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
       row.appendChild(button);
     }
     row.hidden = false;
+    el.suggestionsWrap.hidden = false;
+    row.scrollLeft = 0;
+    updateSuggestionsOverflow();
   }
 
   function clearComposerSuggestions() {
     el.composerSuggestions.replaceChildren();
     el.composerSuggestions.hidden = true;
+    el.suggestionsWrap.hidden = true;
+    el.suggestionsMore.hidden = true;
+    el.suggestionsWrap.classList.remove("has-more");
   }
+
+  function updateSuggestionsOverflow() {
+    const row = el.composerSuggestions;
+    const hasMore = !row.hidden && row.scrollWidth - row.clientWidth - row.scrollLeft > 2;
+    el.suggestionsMore.hidden = !hasMore;
+    el.suggestionsWrap.classList.toggle("has-more", hasMore);
+  }
+  el.composerSuggestions.addEventListener("scroll", updateSuggestionsOverflow, { passive: true });
+  window.addEventListener("resize", updateSuggestionsOverflow);
+  if (typeof ResizeObserver !== "undefined") new ResizeObserver(updateSuggestionsOverflow).observe(el.composerSuggestions);
+  document.fonts?.ready.then(updateSuggestionsOverflow);
+  el.suggestionsMore.addEventListener("click", () => el.composerSuggestions.scrollBy({
+    left: Math.max(200, el.composerSuggestions.clientWidth * .65), behavior: reduceMotion ? "instant" : "smooth",
+  }));
 
   /* ---------- Composer ---------- */
   function updateSend() {
@@ -1594,6 +1713,7 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
       if (run !== voiceRun || el.voice.hidden) return;
       const message = makeMsg("ai");
       LifelineContent.renderMarkdown(message.text, data.assistant_message);
+      highlightCurrentQuestion(message.text, data);
       revealResponse(message.text);
       renderAssessment(message.body, data);
       addActions(message.body, message.text);

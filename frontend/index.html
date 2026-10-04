@@ -70,10 +70,6 @@
       <h1 id="home-title"><span id="greeting">Hello</span>.<br />How can I help you today?</h1>
       <p class="lead">Ask me anything about life insurance, in your own words.</p>
 
-      <button class="btn btn-primary btn-xl" id="voice-cta">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg>
-        Talk to Lifeline
-      </button>
       <button type="button" class="btn btn-outline continue-chat" id="continue-chat-btn" hidden>Continue conversation</button>
 
       <!-- Opening choice: pick a path before the main chat. Not a form; each
@@ -95,7 +91,11 @@
         </button>
       </div>
       <button type="button" class="path-ask" id="path-general" data-path="general">Just ask a question</button>
-
+      <p class="voice-choice-label">Prefer to talk?</p>
+      <button type="button" class="btn btn-outline" id="voice-cta">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg>
+        Talk to Lifeline
+      </button>
     </section>
 
     <!-- Chat -->
@@ -107,7 +107,12 @@
   <!-- ============ COMPOSER ============ -->
   <footer class="composer-wrap">
     <button type="button" class="btn btn-outline jump-latest" id="jump-latest-btn" hidden>Jump to latest</button>
-    <div class="composer-suggestions" id="composer-suggestions" role="group" aria-label="Suggested replies" hidden></div>
+    <div class="composer-suggestions-wrap" id="composer-suggestions-wrap" hidden>
+      <div class="composer-suggestions" id="composer-suggestions" role="group" aria-label="Suggested replies" hidden></div>
+      <button type="button" class="suggestions-more" id="suggestions-more" aria-label="Show more suggested replies" aria-controls="composer-suggestions" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+      </button>
+    </div>
     <form class="composer" id="composer" autocomplete="off">
       <label for="message-input" class="sr-only">Type your question</label>
       <textarea id="message-input" rows="1" placeholder="Type your question…"></textarea>
