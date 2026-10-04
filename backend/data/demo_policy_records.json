@@ -65,7 +65,7 @@
         "source_ref": "knowledge/demo-policies/lifeline-term-20.md",
         "source_section": "Illustrative characteristics",
         "page": "1",
-        "s3_bucket": "lifeline-project-data-714047902595",
+        "s3_bucket": "",
         "s3_key": "policies/records/DEMO-TERM20-0001.pdf"
       }
     },
@@ -110,7 +110,7 @@
         "source_ref": "knowledge/demo-policies/lifeline-term-30.md",
         "source_section": "Illustrative characteristics",
         "page": "1",
-        "s3_bucket": "lifeline-project-data-714047902595",
+        "s3_bucket": "",
         "s3_key": "policies/records/DEMO-TERM30-0002.pdf"
       }
     },
@@ -147,7 +147,7 @@
         "source_ref": "knowledge/demo-policies/lifeline-indexed-protection.md",
         "source_section": "Illustrative characteristics; Guardrails",
         "page": "1",
-        "s3_bucket": "lifeline-project-data-714047902595",
+        "s3_bucket": "",
         "s3_key": "policies/records/DEMO-IUL-0003.pdf"
       }
     }

@@ -146,6 +146,19 @@
   <!-- ============ COMPOSER ============ -->
   <footer class="composer-wrap">
     <button type="button" class="btn btn-outline jump-latest" id="jump-latest-btn" hidden>Jump to latest</button>
+    <form class="policy-demo" id="policy-demo" hidden>
+      <p id="policy-demo-question">Is this a demo?</p>
+      <div class="policy-demo-choice" id="policy-demo-choice">
+        <button type="button" class="btn btn-primary" id="policy-demo-yes">Yes, I have a policy ID</button>
+        <button type="button" class="btn btn-outline" id="policy-demo-no">No</button>
+      </div>
+      <div class="policy-demo-entry" id="policy-demo-entry" hidden>
+        <label for="policy-id-input">Policy ID</label>
+        <input id="policy-id-input" name="policy-id" type="text" autocomplete="off" spellcheck="false" placeholder="DEMO-TERM20-0001" />
+        <button type="submit" class="btn btn-primary">Open policy</button>
+      </div>
+      <p class="policy-demo-open" id="policy-demo-open" hidden></p>
+    </form>
     <div class="composer-suggestions-wrap" id="composer-suggestions-wrap" hidden>
       <div class="composer-suggestions" id="composer-suggestions" role="group" aria-label="Suggested replies" hidden></div>
       <button type="button" class="suggestions-more" id="suggestions-more" aria-label="Show more suggested replies" aria-controls="composer-suggestions" hidden>
@@ -286,6 +299,7 @@
     </div>
   </aside>
 
+  <script src="config.js"></script>
   <script src="vendor/marked.umd.js"></script>
   <script src="vendor/purify.min.js"></script>
   <script src="content.js"></script>

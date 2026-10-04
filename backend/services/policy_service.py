@@ -39,7 +39,6 @@ REQUIRED_DISCLAIMER = (
     "Hackathon Demo — Not an actual Lincoln Financial product or quote."
 )
 
-S3_BUCKET = "lifeline-project-data-714047902595"
 S3_KEY_PREFIX = "policies/"
 
 
@@ -186,9 +185,11 @@ def get_document_location(policy_id: str) -> dict[str, str] | None:
     document = get_policy_document(policy_id)
     if not document:
         return None
-    bucket, key = document.get("s3_bucket"), document.get("s3_key")
-    if not bucket or not key:
+    key = document.get("s3_key")
+    if not key:
         return None
+    # The account-specific bucket stays in the environment, not in the catalog.
+    bucket = os.getenv("DOCUMENT_BUCKET", "").strip()
     return {"s3_bucket": bucket, "s3_key": key}
 
 

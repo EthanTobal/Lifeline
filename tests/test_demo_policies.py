@@ -184,9 +184,11 @@ class TestDemoGuardrails(unittest.TestCase):
 
 class TestPolicyDocuments(unittest.TestCase):
 
-    def test_every_policy_has_s3_bucket(self):
+    def test_catalog_does_not_embed_an_account_bucket(self):
         for policy in policy_service.get_all_policies():
-            self.assertTrue(policy["document"]["s3_bucket"])
+            document = policy["document"]
+            self.assertTrue(document["s3_key"])
+            self.assertNotIn("714047902595", json.dumps(document))
 
     def test_every_policy_has_s3_key(self):
         for policy in policy_service.get_all_policies():
@@ -202,8 +204,8 @@ class TestPolicyDocuments(unittest.TestCase):
         for policy_id, expected_key in EXPECTED_S3_KEYS.items():
             location = policy_service.get_document_location(policy_id)
             self.assertIsNotNone(location)
-            self.assertEqual(location["s3_bucket"],
-                             "lifeline-project-data-714047902595")
+            self.assertEqual(location["s3_bucket"], os.environ.get("DOCUMENT_BUCKET", "").strip())
+            self.assertNotIn("714047902595", location["s3_bucket"])
             self.assertEqual(location["s3_key"], expected_key)
 
     def test_documents_are_marked_available(self):

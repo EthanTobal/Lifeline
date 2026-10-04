@@ -65,8 +65,9 @@ class InMemorySessionStore:
     def load(self, session_id: str) -> Assessment | None:
         return self._sessions.get(session_id)
 
-    def save(self, session_id: str, assessment: Assessment) -> None:
+    def save(self, session_id: str, assessment: Assessment, **_extra: Any) -> bool:
         self._sessions[session_id] = assessment
+        return True
 
     # extra fields (status/reference) are kept in memory keyed off session
     def save_meta(self, session_id: str, meta: dict) -> None:
@@ -121,7 +122,7 @@ class DynamoDBSessionStore:
             return None
 
     def save(self, session_id: str, assessment: Assessment,
-             status: str = "in_progress", meta: dict | None = None) -> None:
+             status: str = "in_progress", meta: dict | None = None) -> bool:
         import datetime
         now = datetime.datetime.now(datetime.timezone.utc).isoformat()
         item: dict[str, Any] = {
@@ -136,8 +137,8 @@ class DynamoDBSessionStore:
         try:
             self._ddb().put_item(TableName=self._table_name, Item=item)
         except Exception:
-            # Persistence failing must never break the conversation turn.
-            pass
+            return False
+        return True
 
 
 def build_store(config: Config | None = None):

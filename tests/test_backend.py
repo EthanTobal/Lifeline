@@ -87,17 +87,20 @@ def test_hlv_present_and_reasonable():
     assert 1_000_000 <= r.human_life_value["value"] <= 1_600_000
 
 
-def test_premium_estimate_reasonable():
+def test_needs_assessment_does_not_price_a_policy():
     r = run_needs_assessment(MARGARET)
-    assert r.premium_estimate is not None
-    # healthy 40yo non-smoking woman, ~$1.1M, 20yr term -> tens of dollars/mo
-    assert 40 <= r.premium_estimate["monthly"] <= 200
+    assert r.premium_estimate is None
+    smoker = run_needs_assessment({**MARGARET, "smoker": True})
+    assert smoker.premium_estimate is None
 
 
-def test_smoker_costs_more():
-    base = run_needs_assessment(MARGARET).premium_estimate["monthly"]
-    smoker = run_needs_assessment({**MARGARET, "smoker": True}).premium_estimate["monthly"]
-    assert smoker > base * 2  # smoker factor is 2.5x
+def test_small_amounts_stay_in_whole_dollars():
+    """$500 and $2,500 must not disappear or snap to the nearest thousand."""
+    profile = {**MARGARET, "non_mortgage_debt": 500, "mortgage_balance": 2500}
+    r = run_needs_assessment(profile)
+    amounts = {line["key"]: line["amount"] for line in r.breakdown}
+    assert amounts["debt"] == 500
+    assert amounts["mortgage"] == 2500
 
 
 def test_offsets_can_zero_out_need():
@@ -107,9 +110,13 @@ def test_offsets_can_zero_out_need():
     assert any("already meet" in f for f in r.flags)
 
 
-def test_missing_income_is_zero_not_crash():
-    r = run_needs_assessment({"num_children": 1})
-    assert r.gross_need >= 0  # does not raise, no invented income
+def test_missing_income_is_not_treated_as_zero():
+    try:
+        run_needs_assessment({"num_children": 1})
+    except ValueError as exc:
+        assert "annual_income" in str(exc)
+    else:
+        raise AssertionError("a missing income was treated as a number")
 
 
 # ---------------- assumptions: explicit, editable, no silent invention ----------------
@@ -190,15 +197,19 @@ def test_next_field_follows_fixed_order():
 
 def test_affordability_is_context_not_need():
     """Affordability must NOT change the calculated need (brief requirement)."""
+    figures = {
+        "annual_income": 80000, "num_children": 0, "mortgage_balance": 0,
+        "non_mortgage_debt": 0, "existing_coverage": 0, "liquid_savings": 0,
+    }
     a = Assessment()
-    a.update({"annual_income": 80000, "affordability_monthly": 50})
+    a.update({**figures, "affordability_monthly": 50})
     # affordability routed to context, not profile
     assert "affordability_monthly" in a.context
     assert "affordability_monthly" not in a.profile
     # need with and without the affordability figure must be identical
     with_budget = run_needs_assessment(a.profile, a.assumptions).gross_need
     b = Assessment()
-    b.update({"annual_income": 80000})  # same inputs, no affordability
+    b.update(figures)  # same inputs, no affordability
     without_budget = run_needs_assessment(b.profile, b.assumptions).gross_need
     assert with_budget == without_budget
     # and it is income*years + final expenses (not affected by the $50 budget)
@@ -515,9 +526,8 @@ def test_premium_estimate_absent_from_api_response():
     assert "premium_estimate" not in final["needs_assessment"]
     # and nowhere in the whole serialised response
     assert "premium_estimate" not in json.dumps(final)
-    # the internal calculator still has one -- it is simply not published
     assert run_needs_assessment(orch.store.get_or_create(sid)[1].profile
-                                ).premium_estimate is not None
+                                ).premium_estimate is None
 
 
 def test_api_response_publishes_only_the_dime_result():
@@ -535,12 +545,10 @@ def test_no_premium_reaches_the_model():
     orch, sid, _ = _conversation(UNINFORMED)
     assessment = orch.store.get_or_create(sid)[1]
     result = run_needs_assessment(assessment.profile, assessment.assumptions)
-    assert result.premium_estimate is not None  # still computed internally
+    assert result.premium_estimate is None
     explanation = result.explanation
-    # ...but the text handed to the model mentions none of it.
     assert "premium" not in explanation.lower()
-    assert str(result.premium_estimate["monthly"]) not in explanation
-    assert str(result.premium_estimate["annual"]) not in explanation
+    assert "per month" not in explanation.lower()
 
 
 def test_all_pricing_phrasings_are_refused():
@@ -753,7 +761,9 @@ def test_submit_for_review_returns_reference_and_persists():
     assert res["status"] == "pending_review"
     # advisor not notified offline (no SNS topic configured) — that's fine
     assert res["advisor_notified"] is False
-    assert "securely saved" in res["message"]
+    assert "saved for review" in res["message"]
+    assert "not notified" in res["message"]
+    assert "sent to a licensed advisor" not in res["message"]
 
 
 def test_submit_for_review_requires_session():
@@ -930,6 +940,12 @@ def test_spoken_multi_amount_sentence_binds_each_to_the_right_field():
     assert 140000.0 not in got.values()
 
 
+def test_spouse_is_not_counted_as_a_child():
+    from app.extractor import extract_profile_updates
+    assert extract_profile_updates("a wife and a son").get("num_children") == 1
+    assert extract_profile_updates("a husband and two daughters").get("num_children") == 2
+
+
 def test_bare_none_answer_to_asked_field_is_zero():
     """A one-word "none"/"nothing"/"no" answered to the field in play is an
     explicit zero for THAT field, so it is answered and never re-asked."""
@@ -996,21 +1012,23 @@ def test_uncertainty_clarifies_first_then_skips_on_persistence():
     assert second["assessment"]["next_field"] == "non_mortgage_debt"
 
 
-def test_skipped_field_does_not_block_a_ready_estimate():
-    """Once every other required field is answered, a skipped field must not
-    keep the assessment stuck in 'collecting'. The calculator treats the
-    skipped value as 0 but the profile keeps it unknown."""
+def test_skipped_field_does_not_publish_a_gap():
+    """A skipped field stays unknown. The estimate is withheld until that
+    field has a real number, including an explicit zero."""
     orch, sid, _ = _conversation(["I make $80,000, no kids"])
-    # Skip mortgage, then answer the rest.
-    orch.handle_turn(session_id=sid, message="skip")                  # mortgage skipped
-    orch.handle_turn(session_id=sid, message="no other debts")        # debt 0
-    orch.handle_turn(session_id=sid, message="no life insurance")     # coverage 0
-    resp = orch.handle_turn(session_id=sid, message="nothing saved")  # savings 0
-    assert resp["assessment"]["status"] == "ready"
+    orch.handle_turn(session_id=sid, message="skip")
+    orch.handle_turn(session_id=sid, message="no other debts")
+    orch.handle_turn(session_id=sid, message="no life insurance")
+    resp = orch.handle_turn(session_id=sid, message="nothing saved")
+    assert resp["assessment"]["status"] == "collecting"
     assert "mortgage_balance" in resp["assessment"]["skipped_fields"]
-    assert "mortgage_balance" not in resp["assessment"]["profile"]  # unknown, not 0
-    # calculator treated the unknown mortgage as 0: gross = 80k*10 + 15k final
-    assert resp["needs_assessment"]["breakdown"]["gross_need"] == 815_000
+    assert "mortgage_balance" not in resp["assessment"]["profile"]
+    assert resp["needs_assessment"]["illustrative_gap"] is None
+    assert "not zero" in resp["assistant_message"].lower()
+    filled = orch.handle_turn(session_id=sid, message="200000")
+    assert filled["assessment"]["status"] == "ready"
+    assert filled["assessment"]["profile"]["mortgage_balance"] == 200000
+    assert "mortgage_balance" not in filled["assessment"]["skipped_fields"]
 
 
 def test_later_value_unskips_a_skipped_field():
@@ -1023,17 +1041,18 @@ def test_later_value_unskips_a_skipped_field():
     assert "mortgage_balance" not in resp["assessment"]["skipped_fields"]
 
 
-def test_unclear_answer_escalates_instead_of_repeating_verbatim():
-    """A second unintelligible reply to the same question triggers a reworded
-    clarification that offers a Skip option -- never the identical prompt on a
-    loop."""
+def test_unclear_answer_clarifies_then_skips():
+    """One unintelligible reply offers a way out. A second one skips the field
+    instead of asking the same question forever. The skip is not a zero."""
     orch, sid, _ = _conversation(["estimate my coverage"])
     first = orch.handle_turn(session_id=sid, message="hmm")
+    assert first["assessment"]["next_field"] == "annual_income"
+    assert "skip" in first["assistant_message"].lower()
     second = orch.handle_turn(session_id=sid, message="uhh what")
-    assert second["assessment"]["next_field"] == "annual_income"
-    reply = second["assistant_message"].lower()
-    assert "didn't quite catch" in reply or "did not quite catch" in reply
-    assert "skip" in reply  # an explicit way out is offered
+    assert "annual_income" in second["assessment"]["skipped_fields"]
+    assert "annual_income" not in second["assessment"]["profile"]
+    assert second["assessment"]["next_field"] == "num_children"
+    assert second["needs_assessment"]["illustrative_gap"] is None
 
 
 def test_general_question_still_does_not_start_intake():

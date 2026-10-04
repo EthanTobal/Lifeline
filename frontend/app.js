@@ -42,6 +42,11 @@
     composerSuggestions: $("#composer-suggestions"),
     suggestionsWrap: $("#composer-suggestions-wrap"),
     suggestionsMore: $("#suggestions-more"),
+    policyDemo: $("#policy-demo"),
+    policyDemoChoice: $("#policy-demo-choice"),
+    policyDemoEntry: $("#policy-demo-entry"),
+    policyDemoOpen: $("#policy-demo-open"),
+    policyIdInput: $("#policy-id-input"),
   };
   const workspaceContent = [];
   let currentFollowUp = null;
@@ -49,6 +54,8 @@
   // | "general". Stored for the whole conversation, sent to the backend on
   // every turn, switchable mid-chat, and reset to null on a new chat.
   let conversationPath = null;
+  let openPolicyId = "";
+  let policyIdEntry = false;
   let selectedDocument = 0;
   let lastDocumentCount = 0;
   let voiceWorkspaceOpen = false;
@@ -312,11 +319,15 @@
 
   /* ---------- Views ---------- */
   function showChat() {
-    if (!el.chat.hidden) return;
+    if (!el.chat.hidden) {
+      updatePolicyDemo();
+      return;
+    }
     el.home.hidden = true;
     el.chat.hidden = false;
     el.newChat.hidden = false;
     el.continueChat.hidden = true;
+    updatePolicyDemo();
   }
   function showHome() {
     closeDocumentViewer(false, true);
@@ -330,6 +341,7 @@
     el.newChat.hidden = !el.messages.children.length;
     el.continueChat.hidden = !el.messages.children.length;
     el.latest.hidden = true;
+    updatePolicyDemo();
     scrollTo({ top: 0, behavior: "instant" });
     el.continueChat.hidden ? el.input.focus() : el.continueChat.focus();
   }
@@ -354,6 +366,9 @@
     el.messages.innerHTML = "";
     clearComposerSuggestions();
     conversationPath = null;  // new chat resets the chosen path
+    openPolicyId = "";
+    policyIdEntry = false;
+    updatePolicyDemo();
     el.input.value = "";
     autoGrow();
     followingLatest = true;
@@ -805,6 +820,7 @@
         renderAssessment(message.body, data);
         addActions(message.body, message.text);
         renderComposerSuggestions(suggestionsForTurn(data));
+        updatePolicyDemo();
         scrollDown();
       } catch (error) {
         if (!signal.aborted) {
@@ -983,6 +999,9 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
         const pricingMsg = (rec && rec.pricing && rec.pricing.message)
           || "A price isn't available here. A licensed advisor can turn this into a real quote.";
         lines.push("**Pricing**", "", `_${escapeMarkdown(pricingMsg)}_`, "");
+        if (product.demo_disclaimer) {
+          lines.push(`_${escapeMarkdown(product.demo_disclaimer)}_`, "");
+        }
       } else {
         // Ready, but not enough preference signal to name a product yet. Lead
         // with the coverage figure and the one useful clarifying question.
@@ -1251,19 +1270,17 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     updateEstimateSaveStates();
   }
 
-  // "Send to an advisor" — securely stores the collected assessment and
-  // notifies a licensed advisor for a precise, reviewed estimate. The details
-  // are already saved server-side; this flags them for human review and shows
-  // the customer a reference number.
+  // "Send to an advisor" asks the server to store this estimate. The button
+  // reports whatever the server actually did: a reference when it was saved,
+  // and a plain failure when review is not configured.
   function buildReviewAction() {
     const wrap = document.createElement("div");
     wrap.className = "review-action artifact-card";
 
     const blurb = document.createElement("p");
     blurb.className = "review-blurb";
-    blurb.textContent = "Want a precise figure? Send your details securely to a "
-      + "licensed advisor for review. Your information is stored securely, and "
-      + "you'll get a reference number to quote.";
+    blurb.textContent = "Want a precise figure? Send this estimate to a licensed "
+      + "advisor for review. You'll get a reference number if it is saved.";
     wrap.appendChild(blurb);
 
     const row = document.createElement("div");
@@ -1295,7 +1312,7 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
         result.hidden = false;
         result.textContent = `${data.message} (Reference: ${data.reference})`;
         row.hidden = true;
-        toast("Sent to an advisor for review");
+        toast(data.message);
       } catch (error) {
         btn.disabled = false;
         btn.textContent = original;
@@ -1662,6 +1679,7 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     if (typeof data?.path === "string" || data?.path === null) {
       conversationPath = data.path;
     }
+    if (data) openPolicyId = data.policy_id || "";
 
     if (status === "collecting") {
       const field = assessment.next_field;
@@ -1694,6 +1712,15 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
 
     // Existing-policy path: help understanding, and a way to switch to a new
     // coverage assessment if they decide they want one.
+    if (conversationPath === "policy" && !openPolicyId) {
+      return dedupeSuggestions([
+        "Yes, this is a demo",
+        "DEMO-TERM20-0001",
+        "DEMO-TERM30-0002",
+        "DEMO-IUL-0003",
+      ]);
+    }
+
     if (conversationPath === "policy") {
       return dedupeSuggestions([
         "What does my policy cover?",
@@ -1809,6 +1836,47 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     policy: "I already have a life insurance policy and I'd like help understanding it.",
     general: "I just have a question about life insurance.",
   };
+
+  function updatePolicyDemo() {
+    const show = !el.chat.hidden && conversationPath === "policy";
+    el.policyDemo.hidden = !show;
+    if (!show) return;
+    const open = Boolean(openPolicyId);
+    $("#policy-demo-question").hidden = open && !policyIdEntry;
+    el.policyDemoChoice.hidden = open || policyIdEntry;
+    el.policyDemoEntry.hidden = !policyIdEntry;
+    el.policyDemoOpen.hidden = !open || policyIdEntry;
+    if (open && !policyIdEntry) {
+      el.policyDemoOpen.replaceChildren();
+      el.policyDemoOpen.append(`Policy ${openPolicyId} is open. `);
+      const change = document.createElement("button");
+      change.type = "button";
+      change.className = "btn btn-outline";
+      change.textContent = "Use a different ID";
+      change.addEventListener("click", () => {
+        policyIdEntry = true;
+        el.policyIdInput.value = "";
+        updatePolicyDemo();
+        el.policyIdInput.focus();
+      });
+      el.policyDemoOpen.append(change);
+    }
+  }
+
+  $("#policy-demo-yes").addEventListener("click", () => {
+    policyIdEntry = true;
+    updatePolicyDemo();
+    el.policyIdInput.focus();
+  });
+  $("#policy-demo-no").addEventListener("click", () => submit("No, this is not a demo."));
+  el.policyDemo.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const id = el.policyIdInput.value.trim();
+    if (!id || busy) return;
+    el.policyIdInput.value = "";
+    policyIdEntry = false;
+    submit(id);
+  });
 
   function choosePath(path) {
     if (!PATH_OPENERS[path] || busy) return;
@@ -1946,7 +2014,7 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
     addUserMessage(text);
     setVoiceState("thinking", `You: “${text}”`);
     try {
-      const data = await backend.turn({ message: text, signal: voiceController.signal });
+      const data = await backend.turn({ message: text, path: conversationPath || undefined, signal: voiceController.signal });
       if (run !== voiceRun || el.voice.hidden) return;
       const message = makeMsg("ai");
         LifelineContent.renderMarkdown(message.text, data.assistant_message);
@@ -1957,6 +2025,7 @@ const assumptionLines = Object.entries(data.assessment.assumptions)
         renderAssessment(message.body, data);
         addActions(message.body, message.text);
         renderComposerSuggestions(suggestionsForTurn(data));
+        updatePolicyDemo();
         renderVoiceCanvas();
       });
       setVoiceState("speaking", data.assistant_message, { type: true });

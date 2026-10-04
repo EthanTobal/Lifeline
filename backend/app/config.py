@@ -8,12 +8,14 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from pathlib import Path
 
-# Load backend/.env if python-dotenv is available (optional dependency).
+# Load backend/.env (next to this package), not whatever directory the
+# process was started from.
 try:  # pragma: no cover - trivial import guard
     from dotenv import load_dotenv
 
-    load_dotenv()
+    load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 except Exception:  # dotenv not installed is fine; real env vars still work
     pass
 

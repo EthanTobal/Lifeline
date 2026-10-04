@@ -1,7 +1,7 @@
 /* Text chat talks only to the Lifeline API; AWS credentials stay on the server. */
 const LifelineBackend = (() => {
   "use strict";
-  const API_BASE = (window.LIFELINE_API_BASE || "https://oa8m1sol3h.execute-api.us-east-2.amazonaws.com").replace(/\/$/, "");
+  const API_BASE = String(window.LIFELINE_API_BASE || "").replace(/\/$/, "");
   const TURN_URL = API_BASE + "/api/turn";
   const SUBMIT_URL = API_BASE + "/api/submit-review";
   const object = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
@@ -84,7 +84,7 @@ const LifelineBackend = (() => {
       }
     }
     async function submitForReview({ contact = "", signal } = {}) {
-      // Hand the collected (securely stored) assessment to a human advisor.
+      // Ask the server to save this assessment for a human advisor.
       // Reuses the current conversation's session id.
       if (!sessionId) throw new Error("Start a conversation before sending it for review.");
       signal?.throwIfAborted();
@@ -102,10 +102,12 @@ const LifelineBackend = (() => {
           signal: controller.signal,
         });
         controller.signal.throwIfAborted();
-        if (!response.ok) throw new Error(`Could not send your details for review (${response.status}). Please try again.`);
         let data;
         try { data = await response.json(); }
-        catch { throw new Error("The Lifeline service returned an unreadable response. Please try again."); }
+        catch { data = null; }
+        if (!response.ok) {
+          throw new Error(data && data.error ? data.error : `Could not send your details for review (${response.status}). Please try again.`);
+        }
         if (!object(data) || data.ok !== true || typeof data.reference !== "string") {
           throw new Error(data && data.error ? data.error : "The review request could not be completed. Please try again.");
         }

@@ -21,6 +21,7 @@ Pure standard library. No AWS, no network, no third-party packages.
 """
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field, asdict
 from typing import Any
 
@@ -64,8 +65,37 @@ def _num(value: Any, default: float = 0.0) -> float:
         return default
 
 
-def _round(value: float, step: int = 1000) -> int:
-    return int(round(value / step) * step)
+def _round(value: float) -> int:
+    """Nearest dollar, half away from zero.
+
+    Python's built-in round() uses banker's rounding, and an earlier version
+    also snapped to the nearest $1,000. Both dropped real amounts: $500 became
+    $0 and $2,500 became $2,000. Line items stay in whole dollars.
+    """
+    number = float(value)
+    if number >= 0:
+        return int(math.floor(number + 0.5))
+    return int(math.ceil(number - 0.5))
+
+
+_REQUIRED_INPUTS = (
+    "annual_income",
+    "num_children",
+    "mortgage_balance",
+    "non_mortgage_debt",
+    "existing_coverage",
+    "liquid_savings",
+)
+
+
+def _require_inputs(profile: dict) -> None:
+    """A missing answer is not zero. Callers must not publish a gap without it."""
+    missing = [
+        key for key in _REQUIRED_INPUTS
+        if key not in profile or profile[key] is None or profile[key] == ""
+    ]
+    if missing:
+        raise ValueError("needs assessment requires " + ", ".join(missing))
 
 
 def _clamp_money(value: float, max_coverage: float) -> float:
@@ -225,51 +255,11 @@ def income_multiple_check(profile: dict, assumptions: dict[str, float]) -> dict:
     }
 
 
-# --------------------------------------------------------------------------
-# 4. Rough term-premium illustration (NOT a quote)
-# --------------------------------------------------------------------------
-
-_PREMIUM_BASE_PER_1000 = 0.9
-_AGE_FACTOR = [  # (max_age, multiplier)
-    (29, 0.8), (34, 1.0), (39, 1.3), (44, 1.9), (49, 2.9),
-    (54, 4.6), (59, 7.5), (64, 12.0), (69, 19.0), (120, 30.0),
-]
-_HEALTH_FACTOR = {
-    "excellent": 0.8, "preferred": 0.8,
-    "good": 1.0, "standard": 1.0,
-    "average": 1.3,
-    "poor": 1.9, "substandard": 1.9,
-}
-_TERM_FACTOR = {10: 0.75, 15: 0.9, 20: 1.0, 30: 1.4}
-
-
-def estimate_term_premium(profile: dict, coverage: float) -> dict | None:
-    coverage = _num(coverage)
-    if coverage <= 0:
-        return None
-    age = _num(profile.get("age"), 35)
-    sex = str(profile.get("sex", "")).lower()
-    smoker_raw = profile.get("smoker")
-    smoker = smoker_raw is True or bool(
-        str(smoker_raw).lower() in ("yes", "true", "smoker", "tobacco")
-    )
-    health = _HEALTH_FACTOR.get(str(profile.get("health", "good")).lower(), 1.0)
-    term_years = int(_num(profile.get("term_years"), 20))
-
-    age_mult = next((m for max_a, m in _AGE_FACTOR if age <= max_a), 30.0)
-    sex_mult = 0.85 if sex.startswith("f") else 1.0
-    smoker_mult = 2.5 if smoker else 1.0
-    term_mult = _TERM_FACTOR.get(term_years, 1.0)
-
-    annual = (coverage / 1000) * _PREMIUM_BASE_PER_1000 * age_mult * sex_mult * smoker_mult * health * term_mult
-    monthly = annual / 12
-    return {
-        "coverage": _round(coverage),
-        "term_years": term_years,
-        "monthly": max(5, round(monthly)),
-        "annual": max(60, round(annual)),
-        "is_estimate": True,
-    }
+def estimate_term_premium(profile: dict, coverage: float) -> None:
+    """LifeLine does not price a policy. This stays as a hard stop so a caller
+    cannot turn the old rate table back on by accident."""
+    del profile, coverage
+    return None
 
 
 # --------------------------------------------------------------------------
@@ -281,11 +271,12 @@ def run_needs_assessment(profile: dict, assumption_overrides: dict | None = None
     `assumption_overrides` lets the frontend change any assumption and
     recalculate. Returns a fully explainable NeedsResult."""
     assumptions = resolve_assumptions(assumption_overrides)
+    _require_inputs(profile)
 
     dime = calculate_dime(profile, assumptions)
     sanity = income_multiple_check(profile, assumptions)
     hlv = calculate_hlv(profile, assumptions)
-    premium = estimate_term_premium(profile, dime["illustrative_gap"])
+    premium = None
 
     annual_income = _num(profile.get("annual_income"))
     flags: list[str] = []

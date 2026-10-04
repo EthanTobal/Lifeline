@@ -121,10 +121,15 @@ class Orchestrator:
                     clarify_field = asked_field
             elif message.strip():
                 # The user said something, but we couldn't read an answer for
-                # the field in play. Count it; after one unclear reply we offer
-                # a clearer re-ask with an explicit skip option.
+                # the field in play. One unclear reply gets a clearer question.
+                # A second one skips the field so the conversation cannot loop.
+                # The skip stays unknown and does not become zero.
                 attempts = assessment.note_unclear(asked_field)
                 if attempts >= 2:
+                    assessment.skip_field(asked_field)
+                    skipped_now = asked_field
+                    assessment.clear_unclear(asked_field)
+                else:
                     clarify_field = asked_field
 
         # Decide whether we are in an assessment. We only collect financial
@@ -263,6 +268,13 @@ class Orchestrator:
             pass  # deterministic comparison reply already set above
         elif clarify_field and next_field and next_field["key"] == clarify_field:
             assistant_message = _clarify_prompt(next_field)
+        elif skipped_now and next_field:
+            assistant_message = (
+                "No problem. I'll leave that blank, and I won't count a blank as zero.\n\n"
+                + _ask(next_field))
+        elif (assessment.started and status != "ready" and not next_field
+              and assessment.unanswered_required()):
+            assistant_message = _incomplete_prompt(assessment)
         else:
             assistant_message = self.bedrock.generate_grounded_response(
                 query=message, context=calc_context, sources=sources, mode=mode,
@@ -280,12 +292,11 @@ class Orchestrator:
         if not assistant_message:
             if skipped_now and next_field:
                 assistant_message = (
-                    "No problem, we can leave that one blank for now.\n\n"
+                    "No problem. I'll leave that blank, and I won't count a blank as zero.\n\n"
                     + _ask(next_field))
-            elif skipped_now and status == "ready":
-                assistant_message = (
-                    "No problem, we'll leave that blank. "
-                    + _ready_prompt(needs_block))
+            elif (assessment.started and status != "ready" and not next_field
+                  and assessment.unanswered_required()):
+                assistant_message = _incomplete_prompt(assessment)
             elif mode == "out_of_scope":
                 assistant_message = _out_of_scope_fallback(message)
             elif guardrail:
@@ -307,15 +318,17 @@ class Orchestrator:
 
         # Remember what we asked about this turn, so the next message's bare
         # answer attaches to it. Clear it when not actively collecting.
-        assessment.set_last_asked(next_field["key"] if next_field else None)
+        if next_field:
+            assessment.set_last_asked(next_field["key"])
+        elif assessment.started and assessment.unanswered_required():
+            # The next bare number fills the first blank, which may be a skip.
+            assessment.set_last_asked(assessment.unanswered_required()[0])
+        else:
+            assessment.set_last_asked(None)
 
-        # 6. Persist the session so the collected profile survives (and can be
-        #    handed to a human advisor later). Non-fatal if storage is down.
-        try:
-            self.store.save(session_id, assessment)
-        except TypeError:
-            # in-memory store has a simpler signature
-            self.store.save(session_id, assessment)
+        # 6. Persist the session. A failed save must not break the turn.
+        #    submit_for_review checks the boolean and will not claim success.
+        self.store.save(session_id, assessment)
 
         # 7. Assemble the response contract.
         assessment_block = assessment.to_dict()
@@ -386,29 +399,33 @@ class Orchestrator:
         # Short, readable reference the customer can quote to an advisor.
         reference = "LL-" + uuid.uuid4().hex[:8].upper()
 
-        # Persist with review status + reference. DynamoDB store accepts meta;
-        # the in-memory store ignores the extra kwargs.
-        try:
-            self.store.save(session_id, assessment, status="pending_review",
-                            meta={"reference": reference,
-                                  "contact": contact})
-        except TypeError:
-            self.store.save(session_id, assessment)
+        saved = self.store.save(
+            session_id, assessment, status="pending_review",
+            meta={"reference": reference, "contact": contact})
+        if not saved:
+            return {
+                "ok": False,
+                "error": "Your details were not saved and were not sent.",
+                "advisor_notified": False,
+            }
 
-        # Notify an advisor (best-effort; never blocks the user).
         notified = self._notify_advisor(reference, assessment, contact)
-
+        if notified:
+            message = (
+                f"Your details are saved and a licensed advisor was notified. "
+                f"Your reference number is {reference}."
+            )
+        else:
+            message = (
+                f"Your details are saved for review. An advisor was not notified. "
+                f"Your reference number is {reference}."
+            )
         return {
             "ok": True,
             "reference": reference,
             "status": "pending_review",
             "advisor_notified": notified,
-            "message": (
-                f"All set. Your details have been securely saved and sent to a "
-                f"licensed advisor for review. Your reference number is "
-                f"{reference} — keep it handy. An advisor will follow up to turn "
-                f"this illustrative estimate into a precise one."
-            ),
+            "message": message,
         }
 
     def _notify_advisor(self, reference: str, assessment: Assessment,
@@ -614,6 +631,32 @@ def _build_recommendation(*, profile: dict, calculator_result: dict,
         # consider", a confident one as a recommendation.
         "preliminary": bool(match.get("provisional")) or product_id is None,
     }
+
+
+_FIELD_LABELS = {
+    "annual_income": "income",
+    "num_children": "dependents",
+    "mortgage_balance": "the mortgage",
+    "non_mortgage_debt": "other debt",
+    "existing_coverage": "existing coverage",
+    "liquid_savings": "savings",
+}
+
+
+def _incomplete_prompt(assessment: Assessment) -> str:
+    """Say which answers are still blank. A blank is not a zero."""
+    names = [_FIELD_LABELS.get(key, key.replace("_", " "))
+             for key in assessment.unanswered_required()]
+    if len(names) == 1:
+        listed = names[0]
+    elif len(names) == 2:
+        listed = f"{names[0]} and {names[1]}"
+    else:
+        listed = ", ".join(names[:-1]) + f", and {names[-1]}"
+    return (
+        f"I left {listed} blank. A blank is not zero, so I can't finish the "
+        "estimate until you give me a number. A rough guess is fine."
+    )
 
 
 def _ask(next_field: dict) -> str:

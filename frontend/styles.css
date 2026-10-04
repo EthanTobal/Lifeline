@@ -489,6 +489,26 @@ h1 #greeting { font-weight: 700; color: var(--hl); }
 
 /* Keep quick replies centered on one line, with horizontal scrolling when
    they exceed the available width. Auto margins keep both ends reachable. */
+.policy-demo[hidden],
+.policy-demo-choice[hidden],
+.policy-demo-entry[hidden],
+.policy-demo-open[hidden],
+#policy-demo-question[hidden] { display: none !important; }
+.policy-demo {
+  width: 100%; max-width: var(--composer-maxw); margin: 0 auto .75rem;
+  padding: .9rem 1rem; border: 1px solid var(--line); border-radius: var(--radius-lg);
+  background: var(--bg); box-shadow: var(--shadow);
+}
+.policy-demo p { margin: 0 0 .7rem; font-weight: 500; }
+.policy-demo-choice, .policy-demo-entry { display: flex; flex-wrap: wrap; gap: .5rem; align-items: end; }
+.policy-demo-entry { margin-top: .75rem; }
+.policy-demo-entry label { flex: 1 0 100%; font-size: .85rem; color: var(--ink-soft); }
+.policy-demo-entry input {
+  flex: 1 1 12rem; min-height: 48px; padding: .55rem .8rem;
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); color: var(--ink);
+}
+.policy-demo-open { margin: 0; }
+.policy-demo-open button { margin-left: .5rem; }
 .composer-suggestions-wrap { position: relative; width: 100%; max-width: var(--composer-maxw); margin: 0 auto .6rem; }
 .composer-suggestions-wrap.has-more::after {
   content: ""; position: absolute; right: 0; top: 0; bottom: 0; width: 4rem;

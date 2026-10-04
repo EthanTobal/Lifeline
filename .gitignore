@@ -24,3 +24,6 @@ backend/lifeline-backend.zip
 
 # Throwaway helper scripts (may contain presigned URLs / endpoints)
 backend/_*.ps1
+
+# Local site config. Copy frontend/config.example.js and fill in the API origin.
+frontend/config.js

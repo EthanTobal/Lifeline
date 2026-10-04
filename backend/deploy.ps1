@@ -1,22 +1,42 @@
 # Redeploy the Lifeline backend to AWS Lambda.
 #
-# Packages backend/index.mjs and updates Lifeline-ModelRequest, the function
-# the live API Gateway route calls. Run from anywhere:
+# Packages backend/index.mjs only (tests stay out of the zip) and updates
+# Lifeline-ModelRequest. Values come from the environment or backend/.env.
+# Nothing account-specific is stored in this script.
 #
 #     powershell -ExecutionPolicy Bypass -File backend\deploy.ps1
-#
-# Requires: AWS CLI logged in as the 'lifeline' profile (aws login).
 
 $ErrorActionPreference = 'Stop'
 
-$Profile  = 'lifeline'
-$Region   = 'us-east-2'
-$Function = 'Lifeline-ModelRequest'
-$Bucket   = 'lifeline-project-data-714047902595'
-$Key      = 'deploy/lifeline-model.zip'
+function Import-LifelineEnv([string]$Path) {
+    if (-not (Test-Path $Path)) { return }
+    foreach ($line in Get-Content $Path) {
+        if ($line -match '^\s*#' -or $line -notmatch '=') { continue }
+        $name, $value = $line -split '=', 2
+        $name = $name.Trim()
+        if (-not $name) { continue }
+        $value = $value.Trim().Trim('"').Trim("'")
+        if (-not [Environment]::GetEnvironmentVariable($name)) {
+            Set-Item -Path "Env:$name" -Value $value
+        }
+    }
+}
+
+function Require-Setting([string]$Name) {
+    $value = [Environment]::GetEnvironmentVariable($Name)
+    if (-not $value) { throw "Set $Name in the environment or backend/.env" }
+    return $value
+}
 
 $backend = Split-Path -Parent $MyInvocation.MyCommand.Path
-$zip     = Join-Path $backend 'lambda_pkg.zip'
+Import-LifelineEnv (Join-Path $backend '.env')
+
+$Profile  = if ($env:AWS_PROFILE) { $env:AWS_PROFILE } else { 'lifeline' }
+$Region   = if ($env:AWS_REGION) { $env:AWS_REGION } else { 'us-east-2' }
+$Function = if ($env:LIFELINE_FUNCTION) { $env:LIFELINE_FUNCTION } else { 'Lifeline-ModelRequest' }
+$Bucket   = Require-Setting 'LIFELINE_BUCKET'
+$Key      = 'deploy/lifeline-model.zip'
+$zip      = Join-Path $backend 'lambda_pkg.zip'
 
 Write-Host '==> Packaging backend/index.mjs ...'
 $py = @"
@@ -43,5 +63,8 @@ aws lambda update-function-code `
     --profile $Profile --region $Region `
     --query 'LastUpdateStatus' --output text
 
-Write-Host '==> Done. Give it a few seconds, then test:'
-Write-Host '    https://oa8m1sol3h.execute-api.us-east-2.amazonaws.com/health'
+Write-Host '==> Done.'
+if ($env:LIFELINE_API_BASE) {
+    Write-Host "    $($env:LIFELINE_API_BASE.TrimEnd('/'))/health"
+}
+Write-Host 'Set SESSION_SECRET, DOCUMENT_BUCKET, BEDROCK_KNOWLEDGE_BASE_ID, CORS_ORIGINS, and ASSESSMENTS_TABLE on the function. This script does not overwrite Lambda environment variables.'

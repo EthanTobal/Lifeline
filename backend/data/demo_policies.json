@@ -119,7 +119,7 @@
       "document": {
         "available": true,
         "title": "LifeLine Term 20 Demo Policy",
-        "s3_bucket": "lifeline-project-data-714047902595",
+        "s3_bucket": "",
         "s3_key": "policies/lifeline-term-20.pdf"
       }
     },
@@ -194,7 +194,7 @@
       "document": {
         "available": true,
         "title": "LifeLine Term 30 Demo Policy",
-        "s3_bucket": "lifeline-project-data-714047902595",
+        "s3_bucket": "",
         "s3_key": "policies/lifeline-term-30.pdf"
       }
     },
@@ -271,7 +271,7 @@
       "document": {
         "available": true,
         "title": "LifeLine Indexed Protection Demo Policy",
-        "s3_bucket": "lifeline-project-data-714047902595",
+        "s3_bucket": "",
         "s3_key": "policies/lifeline-indexed-protection.pdf"
       }
     },
@@ -348,7 +348,7 @@
       "document": {
         "available": true,
         "title": "LifeLine Variable Protection Demo Policy",
-        "s3_bucket": "lifeline-project-data-714047902595",
+        "s3_bucket": "",
         "s3_key": "policies/lifeline-variable-protection.pdf"
       }
     }

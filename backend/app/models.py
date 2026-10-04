@@ -264,8 +264,10 @@ class Assessment:
                 if not _has_value(self.profile.get(k)) and k not in skipped]
 
     def unanswered_required(self) -> list[str]:
-        """Required fields with no real value, INCLUDING skipped ones. These
-        are treated as 0 by the calculator but shown as unknown to the user."""
+        """Required fields with no real value, including skipped ones.
+
+        A skip stays unknown. It is not zero, and it blocks a published gap
+        until the customer gives a number."""
         return [k for k in _REQUIRED_KEYS if not _has_value(self.profile.get(k))]
 
     def next_field(self) -> dict | None:
@@ -305,10 +307,10 @@ class Assessment:
         return "; ".join(parts)
 
     def status(self) -> str:
-        """collecting -> still missing required inputs.
-        ready       -> enough to calculate.
-        complete    -> marked complete by the orchestrator after a result is shown."""
-        if self.missing_fields():
+        """collecting -> a required input is still unknown, including a skip.
+        ready       -> every required input has a real value, and an explicit
+        zero counts. A skipped field does not."""
+        if self.unanswered_required():
             return "collecting"
         return "ready"
 
