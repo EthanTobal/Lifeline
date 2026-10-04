@@ -1,0 +1,155 @@
+{
+  "_README": [
+    "LifeLine demo CUSTOMER POLICY RECORDS -- FICTIONAL HACKATHON DATA.",
+    "",
+    "These represent an INDIVIDUAL customer's existing policy (their actual",
+    "coverage amount, duration, the benefits and riders THEY hold, and their",
+    "specific limitations). This is deliberately separate from the PRODUCT",
+    "catalog in demo_policies.json, which only describes what a product is.",
+    "",
+    "SECURITY MODEL (important):",
+    "- Every record here is FICTIONAL demo data. There is NO real customer data",
+    "  in this repo and NO code path that reaches a real policy-administration",
+    "  system. A policy number alone must never surface a real person's record;",
+    "  this service only ever returns these clearly-labelled demo records.",
+    "- Demo record IDs use the strict prefix 'DEMO-' precisely so that a bare",
+    "  numeric policy number (e.g. '100000123') cannot match anything. Only a",
+    "  recognised demo ID resolves; everything else is treated as unknown.",
+    "- A record states the riders the holder ACTUALLY has. Never assume a holder",
+    "  carries every optional rider the product catalog lists.",
+    "",
+    "Each record links to its PRODUCT via product_id (into demo_policies.json)",
+    "and to a sample policy DOCUMENT (repo markdown + page/section, and an S3",
+    "key for a future presigned-URL hand-off). No URLs or credentials here."
+  ],
+
+  "schema_version": "1",
+
+  "_field_notes": {
+    "id": "Strict demo id, always prefixed 'DEMO-'. This is the only form the lookup accepts.",
+    "product_id": "Links to the product catalog entry (demo_policies.json) this policy is based on.",
+    "coverage_amount": "The holder's actual death benefit for THIS policy (fictional demo figure).",
+    "riders_held": "ONLY the optional riders this holder actually has. May be empty. Never inferred from the product catalog.",
+    "document": "Sample policy document reference: repo markdown source + page/section, plus S3 bucket/key for a future presigned URL."
+  },
+
+  "records": [
+    {
+      "id": "DEMO-TERM20-0001",
+      "is_demo_record": true,
+      "actual_customer_record": false,
+      "demo_disclaimer": "Hackathon Demo — Fictional sample policy record, not a real customer's policy.",
+      "holder_label": "Sample holder A (fictional)",
+      "product_id": "lifeline-term-20",
+      "policy_type": "Term life insurance",
+      "insurer": "LifeLine (fictional demo issuer)",
+      "status": "in force",
+      "coverage_amount": 250000,
+      "coverage_currency": "USD",
+      "coverage_duration": "20-year term",
+      "term_start": "2021",
+      "term_end": "2041",
+      "premium_structure": "Level premium for the 20-year term",
+      "benefits_included": [
+        "Death benefit of $250,000 paid to the named beneficiary if the insured dies during the 20-year term."
+      ],
+      "riders_held": [],
+      "limitations": [
+        "Coverage ends at the end of the 20-year term (2041); there is no payout if the insured outlives the term.",
+        "This term policy builds no cash value.",
+        "A beneficiary must be named and kept current for the death benefit to be paid as intended."
+      ],
+      "document": {
+        "available": true,
+        "title": "Sample Policy Document — DEMO-TERM20-0001",
+        "source_ref": "knowledge/demo-policies/lifeline-term-20.md",
+        "source_section": "Illustrative characteristics",
+        "page": "1",
+        "s3_bucket": "lifeline-project-data-714047902595",
+        "s3_key": "policies/records/DEMO-TERM20-0001.pdf"
+      }
+    },
+
+    {
+      "id": "DEMO-TERM30-0002",
+      "is_demo_record": true,
+      "actual_customer_record": false,
+      "demo_disclaimer": "Hackathon Demo — Fictional sample policy record, not a real customer's policy.",
+      "holder_label": "Sample holder B (fictional)",
+      "product_id": "lifeline-term-30",
+      "policy_type": "Term life insurance",
+      "insurer": "LifeLine (fictional demo issuer)",
+      "status": "in force",
+      "coverage_amount": 500000,
+      "coverage_currency": "USD",
+      "coverage_duration": "30-year term",
+      "term_start": "2019",
+      "term_end": "2049",
+      "premium_structure": "Level premium for the 30-year term",
+      "benefits_included": [
+        "Death benefit of $500,000 paid to the named beneficiary if the insured dies during the 30-year term."
+      ],
+      "riders_held": [
+        {
+          "name": "Waiver of premium rider",
+          "optional": true,
+          "plain_language": "If the insured becomes totally disabled, future premiums are waived while the disability continues, so the coverage stays in force.",
+          "source_ref": "knowledge/demo-policies/lifeline-term-30.md",
+          "source_section": "Illustrative characteristics",
+          "page": "1"
+        }
+      ],
+      "limitations": [
+        "Coverage ends at the end of the 30-year term (2049); there is no payout if the insured outlives the term.",
+        "This term policy builds no cash value.",
+        "Rider terms (such as the waiver of premium) have their own conditions that apply only while those conditions are met."
+      ],
+      "document": {
+        "available": true,
+        "title": "Sample Policy Document — DEMO-TERM30-0002",
+        "source_ref": "knowledge/demo-policies/lifeline-term-30.md",
+        "source_section": "Illustrative characteristics",
+        "page": "1",
+        "s3_bucket": "lifeline-project-data-714047902595",
+        "s3_key": "policies/records/DEMO-TERM30-0002.pdf"
+      }
+    },
+
+    {
+      "id": "DEMO-IUL-0003",
+      "is_demo_record": true,
+      "actual_customer_record": false,
+      "demo_disclaimer": "Hackathon Demo — Fictional sample policy record, not a real customer's policy.",
+      "holder_label": "Sample holder C (fictional)",
+      "product_id": "lifeline-indexed-protection",
+      "policy_type": "Indexed universal life (IUL)",
+      "insurer": "LifeLine (fictional demo issuer)",
+      "status": "in force",
+      "coverage_amount": 300000,
+      "coverage_currency": "USD",
+      "coverage_duration": "Permanent; may continue for life while the policy is kept in force",
+      "term_start": "2016",
+      "term_end": "unknown",
+      "premium_structure": "Flexible premium",
+      "benefits_included": [
+        "Death benefit of $300,000 paid to the named beneficiary.",
+        "Potential cash-value growth linked to an index methodology (not a direct index investment; growth is not guaranteed)."
+      ],
+      "riders_held": [],
+      "limitations": [
+        "Lifetime coverage is not unconditional; it depends on the policy being kept in force (sufficient premium and cash value).",
+        "Cash-value growth is index-linked and not guaranteed; it may underperform expectations.",
+        "This is a more complex policy than term insurance."
+      ],
+      "document": {
+        "available": true,
+        "title": "Sample Policy Document — DEMO-IUL-0003",
+        "source_ref": "knowledge/demo-policies/lifeline-indexed-protection.md",
+        "source_section": "Illustrative characteristics; Guardrails",
+        "page": "1",
+        "s3_bucket": "lifeline-project-data-714047902595",
+        "s3_key": "policies/records/DEMO-IUL-0003.pdf"
+      }
+    }
+  ]
+}

@@ -94,11 +94,31 @@ ASSESSMENT_ORDER: list[str] = [
 ]
 
 # Context fields stored but NOT used to change the calculated need.
+#
+# The product-preference fields below feed ONLY the inspectable product
+# matcher (product_matcher.py). They never change gross_need or the
+# illustrative gap -- those come solely from the DIME calculator.
 CONTEXT_FIELDS: list[dict] = [
     {"key": "affordability_monthly", "label": "Comfortable monthly budget",
      "why": "Stored as context. It does not change your calculated need; it helps "
             "a human advisor discuss options with you."},
     {"key": "name", "label": "Name", "why": "Used only to personalize your summary."},
+    {"key": "coverage_goal", "label": "Primary goal",
+     "why": "What the person mainly wants (e.g. temporary protection vs lifetime "
+            "cover with cash value). Used only to match product structures."},
+    {"key": "coverage_duration_pref", "label": "Preferred coverage length",
+     "why": "Temporary (a set number of years) vs lifetime. Used only to match "
+            "product structures, never to change the calculated need."},
+    {"key": "cash_value_interest", "label": "Interest in cash value",
+     "why": "Whether the person wants potential cash-value growth. Used only to "
+            "distinguish term from permanent product structures."},
+    {"key": "market_exposure_pref", "label": "Cash-value growth style",
+     "why": "For permanent cover with cash value: index-linked vs investment "
+            "options. Used only to distinguish IUL from VUL product structures, "
+            "never to change the calculated need."},
+    {"key": "budget_comfort", "label": "Budget preference",
+     "why": "Whether lower cost is a priority. Context only; the matcher never "
+            "quotes a premium or confirms affordability."},
 ]
 
 _REQUIRED_KEYS = [f["key"] for f in PROFILE_FIELDS if f["required"]]
